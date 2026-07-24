@@ -292,6 +292,35 @@ def draw_options(pool: List[str], amount: int, excluded: List[str]) -> Tuple[Lis
     return random.sample(available, amount), None
 
 
+
+def command_token(value: str) -> str:
+    """Converte nomes para o formato simples usado no comando.
+
+    Ex.: "Parental Bond" -> "parentalbond".
+    Para Pokémon com formas/nomes especiais, o jogador pode ajustar manualmente no comando gerado.
+    """
+    return "".join(ch for ch in str(value).lower() if ch.isalnum())
+
+
+def pokegive_command(nickname: str, pokemon_name: str, ability_name: str) -> str:
+    return f"/pokegiveother {nickname} {command_token(pokemon_name)} ability={command_token(ability_name)}"
+
+
+def slot_label(index: int) -> str:
+    return f"Slot {index + 1}"
+
+
+def master_pending_label(player: Dict[str, Any]) -> str:
+    pending_type = player["pending"].get("type")
+    if pending_type == "pokemon":
+        return "Aguardando escolha de Pokémon"
+    if pending_type == "ability":
+        index = player["pending"].get("ability_for_index")
+        if isinstance(index, int):
+            return f"Aguardando ability para {slot_label(index)}"
+        return "Aguardando escolha de ability"
+    return "Pronto"
+
 def player_pending_label(player: Dict[str, Any]) -> str:
     pending_type = player["pending"].get("type")
     if pending_type == "pokemon":
@@ -329,6 +358,10 @@ def sorted_players(state: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
 def inject_helpers():
     return {
         "player_pending_label": player_pending_label,
+        "master_pending_label": master_pending_label,
+        "slot_label": slot_label,
+        "pokegive_command": pokegive_command,
+        "command_token": command_token,
         "player_can_draw_pokemon": player_can_draw_pokemon,
         "player_can_draw_ability": player_can_draw_ability,
         "master_key": MASTER_KEY,
@@ -551,8 +584,7 @@ def master_draw_ability():
     }
     save_state(state)
 
-    pokemon_name = player["pokemon_picks"][pokemon_index]["name"]
-    flash(f"3 abilities foram sorteadas para {pokemon_name} de {nickname}. Você não viu as opções.", "success")
+    flash(f"3 abilities foram sorteadas para {slot_label(pokemon_index)} de {nickname}. Você não viu as opções.", "success")
     return redirect(url_for("master_page", key=MASTER_KEY))
 
 

@@ -3,7 +3,7 @@
 {% block content %}
 <section class="card">
     <h1>Mestre cego</h1>
-    <p class="muted">Aqui você controla o andamento sem ver as opções sorteadas. Os jogadores recebem as opções em suas próprias páginas.</p>
+    <p class="muted">Aqui você controla o andamento sem ver as opções sorteadas e sem ver quais Pokémon cada jogador escolheu. Os jogadores recebem as opções nas próprias páginas.</p>
     <p>
         <span class="badge">Jogadores: {{ players|length }}</span>
         <span class="badge">Pokémon usados: {{ state.used_pokemon|length }}</span>
@@ -15,7 +15,7 @@
 {% if not players %}
     <section class="card">
         <h2>Nenhum jogador entrou ainda</h2>
-        <p class="muted">Peça para cada pessoa acessar a página inicial e criar a própria página com apelido.</p>
+        <p class="muted">Peça para cada pessoa acessar a página inicial e criar a própria página usando exatamente o nick do Minecraft.</p>
     </section>
 {% endif %}
 
@@ -25,14 +25,14 @@
         <h2>{{ player.nickname }}</h2>
         <p>
             <span class="badge">{{ player.pokemon_picks|length }}/{{ state.settings.max_pokemon }} Pokémon</span>
-            <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ player_pending_label(player) }}</span>
+            <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ master_pending_label(player) }}</span>
         </p>
 
         {% if player.pokemon_picks %}
             <ol class="small">
                 {% for pick in player.pokemon_picks %}
                     <li>
-                        <strong>{{ pick.name }}</strong>
+                        <strong>{{ slot_label(loop.index0) }}</strong>
                         {% if pick.ability %}
                             — ability escolhida
                         {% else %}
@@ -42,7 +42,7 @@
                 {% endfor %}
             </ol>
         {% else %}
-            <p class="muted small">Nenhum Pokémon escolhido.</p>
+            <p class="muted small">Nenhum slot escolhido ainda.</p>
         {% endif %}
 
         <div class="hr"></div>
@@ -58,13 +58,14 @@
         {% if player.pokemon_picks|length > 0 %}
             <div class="hr"></div>
             <h3>Sortear ability</h3>
+            <p class="muted small">Os nomes dos Pokémon ficam ocultos aqui de propósito. Sorteie pela posição do slot.</p>
             <div class="actions">
                 {% for pick in player.pokemon_picks %}
                     <form method="post" action="{{ url_for('master_draw_ability') }}">
                         <input type="hidden" name="key" value="{{ key }}">
                         <input type="hidden" name="player_id" value="{{ player_id }}">
                         <input type="hidden" name="pokemon_index" value="{{ loop.index0 }}">
-                        <button class="secondary" type="submit" {% if player.pending.type or pick.ability %}disabled{% endif %}>{{ pick.name }}</button>
+                        <button class="secondary" type="submit" {% if player.pending.type or pick.ability %}disabled{% endif %}>Sortear {{ slot_label(loop.index0) }}</button>
                     </form>
                 {% endfor %}
             </div>

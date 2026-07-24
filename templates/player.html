@@ -8,6 +8,7 @@
         <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ player_pending_label(player) }}</span>
     </p>
     <p class="small muted">Seu link privado: <span class="url-box">{{ request.url }}</span></p>
+    <p class="small muted">Este apelido deve ser exatamente o seu nick do Minecraft, pois ele será usado nos comandos gerados.</p>
 </section>
 
 <section class="grid">
@@ -20,6 +21,9 @@
                         <strong>{{ pick.name }}</strong>
                         {% if pick.ability %}
                             — {{ pick.ability }}
+                            <div class="command-box">
+                                <code>{{ pokegive_command(player.nickname, pick.name, pick.ability) }}</code>
+                            </div>
                         {% else %}
                             <span class="muted">— ability pendente</span>
                         {% endif %}
@@ -61,4 +65,21 @@
         {% endif %}
     </div>
 </section>
+
+{% if player.pokemon_picks %}
+<section class="card">
+    <h2>Comandos prontos</h2>
+    <p class="muted">Quando Pokémon e ability estiverem definidos, o comando aparece aqui para copiar. Confira manualmente nomes com formas especiais, se houver.</p>
+    {% for pick in player.pokemon_picks %}
+        {% if pick.ability %}
+            <div class="command-row">
+                <div>
+                    <strong>{{ pick.name }}</strong>
+                    <div class="command-box"><code>{{ pokegive_command(player.nickname, pick.name, pick.ability) }}</code></div>
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+</section>
+{% endif %}
 {% endblock %}

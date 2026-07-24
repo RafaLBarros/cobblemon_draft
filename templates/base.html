@@ -151,6 +151,24 @@
             overflow-wrap: anywhere;
             max-width: 100%;
         }
+        code {
+            font-family: Consolas, Monaco, "Courier New", monospace;
+            font-size: 14px;
+        }
+        .command-box {
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #111118;
+            border: 1px solid var(--border);
+            overflow-wrap: anywhere;
+            user-select: all;
+        }
+        .command-row {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .command-row:last-child { border-bottom: 0; }
         @media (max-width: 680px) {
             .topbar { align-items: flex-start; flex-direction: column; }
             .container { padding: 20px 12px 36px; }

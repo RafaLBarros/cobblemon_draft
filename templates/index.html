@@ -3,11 +3,11 @@
 {% block content %}
 <section class="card">
     <h1>Entrar no draft</h1>
-    <p class="muted">Digite seu apelido para criar sua página de jogador. Depois disso, salve o link gerado, porque ele usa um número único no endereço.</p>
+    <p class="muted">Digite exatamente o seu nick do Minecraft para criar sua página de jogador. Esse nome será usado para gerar os comandos <code>/pokegiveother</code>. Depois disso, salve o link gerado, porque ele usa um número único no endereço.</p>
 
     <form method="post" action="{{ url_for('join') }}">
-        <label for="nickname">Apelido</label><br><br>
-        <input id="nickname" name="nickname" type="text" placeholder="Ex: Rafael" required autofocus>
+        <label for="nickname">Nick exato do Minecraft</label><br><br>
+        <input id="nickname" name="nickname" type="text" placeholder="Ex: Kl1gh" required autofocus>
         <br><br>
         <button type="submit">Criar minha página</button>
     </form>
@@ -16,6 +16,6 @@
 <section class="card">
     <h2>Como funciona</h2>
     <p>Você só verá suas próprias opções. Quando o organizador sortear algo para você, sua página atualiza sozinha e mostra as 3 opções para escolha.</p>
-    <p class="muted small">Guarde o link gerado depois de entrar, porque ele será sua página durante o draft.</p>
+    <p class="muted small">Guarde o link gerado depois de entrar, porque ele será sua página durante o draft. Não use apelido diferente do nick do Minecraft.</p>
 </section>
 {% endblock %}

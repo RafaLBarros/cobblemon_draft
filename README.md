@@ -4,7 +4,7 @@ Site simples em Flask para campeonato randomizer de Cobblemon.
 
 ## O que ele faz
 
-- Jogadores entram com apelido e recebem uma URL numérica única, como `/p/1234567890`.
+- Jogadores entram com o **nick exato do Minecraft** e recebem uma URL numérica única, como `/p/1234567890`.
 - A URL do jogador não usa o apelido, então ninguém troca `/miguel` por `/luciano` para ver outro draft.
 - A página inicial não mostra botões/links para Mestre ou Admin.
 - Mestre cego sorteia 3 Pokémon para um jogador sem ver as opções.
@@ -12,8 +12,21 @@ Site simples em Flask para campeonato randomizer de Cobblemon.
 - Jogador escolhe 1 Pokémon.
 - O Pokémon escolhido é travado globalmente e não aparece mais para ninguém.
 - A página do Mestre atualiza automaticamente quando o jogador escolhe.
-- Mestre cego sorteia 3 abilities para um Pokémon sem ver as opções.
+- No Mestre cego, os Pokémon escolhidos aparecem apenas como **Slot 1**, **Slot 2**, etc.; o Mestre não vê nomes de Pokémon.
+- Mestre cego sorteia 3 abilities para um slot sem ver as opções nem o nome do Pokémon daquele slot.
 - Jogador escolhe 1 ability.
+- Quando Pokémon + ability estiverem prontos, a página do jogador gera o comando:
+
+```text
+/pokegiveother NickDoMinecraft pokemon ability=abilitysempaco
+```
+
+Exemplo:
+
+```text
+/pokegiveother Kl1gh abra ability=parentalbond
+```
+
 - Admin completo pode auditar tudo, ver links dos jogadores, limpar pendências, remover último Pokémon e resetar.
 
 ## Rodando
@@ -118,6 +131,16 @@ $env:DRAFT_ADMIN_KEY="minha-chave-admin"
 python app.py
 ```
 
+## Observações sobre comandos
+
+O gerador transforma nomes em minúsculo e remove espaços/pontuação:
+
+- `Parental Bond` vira `parentalbond`
+- `Magic Guard` vira `magicguard`
+- `Abra` vira `abra`
+
+Para Pokémon com formas especiais, talvez seja necessário ajustar manualmente o nome no comando conforme o Cobbleverse reconhecer.
+
 ## Observações de segurança
 
 Isso não é autenticação real, mas melhora bastante para o uso de campeonato entre amigos:
@@ -126,5 +149,6 @@ Isso não é autenticação real, mas melhora bastante para o uso de campeonato 
 - A página bloqueada não revela as chaves padrão.
 - Jogadores acessam por ID numérico em vez de apelido.
 - Apelidos repetidos não reutilizam nem revelam o link existente.
+- O Mestre cego não vê nomes de Pokémon, nem opções de Pokémon/ability sorteadas.
 
 Se alguém tiver acesso ao Admin, essa pessoa consegue ver tudo.

@@ -1,0 +1,76 @@
+{
+  "created_at": "2026-07-24 00:00:00",
+  "updated_at": "2026-07-24 04:58:57",
+  "version": 20,
+  "used_pokemon": [
+    "Clefable",
+    "Ceruledge",
+    "Goodra",
+    "Bellibolt",
+    "Sneasler",
+    "Blaziken",
+    "Lucario"
+  ],
+  "players": {
+    "0806534975": {
+      "player_id": "0806534975",
+      "nickname": "HHShiro",
+      "created_at": "2026-07-24 04:42:01",
+      "pokemon_picks": [
+        {
+          "name": "Clefable",
+          "ability": "Delta Stream"
+        },
+        {
+          "name": "Ceruledge",
+          "ability": null
+        },
+        {
+          "name": "Goodra",
+          "ability": null
+        },
+        {
+          "name": "Bellibolt",
+          "ability": null
+        },
+        {
+          "name": "Sneasler",
+          "ability": null
+        },
+        {
+          "name": "Blaziken",
+          "ability": null
+        }
+      ],
+      "pending": {
+        "type": null,
+        "pokemon_options": [],
+        "ability_for_index": null,
+        "ability_options": []
+      }
+    },
+    "8931489101": {
+      "player_id": "8931489101",
+      "nickname": "KL1gh",
+      "created_at": "2026-07-24 04:56:10",
+      "pokemon_picks": [
+        {
+          "name": "Lucario",
+          "ability": "Wonder Guard"
+        }
+      ],
+      "pending": {
+        "type": null,
+        "pokemon_options": [],
+        "ability_for_index": null,
+        "ability_options": []
+      }
+    }
+  },
+  "settings": {
+    "max_pokemon": 6,
+    "options_per_draw": 3,
+    "lock_chosen_pokemon_globally": true,
+    "lock_abilities_globally": false
+  }
+}
