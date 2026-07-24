@@ -15,6 +15,7 @@
             --accent-2: #a78bfa;
             --danger: #ef4444;
             --success: #22c55e;
+            --warning: #f59e0b;
             --border: #363646;
         }
         * { box-sizing: border-box; }
@@ -27,7 +28,7 @@
         a { color: var(--accent-2); text-decoration: none; }
         a:hover { text-decoration: underline; }
         .container {
-            max-width: 1040px;
+            width: min(1040px, 100%);
             margin: 0 auto;
             padding: 28px 16px 48px;
         }
@@ -42,11 +43,14 @@
             font-weight: 700;
             letter-spacing: .2px;
         }
-        .nav {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            font-size: 14px;
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: var(--success);
+            display: inline-block;
+            margin-right: 6px;
+            vertical-align: middle;
         }
         .card {
             background: rgba(26, 26, 35, .94);
@@ -61,44 +65,37 @@
             gap: 16px;
         }
         h1, h2, h3 { margin-top: 0; }
-        h1 { font-size: 30px; margin-bottom: 10px; }
+        h1 { font-size: clamp(24px, 5vw, 30px); margin-bottom: 10px; }
         h2 { font-size: 20px; }
         h3 { font-size: 17px; }
         p { line-height: 1.5; }
         .muted { color: var(--muted); }
         .badge {
             display: inline-block;
-            padding: 4px 8px;
-            background: #30284e;
-            color: #ddd6fe;
-            border: 1px solid #514176;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
             border-radius: 999px;
-            font-size: 13px;
+            padding: 5px 9px;
             margin: 2px 4px 2px 0;
+            font-size: 13px;
+            color: #ddd6fe;
         }
-        .badge.warning { background: #3f3014; color: #fde68a; border-color: #7c5b18; }
-        .badge.success { background: #10351f; color: #bbf7d0; border-color: #1f7a3b; }
-        .badge.danger { background: #41191d; color: #fecdd3; border-color: #7f1d1d; }
-        input, button, select {
-            font: inherit;
-        }
-        input[type="text"], input[type="password"] {
-            width: 100%;
-            padding: 12px 14px;
+        .badge.success { border-color: #166534; color: #bbf7d0; }
+        .badge.warning { border-color: #92400e; color: #fed7aa; }
+        input, button, .button {
             border-radius: 10px;
             border: 1px solid var(--border);
-            color: var(--text);
-            background: #11111a;
-            outline: none;
+            padding: 10px 12px;
+            font-size: 16px;
+            max-width: 100%;
         }
-        input[type="text"]:focus, input[type="password"]:focus {
-            border-color: var(--accent);
+        input {
+            background: #111118;
+            color: var(--text);
+            width: min(360px, 100%);
         }
         button, .button {
             display: inline-block;
-            padding: 10px 14px;
-            border: 0;
-            border-radius: 10px;
             background: var(--accent);
             color: white;
             cursor: pointer;
@@ -106,7 +103,7 @@
             font-weight: 600;
         }
         button:hover, .button:hover { filter: brightness(1.08); text-decoration: none; }
-        button.secondary { background: var(--panel-2); border: 1px solid var(--border); }
+        button.secondary, .button.secondary { background: var(--panel-2); border: 1px solid var(--border); }
         button.danger { background: var(--danger); }
         button:disabled { opacity: .45; cursor: not-allowed; }
         form.inline { display: inline; }
@@ -140,12 +137,28 @@
         }
         th { color: #ddd6fe; font-size: 14px; }
         ol, ul { padding-left: 22px; }
-        li { margin: 6px 0; }
+        li { margin: 6px 0; overflow-wrap: anywhere; }
         .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .actions form { max-width: 100%; }
         .small { font-size: 13px; }
         .hr { border-top: 1px solid var(--border); margin: 16px 0; }
+        .url-box {
+            display: inline-block;
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: #111118;
+            border: 1px solid var(--border);
+            overflow-wrap: anywhere;
+            max-width: 100%;
+        }
         @media (max-width: 680px) {
             .topbar { align-items: flex-start; flex-direction: column; }
+            .container { padding: 20px 12px 36px; }
+            .card { padding: 14px; border-radius: 14px; }
+            .grid { grid-template-columns: 1fr; gap: 10px; }
+            button, .button { width: 100%; }
+            .actions { flex-direction: column; align-items: stretch; }
+            .actions form { width: 100%; }
             table, thead, tbody, th, td, tr { display: block; }
             th { display: none; }
             td { border-bottom: 0; padding: 6px 0; }
@@ -157,11 +170,9 @@
     <main class="container">
         <div class="topbar">
             <div class="brand">Cobblemon Random Draft</div>
-            <div class="nav">
-                <a href="{{ url_for('index') }}">Entrada</a>
-                <a href="{{ url_for('master_page', key=master_key) }}">Mestre cego</a>
-                <a href="{{ url_for('admin_page', key=admin_key) }}">Admin</a>
-            </div>
+            {% if auto_refresh %}
+                <div class="small muted"><span class="status-dot"></span>Atualização automática</div>
+            {% endif %}
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -174,5 +185,33 @@
 
         {% block content %}{% endblock %}
     </main>
+
+    {% if auto_refresh %}
+    <script>
+        (() => {
+            const initialVersion = Number({{ state_version|default(0)|tojson }});
+            let currentVersion = initialVersion;
+            let isReloading = false;
+
+            async function checkForUpdates() {
+                if (isReloading || document.hidden) return;
+                try {
+                    const response = await fetch("{{ url_for('state_version') }}", { cache: "no-store" });
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    const nextVersion = Number(data.version || 0);
+                    if (nextVersion > currentVersion) {
+                        isReloading = true;
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    // Se o servidor cair por um instante, apenas tenta novamente no próximo ciclo.
+                }
+            }
+
+            setInterval(checkForUpdates, 1500);
+        })();
+    </script>
+    {% endif %}
 </body>
 </html>

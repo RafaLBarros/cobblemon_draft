@@ -17,10 +17,14 @@
     {% if not players %}
         <p class="muted">Nenhum jogador cadastrado.</p>
     {% else %}
-        {% for nickname, player in players.items() %}
+        {% for player_id, player in players.items() %}
             <div class="card">
-                <h3>{{ nickname }}</h3>
-                <p><span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ player_pending_label(player) }}</span></p>
+                <h3>{{ player.nickname }}</h3>
+                <p>
+                    <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ player_pending_label(player) }}</span>
+                    <span class="badge">ID: {{ player_id }}</span>
+                </p>
+                <p class="small muted">Link do jogador: <span class="url-box">{{ request.host_url.rstrip('/') }}{{ url_for('player_page', player_id=player_id) }}</span></p>
 
                 <ol>
                     {% for pick in player.pokemon_picks %}
@@ -39,12 +43,12 @@
                 <div class="actions">
                     <form method="post" action="{{ url_for('admin_clear_pending') }}">
                         <input type="hidden" name="key" value="{{ key }}">
-                        <input type="hidden" name="nickname" value="{{ nickname }}">
+                        <input type="hidden" name="player_id" value="{{ player_id }}">
                         <button class="secondary" type="submit">Limpar pendência</button>
                     </form>
                     <form method="post" action="{{ url_for('admin_remove_last_pick') }}">
                         <input type="hidden" name="key" value="{{ key }}">
-                        <input type="hidden" name="nickname" value="{{ nickname }}">
+                        <input type="hidden" name="player_id" value="{{ player_id }}">
                         <button class="danger" type="submit">Remover último Pokémon</button>
                     </form>
                 </div>

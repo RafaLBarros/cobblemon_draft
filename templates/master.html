@@ -3,8 +3,9 @@
 {% block content %}
 <section class="card">
     <h1>Mestre cego</h1>
-    <p class="muted">Aqui você controla o andamento sem ver as opções sorteadas. Use esta página para organizar e ainda jogar junto.</p>
+    <p class="muted">Aqui você controla o andamento sem ver as opções sorteadas. Os jogadores recebem as opções em suas próprias páginas.</p>
     <p>
+        <span class="badge">Jogadores: {{ players|length }}</span>
         <span class="badge">Pokémon usados: {{ state.used_pokemon|length }}</span>
         <span class="badge">Máximo por jogador: {{ state.settings.max_pokemon }}</span>
         <span class="badge">Opções por sorteio: {{ state.settings.options_per_draw }}</span>
@@ -14,14 +15,14 @@
 {% if not players %}
     <section class="card">
         <h2>Nenhum jogador entrou ainda</h2>
-        <p class="muted">Peça para cada pessoa acessar a página inicial e entrar com apelido.</p>
+        <p class="muted">Peça para cada pessoa acessar a página inicial e criar a própria página com apelido.</p>
     </section>
 {% endif %}
 
 <section class="grid">
-{% for nickname, player in players.items() %}
+{% for player_id, player in players.items() %}
     <div class="card">
-        <h2>{{ nickname }}</h2>
+        <h2>{{ player.nickname }}</h2>
         <p>
             <span class="badge">{{ player.pokemon_picks|length }}/{{ state.settings.max_pokemon }} Pokémon</span>
             <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ player_pending_label(player) }}</span>
@@ -49,7 +50,7 @@
         <div class="actions">
             <form method="post" action="{{ url_for('master_draw_pokemon') }}">
                 <input type="hidden" name="key" value="{{ key }}">
-                <input type="hidden" name="nickname" value="{{ nickname }}">
+                <input type="hidden" name="player_id" value="{{ player_id }}">
                 <button type="submit" {% if not player_can_draw_pokemon(player, state) %}disabled{% endif %}>Sortear 3 Pokémon</button>
             </form>
         </div>
@@ -61,7 +62,7 @@
                 {% for pick in player.pokemon_picks %}
                     <form method="post" action="{{ url_for('master_draw_ability') }}">
                         <input type="hidden" name="key" value="{{ key }}">
-                        <input type="hidden" name="nickname" value="{{ nickname }}">
+                        <input type="hidden" name="player_id" value="{{ player_id }}">
                         <input type="hidden" name="pokemon_index" value="{{ loop.index0 }}">
                         <button class="secondary" type="submit" {% if player.pending.type or pick.ability %}disabled{% endif %}>{{ pick.name }}</button>
                     </form>

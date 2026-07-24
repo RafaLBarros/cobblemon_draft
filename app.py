@@ -27,10 +27,15 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
 
 
+def now_text() -> str:
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
 def default_state() -> Dict[str, Any]:
     return {
         "created_at": now_text(),
         "updated_at": now_text(),
+        "version": 0,
         "used_pokemon": [],
         "players": {},
         "settings": {
@@ -42,8 +47,21 @@ def default_state() -> Dict[str, Any]:
     }
 
 
-def now_text() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+def empty_pending() -> Dict[str, Any]:
+    return {
+        "type": None,
+        "pokemon_options": [],
+        "ability_for_index": None,
+        "ability_options": [],
+    }
+
+
+def generate_player_id(existing_ids: set[str]) -> str:
+    """Gera um ID numérico para URL, evitando /player/Rafael ou algo adivinhável."""
+    while True:
+        player_id = "".join(random.choice("0123456789") for _ in range(10))
+        if player_id not in existing_ids:
+            return player_id
 
 
 def ensure_files_exist() -> None:
@@ -125,12 +143,75 @@ def load_pool(pool_file: Path, banlist_file: Path) -> List[str]:
     return [item for item in pool if item.lower() not in banlist]
 
 
+def normalize_player(player_id: str, player: Dict[str, Any]) -> Dict[str, Any]:
+    nickname = str(player.get("nickname") or player_id).strip() or player_id
+    player["player_id"] = str(player.get("player_id") or player_id)
+    player["nickname"] = nickname
+    player.setdefault("created_at", now_text())
+    player.setdefault("pokemon_picks", [])
+    player.setdefault("pending", empty_pending())
+
+    pending = player["pending"]
+    pending.setdefault("type", None)
+    pending.setdefault("pokemon_options", [])
+    pending.setdefault("ability_for_index", None)
+    pending.setdefault("ability_options", [])
+
+    fixed_picks = []
+    for pick in player["pokemon_picks"]:
+        if isinstance(pick, str):
+            fixed_picks.append({"name": pick, "ability": None})
+        else:
+            pick.setdefault("name", "Pokémon")
+            pick.setdefault("ability", None)
+            fixed_picks.append(pick)
+    player["pokemon_picks"] = fixed_picks
+    return player
+
+
+def migrate_state_shape(state: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:
+    changed = False
+    state.setdefault("used_pokemon", [])
+    state.setdefault("players", {})
+    state.setdefault("settings", default_state()["settings"])
+    state.setdefault("version", 0)
+
+    players = state.get("players", {})
+    new_players: Dict[str, Any] = {}
+    existing_ids = set()
+
+    for old_key, raw_player in players.items():
+        if not isinstance(raw_player, dict):
+            continue
+
+        raw_id = str(raw_player.get("player_id") or "")
+        if raw_id.isdigit() and len(raw_id) >= 6 and raw_id not in existing_ids:
+            player_id = raw_id
+        elif str(old_key).isdigit() and len(str(old_key)) >= 6 and str(old_key) not in existing_ids:
+            player_id = str(old_key)
+        else:
+            player_id = generate_player_id(existing_ids)
+            changed = True
+
+        existing_ids.add(player_id)
+        player = normalize_player(player_id, raw_player)
+        if old_key != player_id:
+            changed = True
+        new_players[player_id] = player
+
+    if new_players != players:
+        state["players"] = new_players
+        changed = True
+
+    return state, changed
+
+
 def load_state() -> Dict[str, Any]:
     ensure_files_exist()
 
     if not STATE_FILE.exists():
         state = default_state()
-        save_state(state)
+        write_state(state, increment_version=False)
         return state
 
     try:
@@ -139,73 +220,65 @@ def load_state() -> Dict[str, Any]:
         backup = BASE_DIR / f"draft_state_broken_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         STATE_FILE.rename(backup)
         state = default_state()
-        save_state(state)
+        write_state(state, increment_version=False)
         return state
 
-    state.setdefault("used_pokemon", [])
-    state.setdefault("players", {})
-    state.setdefault("settings", default_state()["settings"])
+    state, changed = migrate_state_shape(state)
+    if changed:
+        write_state(state, increment_version=True)
     return state
 
 
-def save_state(state: Dict[str, Any]) -> None:
+def write_state(state: Dict[str, Any], increment_version: bool = True) -> None:
+    if increment_version:
+        state["version"] = int(state.get("version", 0)) + 1
     state["updated_at"] = now_text()
     STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def empty_pending() -> Dict[str, Any]:
-    return {
-        "type": None,
-        "pokemon_options": [],
-        "ability_for_index": None,
-        "ability_options": [],
+def save_state(state: Dict[str, Any]) -> None:
+    write_state(state, increment_version=True)
+
+
+def get_player_by_id(state: Dict[str, Any], player_id: str) -> Optional[Dict[str, Any]]:
+    player = state.get("players", {}).get(str(player_id))
+    if not isinstance(player, dict):
+        return None
+    return normalize_player(str(player_id), player)
+
+
+def find_player_id_by_nickname(state: Dict[str, Any], nickname: str) -> Optional[str]:
+    wanted = nickname.strip().lower()
+    for player_id, player in state.get("players", {}).items():
+        if str(player.get("nickname", "")).strip().lower() == wanted:
+            return str(player_id)
+    return None
+
+
+def create_player(state: Dict[str, Any], nickname: str) -> Dict[str, Any]:
+    player_id = generate_player_id(set(state.setdefault("players", {}).keys()))
+    player = {
+        "player_id": player_id,
+        "nickname": nickname,
+        "created_at": now_text(),
+        "pokemon_picks": [],
+        "pending": empty_pending(),
     }
-
-
-def get_player(state: Dict[str, Any], nickname: str) -> Dict[str, Any]:
-    players = state.setdefault("players", {})
-
-    if nickname not in players:
-        players[nickname] = {
-            "nickname": nickname,
-            "created_at": now_text(),
-            "pokemon_picks": [],
-            "pending": empty_pending(),
-        }
-
-    player = players[nickname]
-    player.setdefault("nickname", nickname)
-    player.setdefault("pokemon_picks", [])
-    player.setdefault("pending", empty_pending())
-    player["pending"].setdefault("type", None)
-    player["pending"].setdefault("pokemon_options", [])
-    player["pending"].setdefault("ability_for_index", None)
-    player["pending"].setdefault("ability_options", [])
-
-    # Migração defensiva caso algum Pokémon antigo esteja salvo como string.
-    fixed_picks = []
-    for pick in player["pokemon_picks"]:
-        if isinstance(pick, str):
-            fixed_picks.append({"name": pick, "ability": None})
-        else:
-            pick.setdefault("ability", None)
-            fixed_picks.append(pick)
-    player["pokemon_picks"] = fixed_picks
-
+    state["players"][player_id] = player
     return player
 
 
 def require_master() -> Optional[Any]:
     key = request.args.get("key") or request.form.get("key")
     if key != MASTER_KEY:
-        return render_template("locked.html", title="Mestre", key_name="DRAFT_MASTER_KEY", default_key=MASTER_KEY), 403
+        return render_template("locked.html", title="Mestre"), 403
     return None
 
 
 def require_admin() -> Optional[Any]:
     key = request.args.get("key") or request.form.get("key")
     if key != ADMIN_KEY:
-        return render_template("locked.html", title="Admin", key_name="DRAFT_ADMIN_KEY", default_key=ADMIN_KEY), 403
+        return render_template("locked.html", title="Admin"), 403
     return None
 
 
@@ -243,17 +316,18 @@ def player_can_draw_ability(player: Dict[str, Any]) -> bool:
     return player["pending"].get("type") is None and any(pick.get("ability") is None for pick in player["pokemon_picks"])
 
 
-def first_without_ability(player: Dict[str, Any]) -> Optional[int]:
-    for index, pick in enumerate(player["pokemon_picks"]):
-        if pick.get("ability") is None:
-            return index
-    return None
+def sorted_players(state: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    return dict(
+        sorted(
+            state.get("players", {}).items(),
+            key=lambda item: str(item[1].get("created_at", "")),
+        )
+    )
 
 
 @app.context_processor
 def inject_helpers():
     return {
-        "max_pokemon_default": MAX_POKEMON,
         "player_pending_label": player_pending_label,
         "player_can_draw_pokemon": player_can_draw_pokemon,
         "player_can_draw_ability": player_can_draw_ability,
@@ -275,42 +349,50 @@ def join():
         return redirect(url_for("index"))
 
     state = load_state()
-    get_player(state, nickname)
+    existing_id = find_player_id_by_nickname(state, nickname)
+    if existing_id:
+        flash("Esse apelido já está cadastrado. Use o link que foi gerado para esse jogador ou peça ajuda no Admin.", "error")
+        return redirect(url_for("index"))
+
+    player = create_player(state, nickname)
     save_state(state)
+    return redirect(url_for("player_page", player_id=player["player_id"]))
 
-    return redirect(url_for("player_page", nickname=nickname))
 
-
-@app.route("/player/<nickname>", methods=["GET"])
-def player_page(nickname: str):
+@app.route("/p/<player_id>", methods=["GET"])
+def player_page(player_id: str):
     state = load_state()
-    player = get_player(state, nickname)
-    save_state(state)
+    player = get_player_by_id(state, player_id)
+    if not player:
+        return render_template("locked.html", title="Jogador"), 404
 
-    return render_template("player.html", state=state, player=player)
+    return render_template("player.html", state=state, player=player, auto_refresh=True, state_version=state.get("version", 0))
 
 
 @app.route("/choose-pokemon", methods=["POST"])
 def choose_pokemon():
-    nickname = request.form.get("nickname", "").strip()
+    player_id = request.form.get("player_id", "").strip()
     chosen = request.form.get("pokemon", "").strip()
 
     state = load_state()
-    player = get_player(state, nickname)
-    pending = player["pending"]
+    player = get_player_by_id(state, player_id)
+    if not player:
+        flash("Jogador não encontrado.", "error")
+        return redirect(url_for("index"))
 
+    pending = player["pending"]
     if pending.get("type") != "pokemon":
         flash("Você não tem escolha de Pokémon pendente.", "error")
-        return redirect(url_for("player_page", nickname=nickname))
+        return redirect(url_for("player_page", player_id=player_id))
 
     if chosen not in pending.get("pokemon_options", []):
         flash("Escolha inválida.", "error")
-        return redirect(url_for("player_page", nickname=nickname))
+        return redirect(url_for("player_page", player_id=player_id))
 
     used_lower = {name.lower() for name in state.get("used_pokemon", [])}
     if state["settings"].get("lock_chosen_pokemon_globally", True) and chosen.lower() in used_lower:
         flash("Esse Pokémon já foi travado por outro jogador. Peça para o mestre sortear novamente.", "error")
-        return redirect(url_for("player_page", nickname=nickname))
+        return redirect(url_for("player_page", player_id=player_id))
 
     player["pokemon_picks"].append({"name": chosen, "ability": None})
     player["pending"] = empty_pending()
@@ -320,32 +402,35 @@ def choose_pokemon():
 
     save_state(state)
     flash(f"{chosen} escolhido e travado no seu draft.", "success")
-    return redirect(url_for("player_page", nickname=nickname))
+    return redirect(url_for("player_page", player_id=player_id))
 
 
 @app.route("/choose-ability", methods=["POST"])
 def choose_ability():
-    nickname = request.form.get("nickname", "").strip()
+    player_id = request.form.get("player_id", "").strip()
     ability = request.form.get("ability", "").strip()
 
     state = load_state()
-    player = get_player(state, nickname)
-    pending = player["pending"]
+    player = get_player_by_id(state, player_id)
+    if not player:
+        flash("Jogador não encontrado.", "error")
+        return redirect(url_for("index"))
 
+    pending = player["pending"]
     if pending.get("type") != "ability":
         flash("Você não tem escolha de ability pendente.", "error")
-        return redirect(url_for("player_page", nickname=nickname))
+        return redirect(url_for("player_page", player_id=player_id))
 
     if ability not in pending.get("ability_options", []):
         flash("Escolha inválida.", "error")
-        return redirect(url_for("player_page", nickname=nickname))
+        return redirect(url_for("player_page", player_id=player_id))
 
     index = pending.get("ability_for_index")
     if not isinstance(index, int) or index < 0 or index >= len(player["pokemon_picks"]):
         flash("Índice do Pokémon inválido. Peça para o mestre sortear novamente.", "error")
         player["pending"] = empty_pending()
         save_state(state)
-        return redirect(url_for("player_page", nickname=nickname))
+        return redirect(url_for("player_page", player_id=player_id))
 
     player["pokemon_picks"][index]["ability"] = ability
     pokemon_name = player["pokemon_picks"][index]["name"]
@@ -353,7 +438,7 @@ def choose_ability():
 
     save_state(state)
     flash(f"{pokemon_name} recebeu {ability}.", "success")
-    return redirect(url_for("player_page", nickname=nickname))
+    return redirect(url_for("player_page", player_id=player_id))
 
 
 @app.route("/master", methods=["GET"])
@@ -363,9 +448,14 @@ def master_page():
         return locked
 
     state = load_state()
-    players = state.get("players", {})
-
-    return render_template("master.html", state=state, players=players, key=MASTER_KEY)
+    return render_template(
+        "master.html",
+        state=state,
+        players=sorted_players(state),
+        key=MASTER_KEY,
+        auto_refresh=True,
+        state_version=state.get("version", 0),
+    )
 
 
 @app.route("/master/draw-pokemon", methods=["POST"])
@@ -374,10 +464,14 @@ def master_draw_pokemon():
     if locked:
         return locked
 
-    nickname = request.form.get("nickname", "").strip()
+    player_id = request.form.get("player_id", "").strip()
     state = load_state()
-    player = get_player(state, nickname)
+    player = get_player_by_id(state, player_id)
+    if not player:
+        flash("Jogador não encontrado.", "error")
+        return redirect(url_for("master_page", key=MASTER_KEY))
 
+    nickname = player["nickname"]
     if player["pending"].get("type") is not None:
         flash(f"{nickname} já tem uma escolha pendente.", "error")
         return redirect(url_for("master_page", key=MASTER_KEY))
@@ -414,12 +508,16 @@ def master_draw_ability():
     if locked:
         return locked
 
-    nickname = request.form.get("nickname", "").strip()
+    player_id = request.form.get("player_id", "").strip()
     index_raw = request.form.get("pokemon_index", "")
 
     state = load_state()
-    player = get_player(state, nickname)
+    player = get_player_by_id(state, player_id)
+    if not player:
+        flash("Jogador não encontrado.", "error")
+        return redirect(url_for("master_page", key=MASTER_KEY))
 
+    nickname = player["nickname"]
     try:
         pokemon_index = int(index_raw)
     except ValueError:
@@ -468,10 +566,12 @@ def admin_page():
     return render_template(
         "admin.html",
         state=state,
-        players=state.get("players", {}),
+        players=sorted_players(state),
         pokemon_count=len(load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)),
         ability_count=len(load_pool(ABILITIES_FILE, ABILITIES_BANLIST_FILE)),
         key=ADMIN_KEY,
+        auto_refresh=True,
+        state_version=state.get("version", 0),
     )
 
 
@@ -481,13 +581,17 @@ def admin_clear_pending():
     if locked:
         return locked
 
-    nickname = request.form.get("nickname", "").strip()
+    player_id = request.form.get("player_id", "").strip()
     state = load_state()
-    player = get_player(state, nickname)
+    player = get_player_by_id(state, player_id)
+    if not player:
+        flash("Jogador não encontrado.", "error")
+        return redirect(url_for("admin_page", key=ADMIN_KEY))
+
     player["pending"] = empty_pending()
     save_state(state)
 
-    flash(f"Pendência de {nickname} limpa.", "success")
+    flash(f"Pendência de {player['nickname']} limpa.", "success")
     return redirect(url_for("admin_page", key=ADMIN_KEY))
 
 
@@ -497,9 +601,12 @@ def admin_remove_last_pick():
     if locked:
         return locked
 
-    nickname = request.form.get("nickname", "").strip()
+    player_id = request.form.get("player_id", "").strip()
     state = load_state()
-    player = get_player(state, nickname)
+    player = get_player_by_id(state, player_id)
+    if not player:
+        flash("Jogador não encontrado.", "error")
+        return redirect(url_for("admin_page", key=ADMIN_KEY))
 
     if not player["pokemon_picks"]:
         flash("Esse jogador não tem Pokémon para remover.", "error")
@@ -510,7 +617,7 @@ def admin_remove_last_pick():
     state["used_pokemon"] = [name for name in state.get("used_pokemon", []) if name.lower() != removed_name.lower()]
     save_state(state)
 
-    flash(f"Último Pokémon de {nickname} removido: {removed_name}.", "success")
+    flash(f"Último Pokémon de {player['nickname']} removido: {removed_name}.", "success")
     return redirect(url_for("admin_page", key=ADMIN_KEY))
 
 
@@ -540,6 +647,12 @@ def export_json():
     if key != ADMIN_KEY:
         return {"error": "Acesso negado"}, 403
     return load_state()
+
+
+@app.route("/state-version", methods=["GET"])
+def state_version():
+    state = load_state()
+    return {"version": state.get("version", 0)}
 
 
 if __name__ == "__main__":
