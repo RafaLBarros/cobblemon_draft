@@ -1,6 +1,293 @@
 {
   "flag_limits": {
-    "Lendario": 1
+    "Lendario": 1,
+    "UltraBeast": 1
   },
-  "pokemon_flags": {}
+  "pokemon_flags": {
+    "Pecharunt": [
+      "Lendario"
+    ],
+    "Terapagos": [
+      "Lendario"
+    ],
+    "Iron Crown": [
+      "Lendario"
+    ],
+    "Iron Boulder": [
+      "Lendario"
+    ],
+    "Raging Bolt": [
+      "Lendario"
+    ],
+    "Gouging Fire": [
+      "Lendario"
+    ],
+    "Ogerpon": [
+      "Lendario"
+    ],
+    "Fezandipiti": [
+      "Lendario"
+    ],
+    "Munkidori": [
+      "Lendario"
+    ],
+    "Okidogi": [
+      "Lendario"
+    ],
+    "Iron Leaves": [
+      "Lendario"
+    ],
+    "Walking Wake": [
+      "Lendario"
+    ],
+    "Miraidon": [
+      "Lendario"
+    ],
+    "Koraidon": [
+      "Lendario"
+    ],
+    "Chi-Yu": [
+      "Lendario"
+    ],
+    "Ting-Lu": [
+      "Lendario"
+    ],
+    "Chien-Pao": [
+      "Lendario"
+    ],
+    "Wo-Chien": [
+      "Lendario"
+    ],
+    "Enamorus": [
+      "Lendario"
+    ],
+    "Calyrex": [
+      "Lendario"
+    ],
+    "Spectrier": [
+      "Lendario"
+    ],
+    "Glastrier": [
+      "Lendario"
+    ],
+    "Zarude": [
+      "Lendario"
+    ],
+    "Eternatus": [
+      "Lendario"
+    ],
+    "Zamazenta": [
+      "Lendario"
+    ],
+    "Zacian": [
+      "Lendario"
+    ],
+    "Melmetal": [
+      "Lendario"
+    ],
+    "Meltan": [
+      "Lendario"
+    ],
+    "Zeraora": [
+      "Lendario"
+    ],
+    "Marshadow": [
+      "Lendario"
+    ],
+    "Magearna": [
+      "Lendario"
+    ],
+    "Necrozma": [
+      "Lendario"
+    ],
+    "Lunala": [
+      "Lendario"
+    ],
+    "Solgaleo": [
+      "Lendario"
+    ],
+    "Cosmoem": [
+      "Lendario"
+    ],
+    "Cosmog": [
+      "Lendario"
+    ],
+    "Tapu Fini": [
+      "Lendario"
+    ],
+    "Tapu Bulu": [
+      "Lendario"
+    ],
+    "Tapu Lele": [
+      "Lendario"
+    ],
+    "Tapu Koko": [
+      "Lendario"
+    ],
+    "Moltres": [
+      "Lendario"
+    ],
+    "Zapdos": [
+      "Lendario"
+    ],
+    "Articuno": [
+      "Lendario"
+    ],
+    "Mew": [
+      "Lendario"
+    ],
+    "Mewtwo": [
+      "Lendario"
+    ],
+    "Suicune": [
+      "Lendario"
+    ],
+    "Raikou": [
+      "Lendario"
+    ],
+    "Entei": [
+      "Lendario"
+    ],
+    "Lugia": [
+      "Lendario"
+    ],
+    "Ho-oh": [
+      "Lendario"
+    ],
+    "Celebi": [
+      "Lendario"
+    ],
+    "Regirock": [
+      "Lendario"
+    ],
+    "Regice": [
+      "Lendario"
+    ],
+    "Registeel": [
+      "Lendario"
+    ],
+    "Regigigas": [
+      "Lendario"
+    ],
+    "Regieleki": [
+      "Lendario"
+    ],
+    "Regidrago": [
+      "Lendario"
+    ],
+    "Latios": [
+      "Lendario"
+    ],
+    "Latias": [
+      "Lendario"
+    ],
+    "Rayquaza": [
+      "Lendario"
+    ],
+    "Kyogre": [
+      "Lendario"
+    ],
+    "Groudon": [
+      "Lendario"
+    ],
+    "Jirachi": [
+      "Lendario"
+    ],
+    "Deoxys": [
+      "Lendario"
+    ],
+    "Arceus": [
+      "Lendario"
+    ],
+    "Shaymin": [
+      "Lendario"
+    ],
+    "Darkrai": [
+      "Lendario"
+    ],
+    "Manaphy": [
+      "Lendario"
+    ],
+    "Phione": [
+      "Lendario"
+    ],
+    "Cresselia": [
+      "Lendario"
+    ],
+    "Giratina": [
+      "Lendario"
+    ],
+    "Heatran": [
+      "Lendario"
+    ],
+    "Palkia": [
+      "Lendario"
+    ],
+    "Dialga": [
+      "Lendario"
+    ],
+    "Azelf": [
+      "Lendario"
+    ],
+    "Mesprit": [
+      "Lendario"
+    ],
+    "Uxie": [
+      "Lendario"
+    ],
+    "Genesect": [
+      "Lendario"
+    ],
+    "Meloetta": [
+      "Lendario"
+    ],
+    "Keldeo": [
+      "Lendario"
+    ],
+    "Kyurem": [
+      "Lendario"
+    ],
+    "Landorus": [
+      "Lendario"
+    ],
+    "Zekrom": [
+      "Lendario"
+    ],
+    "Reshiram": [
+      "Lendario"
+    ],
+    "Thundurus": [
+      "Lendario"
+    ],
+    "Tornadus": [
+      "Lendario"
+    ],
+    "Virizion": [
+      "Lendario"
+    ],
+    "Terrakion": [
+      "Lendario"
+    ],
+    "Cobalion": [
+      "Lendario"
+    ],
+    "Volcanion": [
+      "Lendario"
+    ],
+    "Hoopa": [
+      "Lendario"
+    ],
+    "Diancie": [
+      "Lendario"
+    ],
+    "Zygarde": [
+      "Lendario"
+    ],
+    "Yveltal": [
+      "Lendario"
+    ],
+    "Xerneas": [
+      "Lendario"
+    ]
+  }
 }

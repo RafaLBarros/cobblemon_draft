@@ -1043,6 +1043,119 @@ def get_editor_payload(state: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def parse_flag_limits_text(flag_limits_text: str) -> Dict[str, int]:
+    limits: Dict[str, int] = {}
+    for raw_line in str(flag_limits_text or "").replace("\r\n", "\n").split("\n"):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" in line:
+            flag, value = line.split("=", 1)
+        elif ":" in line:
+            flag, value = line.split(":", 1)
+        else:
+            continue
+        flag = flag.strip()
+        if not flag:
+            continue
+        try:
+            limit = int(value.strip())
+        except ValueError:
+            continue
+        limits[flag] = max(0, limit)
+    return limits
+
+
+def normalize_pokemon_flags(raw_flags: Any, allowed_flags: Optional[List[str]] = None) -> Dict[str, List[str]]:
+    cleaned_flags: Dict[str, List[str]] = {}
+    if not isinstance(raw_flags, dict):
+        return cleaned_flags
+
+    pokemon_pool = load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+    canonical = {normalize_name_key(name): name for name in pokemon_pool}
+    allowed_map = {str(flag).strip().lower(): str(flag).strip() for flag in (allowed_flags or []) if str(flag).strip()}
+
+    for raw_pokemon, raw_flag_list in raw_flags.items():
+        key = normalize_name_key(raw_pokemon)
+        pokemon = canonical.get(key, str(raw_pokemon).strip())
+        if not pokemon:
+            continue
+        if isinstance(raw_flag_list, str):
+            raw_flag_list = [raw_flag_list]
+        if not isinstance(raw_flag_list, list):
+            continue
+        flags: List[str] = []
+        seen = set()
+        for raw_flag in raw_flag_list:
+            flag_key = str(raw_flag).strip().lower()
+            flag = allowed_map.get(flag_key, str(raw_flag).strip())
+            if flag and flag_key not in seen:
+                flags.append(flag)
+                seen.add(flag_key)
+        if flags:
+            cleaned_flags[pokemon] = flags
+
+    return cleaned_flags
+
+
+def ensure_flag_editor(state: Dict[str, Any]) -> Dict[str, Any]:
+    editor = state.setdefault("flag_editor", {})
+    if not isinstance(editor, dict):
+        editor = {}
+        state["flag_editor"] = editor
+
+    file_config = load_flag_config()
+
+    if not isinstance(editor.get("flag_limits"), dict):
+        editor["flag_limits"] = file_config.get("flag_limits", {"Lendario": 1})
+    else:
+        cleaned_limits = {}
+        for raw_flag, raw_limit in editor.get("flag_limits", {}).items():
+            flag = str(raw_flag).strip()
+            if not flag:
+                continue
+            try:
+                cleaned_limits[flag] = max(0, int(raw_limit))
+            except (TypeError, ValueError):
+                continue
+        editor["flag_limits"] = cleaned_limits or file_config.get("flag_limits", {"Lendario": 1})
+
+    if not isinstance(editor.get("pokemon_flags"), dict):
+        editor["pokemon_flags"] = file_config.get("pokemon_flags", {})
+    editor["pokemon_flags"] = normalize_pokemon_flags(editor.get("pokemon_flags"), list(editor["flag_limits"].keys()))
+
+    if not isinstance(editor.get("collaborators"), dict):
+        editor["collaborators"] = {}
+
+    editor.setdefault("version", 0)
+    editor.setdefault("updated_at", now_text())
+    return editor
+
+
+def touch_flag_editor(state: Dict[str, Any]) -> None:
+    editor = ensure_flag_editor(state)
+    editor["version"] = int(editor.get("version", 0)) + 1
+    editor["updated_at"] = now_text()
+
+
+def get_flag_editor_payload(state: Dict[str, Any]) -> Dict[str, Any]:
+    editor = ensure_flag_editor(state)
+    flag_config = {
+        "flag_limits": editor.get("flag_limits", {}),
+        "pokemon_flags": editor.get("pokemon_flags", {}),
+    }
+    return {
+        "version": int(editor.get("version", 0)),
+        "updated_at": editor.get("updated_at"),
+        "flag_limits": editor.get("flag_limits", {}),
+        "flag_limits_text": flag_limits_text(flag_config),
+        "available_flags": available_flags(flag_config),
+        "pokemon_flags": editor.get("pokemon_flags", {}),
+        "collaborators": editor.get("collaborators", {}),
+        "pokemon_pool": load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE),
+    }
+
+
 @app.route("/admin", methods=["GET"])
 def admin_page():
     locked = require_admin()
@@ -1051,6 +1164,7 @@ def admin_page():
 
     state = load_state()
     editor = ensure_group_editor(state)
+    flag_editor = ensure_flag_editor(state)
     return render_template(
         "admin.html",
         state=state,
@@ -1063,6 +1177,7 @@ def admin_page():
         flag_config=load_flag_config(),
         flag_limits_text=flag_limits_text(load_flag_config()),
         available_flags=available_flags(load_flag_config()),
+        flag_editor_payload=get_flag_editor_payload(state),
         key=ADMIN_KEY,
         auto_refresh=False,
         state_version=state.get("version", 0),
@@ -1243,6 +1358,166 @@ def admin_group_editor_update():
     touch_group_editor(state)
     save_state(state)
     return get_editor_payload(state)
+
+
+@app.route("/admin/flag-editor-state", methods=["GET"])
+def admin_flag_editor_state():
+    locked = require_admin()
+    if locked:
+        return {"error": "Acesso negado"}, 403
+
+    state = load_state()
+    ensure_flag_editor(state)
+    return get_flag_editor_payload(state)
+
+
+@app.route("/admin/flag-editor-update", methods=["POST"])
+def admin_flag_editor_update():
+    locked = require_admin()
+    if locked:
+        return {"error": "Acesso negado"}, 403
+
+    data = request.get_json(silent=True) or {}
+    action = str(data.get("action") or "").strip()
+    editor_id = str(data.get("editor_id") or "").strip()
+    editor_name = str(data.get("editor_name") or "").strip() or "Editor"
+
+    state = load_state()
+    editor = ensure_flag_editor(state)
+    collaborators = editor.setdefault("collaborators", {})
+
+    if editor_id:
+        collaborator = collaborators.setdefault(
+            editor_id,
+            {"name": editor_name, "active_flag": None, "selected": [], "updated_at": now_text()},
+        )
+        collaborator["name"] = editor_name
+        collaborator["updated_at"] = now_text()
+
+    limits = editor.get("flag_limits", {})
+    pokemon_flags = normalize_pokemon_flags(editor.get("pokemon_flags", {}), list(limits.keys()))
+    editor["pokemon_flags"] = pokemon_flags
+
+    if action == "identify":
+        active_flag = str(data.get("active_flag") or "").strip()
+        if editor_id and active_flag:
+            collaborators[editor_id]["active_flag"] = active_flag
+
+    elif action == "set_limits":
+        limits_text = str(data.get("flag_limits_text") or "")
+        parsed_limits = parse_flag_limits_text(limits_text)
+        if not parsed_limits:
+            return {"error": "Adicione pelo menos uma flag no formato Flag=quantidade."}, 400
+        editor["flag_limits"] = parsed_limits
+        allowed = list(parsed_limits.keys())
+        editor["pokemon_flags"] = normalize_pokemon_flags(editor.get("pokemon_flags", {}), allowed)
+        for collaborator in collaborators.values():
+            if collaborator.get("active_flag") not in allowed:
+                collaborator["active_flag"] = allowed[0] if allowed else None
+            collaborator["updated_at"] = now_text()
+
+    elif action == "select":
+        if not editor_id:
+            return {"error": "editor_id obrigatório"}, 400
+        active_flag = str(data.get("active_flag") or "").strip()
+        if active_flag not in editor.get("flag_limits", {}):
+            return {"error": "Flag inválida. Aplique os limites primeiro."}, 400
+        selected = data.get("selected", [])
+        if not isinstance(selected, list):
+            selected = []
+        collaborator = collaborators.setdefault(
+            editor_id,
+            {"name": editor_name, "active_flag": active_flag, "selected": [], "updated_at": now_text()},
+        )
+        collaborator["active_flag"] = active_flag
+        collaborator["selected"] = [str(item).strip() for item in selected if str(item).strip()]
+        collaborator["updated_at"] = now_text()
+
+    elif action == "clear_selection":
+        if not editor_id:
+            return {"error": "editor_id obrigatório"}, 400
+        collaborator = collaborators.setdefault(
+            editor_id,
+            {"name": editor_name, "active_flag": None, "selected": [], "updated_at": now_text()},
+        )
+        collaborator["selected"] = []
+        collaborator["updated_at"] = now_text()
+
+    elif action == "add_to_flag":
+        if not editor_id:
+            return {"error": "editor_id obrigatório"}, 400
+        active_flag = str(data.get("active_flag") or "").strip()
+        if active_flag not in editor.get("flag_limits", {}):
+            return {"error": "Flag inválida. Aplique os limites primeiro."}, 400
+        selected = data.get("selected", [])
+        if not isinstance(selected, list):
+            selected = []
+        pokemon_pool = load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+        canonical = {normalize_name_key(name): name for name in pokemon_pool}
+        changed_any = False
+        for raw_name in selected:
+            name = canonical.get(normalize_name_key(raw_name), str(raw_name).strip())
+            if not name:
+                continue
+            current = list(editor.setdefault("pokemon_flags", {}).get(name, []))
+            if active_flag not in current:
+                current.append(active_flag)
+                editor["pokemon_flags"][name] = current
+                changed_any = True
+        collaborator = collaborators.setdefault(
+            editor_id,
+            {"name": editor_name, "active_flag": active_flag, "selected": [], "updated_at": now_text()},
+        )
+        collaborator["active_flag"] = active_flag
+        collaborator["selected"] = []
+        collaborator["updated_at"] = now_text()
+        if not changed_any:
+            # Ainda sincroniza para limpar seleção e mostrar estado atualizado.
+            pass
+
+    elif action == "remove_flag":
+        pokemon = str(data.get("pokemon") or "").strip()
+        flag = str(data.get("flag") or "").strip()
+        if not pokemon or not flag:
+            return {"error": "Pokémon e flag são obrigatórios."}, 400
+        wanted = normalize_name_key(pokemon)
+        found_name = None
+        for configured_name in list(editor.get("pokemon_flags", {}).keys()):
+            if normalize_name_key(configured_name) == wanted:
+                found_name = configured_name
+                break
+        if found_name:
+            next_flags = [item for item in editor["pokemon_flags"].get(found_name, []) if str(item).lower() != flag.lower()]
+            if next_flags:
+                editor["pokemon_flags"][found_name] = next_flags
+            else:
+                editor["pokemon_flags"].pop(found_name, None)
+
+    elif action == "clear_flag":
+        flag = str(data.get("flag") or "").strip()
+        if not flag:
+            return {"error": "Flag obrigatória."}, 400
+        for pokemon in list(editor.get("pokemon_flags", {}).keys()):
+            next_flags = [item for item in editor["pokemon_flags"].get(pokemon, []) if str(item).lower() != flag.lower()]
+            if next_flags:
+                editor["pokemon_flags"][pokemon] = next_flags
+            else:
+                editor["pokemon_flags"].pop(pokemon, None)
+
+    elif action == "save_to_file":
+        config = {
+            "flag_limits": editor.get("flag_limits", {}),
+            "pokemon_flags": normalize_pokemon_flags(editor.get("pokemon_flags", {}), list(editor.get("flag_limits", {}).keys())),
+        }
+        editor["pokemon_flags"] = config["pokemon_flags"]
+        save_flag_config(config)
+
+    else:
+        return {"error": "Ação inválida."}, 400
+
+    touch_flag_editor(state)
+    save_state(state)
+    return get_flag_editor_payload(state)
 
 
 @app.route("/admin/save-flags", methods=["POST"])

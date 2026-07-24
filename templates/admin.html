@@ -107,12 +107,74 @@
     }
     .flag-check input { width: auto; }
     .export-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .flag-editor-layout {
+        display: grid;
+        grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr);
+        gap: 16px;
+        align-items: start;
+    }
+    .flag-config-box { margin-top: 14px; }
+    .flag-chip-saved {
+        box-shadow: inset 0 0 0 2px rgba(139, 92, 246, .35);
+    }
+    .flag-chip-saved::after {
+        content: " ✓";
+        color: #c4b5fd;
+    }
+    .flag-summary-card {
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #111118;
+        margin: 8px 0;
+    }
+    .flag-summary-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+    }
+    .flag-summary-title button {
+        width: auto;
+        padding: 7px 10px;
+        font-size: 13px;
+    }
+    .flag-pokemon-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 6px 4px 0;
+        padding: 5px 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--panel-2);
+        font-size: 13px;
+    }
+    .flag-pokemon-row button {
+        width: auto;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 12px;
+        line-height: 1.1;
+    }
+    select {
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        font-size: 16px;
+        max-width: 100%;
+        background: #111118;
+        color: var(--text);
+    }
     @media (max-width: 780px) {
-        .group-editor-layout { grid-template-columns: 1fr; }
+        .group-editor-layout, .flag-editor-layout { grid-template-columns: 1fr; }
         .chip-list { max-height: 320px; }
         .group-card, .collab-card { flex-direction: column; }
         .group-card button { width: 100%; }
-        .editor-name-row button { width: 100%; }
+        .editor-name-row button, .flag-summary-title button { width: 100%; }
     }
 </style>
 
@@ -190,50 +252,57 @@
 </section>
 
 <section class="card">
-    <h2>Flags e limites por jogador</h2>
-    <p class="muted">Marque flags nos Pokémon, como <strong>Lendario</strong>, <strong>Paradox</strong> ou qualquer outra categoria. Depois defina o limite por jogador. Quando o jogador atingir o limite, os próximos sorteios não trarão mais Pokémon daquela flag.</p>
+    <h2>Editor visual colaborativo de flags</h2>
+    <p class="muted">Marque flags nos Pokémon, como <strong>Lendario</strong>, <strong>Paradox</strong> ou qualquer outra categoria. Você e seu irmão podem editar juntos: cada um escolhe uma flag, seleciona Pokémon, e o outro vê a seleção em andamento.</p>
 
-    <form method="post" action="{{ url_for('admin_save_flags') }}">
-        <input type="hidden" name="key" value="{{ key }}">
+    <div class="editor-name-row">
+        <label for="flag-editor-name">Seu nome no editor de flags</label>
+        <input id="flag-editor-name" type="text" placeholder="Ex: Rafael">
+        <button id="save-flag-editor-name" class="secondary" type="button">Usar esse nome</button>
+        <button id="refresh-flags" class="secondary" type="button">Atualizar flags agora</button>
+    </div>
 
-        <label for="flag-limits"><strong>Limites</strong> — uma flag por linha, no formato <code>Flag=quantidade</code></label><br><br>
-        <textarea id="flag-limits" name="flag_limits" rows="5" spellcheck="false" style="width: 100%; box-sizing: border-box; font-family: monospace;">{{ flag_limits_text }}</textarea>
-        <p class="muted small">Exemplo: <code>Lendario=1</code>. Para criar uma nova flag, adicione uma linha aqui e salve; depois ela aparecerá como checkbox na lista.</p>
+    <div class="flag-config-box">
+        <label for="flag-limits-visual"><strong>Limites</strong> — uma flag por linha, no formato <code>Flag=quantidade</code></label><br><br>
+        <textarea id="flag-limits-visual" rows="5" spellcheck="false" style="width: 100%; box-sizing: border-box; font-family: monospace;">{{ flag_editor_payload.flag_limits_text }}</textarea>
+        <div class="group-editor-tools">
+            <button id="apply-flag-limits" type="button">Aplicar limites para todos</button>
+            <button id="save-flags-file" type="button">Salvar flags no JSON</button>
+        </div>
+        <p class="muted small">Exemplo: <code>Lendario=1</code>. Depois de aplicar, a flag aparece no seletor abaixo. O botão de salvar grava em <code>data/pokemon_flags.json</code>.</p>
+        <p id="flag-feedback" class="small muted saving-indicator" aria-live="polite"></p>
+    </div>
 
-        {% if available_flags %}
-            <div class="flag-table-wrapper">
-                <table class="flag-table">
-                    <thead>
-                        <tr>
-                            <th>Pokémon</th>
-                            <th>Flags</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for pokemon in pokemon_pool %}
-                            {% set current_flags = flag_config.pokemon_flags.get(pokemon, []) %}
-                            <tr>
-                                <td><strong>{{ pokemon }}</strong></td>
-                                <td>
-                                    {% for flag in available_flags %}
-                                        <label class="flag-check">
-                                            <input type="checkbox" name="flags__{{ pokemon }}" value="{{ flag }}" {% if flag in current_flags %}checked{% endif %}>
-                                            {{ flag }}
-                                        </label>
-                                    {% endfor %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <div class="flag-editor-layout">
+        <div>
+            <h3>Lista de Pokémon</h3>
+            <p class="muted small">Escolha a flag ativa, pesquise nomes e clique nos Pokémon para montar sua seleção. Os Pokémon selecionados por outra pessoa aparecem destacados.</p>
+            <div class="group-editor-tools">
+                <select id="active-flag-select" aria-label="Flag ativa"></select>
+                <input id="flag-pokemon-search" type="search" placeholder="Buscar Pokémon..." autocomplete="off">
+                <button id="clear-flag-selection" class="secondary" type="button">Limpar minha seleção</button>
             </div>
-        {% else %}
-            <p class="muted">Nenhuma flag configurada ainda. Adicione algo como <code>Lendario=1</code> e salve.</p>
-        {% endif %}
+            <div id="flag-chip-list" class="chip-list" aria-label="Lista de Pokémon para marcar flags"></div>
+        </div>
 
-        <br>
-        <button type="submit">Salvar flags e limites</button>
-    </form>
+        <div>
+            <h3>Minha seleção atual</h3>
+            <div id="flag-selected-tray" class="selected-tray">
+                <span class="muted small">Nenhum Pokémon selecionado.</span>
+            </div>
+            <div class="group-editor-tools">
+                <button id="add-to-flag" type="button">Adicionar selecionados à flag</button>
+            </div>
+
+            <div class="hr"></div>
+            <h3>Seleções de flags em andamento</h3>
+            <div id="flag-collaborators-list"></div>
+
+            <div class="hr"></div>
+            <h3>Flags já marcadas</h3>
+            <div id="saved-flags-list"></div>
+        </div>
+    </div>
 </section>
 
 <section class="card">
@@ -300,6 +369,398 @@
         <button class="danger" type="submit">Resetar tudo</button>
     </form>
 </section>
+
+
+<script>
+(() => {
+    const adminKey = {{ key|tojson }};
+    const stateUrl = {{ url_for('admin_flag_editor_state', key=key)|tojson }};
+    const updateUrl = {{ url_for('admin_flag_editor_update')|tojson }};
+    const initialPayload = {{ flag_editor_payload|tojson }};
+
+    let pokemonPool = initialPayload.pokemon_pool || [];
+    let flagLimits = initialPayload.flag_limits || {};
+    let availableFlags = initialPayload.available_flags || [];
+    let pokemonFlags = initialPayload.pokemon_flags || {};
+    let collaborators = initialPayload.collaborators || {};
+    let editorVersion = Number(initialPayload.version || 0);
+    let selected = [];
+    let isBusy = false;
+
+    const editorIdKey = "cobblemon_flag_editor_id";
+    const editorNameKey = "cobblemon_flag_editor_name";
+    const activeFlagKey = "cobblemon_flag_editor_active_flag";
+    const editorId = localStorage.getItem(editorIdKey) || String(Date.now()) + String(Math.floor(Math.random() * 100000));
+    localStorage.setItem(editorIdKey, editorId);
+
+    const nameInput = document.getElementById("flag-editor-name");
+    const saveNameButton = document.getElementById("save-flag-editor-name");
+    const refreshButton = document.getElementById("refresh-flags");
+    const limitsTextarea = document.getElementById("flag-limits-visual");
+    const applyLimitsButton = document.getElementById("apply-flag-limits");
+    const saveFileButton = document.getElementById("save-flags-file");
+    const activeSelect = document.getElementById("active-flag-select");
+    const searchInput = document.getElementById("flag-pokemon-search");
+    const chipList = document.getElementById("flag-chip-list");
+    const selectedTray = document.getElementById("flag-selected-tray");
+    const clearSelectionButton = document.getElementById("clear-flag-selection");
+    const addToFlagButton = document.getElementById("add-to-flag");
+    const collaboratorsList = document.getElementById("flag-collaborators-list");
+    const savedFlagsList = document.getElementById("saved-flags-list");
+    const feedback = document.getElementById("flag-feedback");
+
+    nameInput.value = localStorage.getItem(editorNameKey) || "";
+
+    function keyOf(value) {
+        return String(value || "").trim().toLowerCase();
+    }
+
+    function editorName() {
+        const name = nameInput.value.trim() || "Editor";
+        localStorage.setItem(editorNameKey, name);
+        return name;
+    }
+
+    function activeFlag() {
+        return activeSelect.value || availableFlags[0] || "";
+    }
+
+    function setActiveFlag(flag) {
+        if (flag) localStorage.setItem(activeFlagKey, flag);
+    }
+
+    function setFeedback(message, type = "muted") {
+        feedback.textContent = message;
+        feedback.className = `small ${type} saving-indicator`;
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function flagsForPokemon(pokemon) {
+        const wanted = keyOf(pokemon);
+        for (const [name, flags] of Object.entries(pokemonFlags || {})) {
+            if (keyOf(name) === wanted) return Array.isArray(flags) ? flags : [];
+        }
+        return [];
+    }
+
+    function savedHasFlag(pokemon, flag) {
+        return flagsForPokemon(pokemon).some(item => keyOf(item) === keyOf(flag));
+    }
+
+    function otherSelectionsByKey() {
+        const map = new Map();
+        for (const [id, collaborator] of Object.entries(collaborators || {})) {
+            if (id === editorId) continue;
+            const name = collaborator.name || "Editor";
+            const flag = collaborator.active_flag || "sem flag";
+            for (const pokemon of collaborator.selected || []) {
+                const key = keyOf(pokemon);
+                if (!map.has(key)) map.set(key, []);
+                map.get(key).push(`${name} (${flag})`);
+            }
+        }
+        return map;
+    }
+
+    async function sendUpdate(action, payload = {}) {
+        isBusy = true;
+        setFeedback("Sincronizando...");
+        try {
+            const response = await fetch(updateUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    key: adminKey,
+                    action,
+                    editor_id: editorId,
+                    editor_name: editorName(),
+                    active_flag: activeFlag(),
+                    ...payload
+                })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                setFeedback(data.error || "Erro ao sincronizar flags.", "error");
+                return null;
+            }
+            applySnapshot(data);
+            setFeedback(action === "save_to_file" ? "Flags salvas no JSON." : "Flags atualizadas para todos.");
+            return data;
+        } catch (error) {
+            setFeedback("Não foi possível sincronizar flags com o servidor.", "error");
+            return null;
+        } finally {
+            isBusy = false;
+        }
+    }
+
+    async function fetchSnapshot(silent = true) {
+        if (isBusy) return;
+        try {
+            const response = await fetch(stateUrl, { cache: "no-store" });
+            if (!response.ok) return;
+            const data = await response.json();
+            if (Number(data.version || 0) !== Number(editorVersion || 0)) {
+                applySnapshot(data);
+                if (!silent) setFeedback("Flags atualizadas.");
+            } else if (!silent) {
+                setFeedback("Você já está com as flags mais recentes.");
+            }
+        } catch (error) {
+            if (!silent) setFeedback("Não foi possível atualizar flags agora.", "error");
+        }
+    }
+
+    function applySnapshot(data) {
+        editorVersion = Number(data.version || 0);
+        pokemonPool = data.pokemon_pool || pokemonPool;
+        flagLimits = data.flag_limits || {};
+        availableFlags = data.available_flags || Object.keys(flagLimits || {});
+        pokemonFlags = data.pokemon_flags || {};
+        collaborators = data.collaborators || {};
+        limitsTextarea.value = data.flag_limits_text || Object.entries(flagLimits).map(([flag, limit]) => `${flag}=${limit}`).join("\n");
+
+        const me = collaborators[editorId];
+        if (me && Array.isArray(me.selected)) selected = [...me.selected];
+        const previousActive = activeFlag() || localStorage.getItem(activeFlagKey) || (me && me.active_flag) || availableFlags[0] || "";
+        renderFlagSelect(previousActive);
+        renderAll();
+    }
+
+    function renderFlagSelect(preferred) {
+        const current = preferred || localStorage.getItem(activeFlagKey) || activeSelect.value || availableFlags[0] || "";
+        activeSelect.innerHTML = "";
+        if (!availableFlags.length) {
+            const option = document.createElement("option");
+            option.value = "";
+            option.textContent = "Nenhuma flag configurada";
+            activeSelect.appendChild(option);
+            return;
+        }
+        for (const flag of availableFlags) {
+            const option = document.createElement("option");
+            option.value = flag;
+            const limit = flagLimits[flag];
+            option.textContent = `${flag}${limit !== undefined ? ` (limite ${limit})` : ""}`;
+            activeSelect.appendChild(option);
+        }
+        const exists = availableFlags.some(flag => keyOf(flag) === keyOf(current));
+        activeSelect.value = exists ? availableFlags.find(flag => keyOf(flag) === keyOf(current)) : availableFlags[0];
+        setActiveFlag(activeSelect.value);
+    }
+
+    function renderSelected() {
+        selectedTray.innerHTML = "";
+        if (!selected.length) {
+            const empty = document.createElement("span");
+            empty.className = "muted small";
+            empty.textContent = "Nenhum Pokémon selecionado.";
+            selectedTray.appendChild(empty);
+            return;
+        }
+        selected.forEach((pokemon, index) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "pokemon-chip selected";
+            button.textContent = `${index + 1}. ${pokemon}`;
+            button.title = "Clique para remover da seleção";
+            button.addEventListener("click", () => {
+                selected = selected.filter(item => keyOf(item) !== keyOf(pokemon));
+                renderAll();
+                sendUpdate("select", { selected });
+            });
+            selectedTray.appendChild(button);
+        });
+    }
+
+    function renderChips() {
+        const query = keyOf(searchInput.value);
+        const otherSelected = otherSelectionsByKey();
+        const flag = activeFlag();
+        chipList.innerHTML = "";
+
+        const filtered = pokemonPool.filter(pokemon => keyOf(pokemon).includes(query));
+        for (const pokemon of filtered) {
+            const pokemonKey = keyOf(pokemon);
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "pokemon-chip";
+            button.textContent = pokemon;
+
+            const savedFlags = flagsForPokemon(pokemon);
+            if (savedHasFlag(pokemon, flag)) {
+                button.classList.add("flag-chip-saved");
+                button.title = `Já marcado com ${flag}. Clique para também selecionar/remover manualmente na lista da direita.`;
+            }
+
+            if (selected.some(item => keyOf(item) === pokemonKey)) {
+                button.classList.add("selected");
+                button.title = "Clique para remover da sua seleção atual";
+                button.addEventListener("click", () => {
+                    selected = selected.filter(item => keyOf(item) !== pokemonKey);
+                    renderAll();
+                    sendUpdate("select", { selected });
+                });
+            } else {
+                const names = otherSelected.get(pokemonKey);
+                if (names && names.length) {
+                    button.classList.add("collab-selected");
+                    button.title = `Selecionado agora por: ${names.join(", ")}`;
+                } else if (savedFlags.length) {
+                    button.title = `Flags atuais: ${savedFlags.join(", ")}`;
+                } else {
+                    button.title = "Adicionar à sua seleção de flags";
+                }
+                button.addEventListener("click", () => {
+                    selected.push(pokemon);
+                    renderAll();
+                    sendUpdate("select", { selected });
+                });
+            }
+            chipList.appendChild(button);
+        }
+
+        if (!filtered.length) {
+            const empty = document.createElement("p");
+            empty.className = "muted small";
+            empty.textContent = "Nenhum Pokémon encontrado.";
+            chipList.appendChild(empty);
+        }
+    }
+
+    function renderCollaborators() {
+        collaboratorsList.innerHTML = "";
+        const entries = Object.entries(collaborators || {}).filter(([, c]) => Array.isArray(c.selected) && c.selected.length);
+        if (!entries.length) {
+            const empty = document.createElement("p");
+            empty.className = "muted small";
+            empty.textContent = "Ninguém está marcando flags agora.";
+            collaboratorsList.appendChild(empty);
+            return;
+        }
+        for (const [id, collaborator] of entries) {
+            const card = document.createElement("div");
+            card.className = "collab-card";
+            const who = id === editorId ? "Você" : (collaborator.name || "Editor");
+            const flag = collaborator.active_flag || "sem flag";
+            const members = document.createElement("div");
+            members.className = "collab-members";
+            members.innerHTML = `<strong>${escapeHtml(who)} — ${escapeHtml(flag)}</strong><br>${(collaborator.selected || []).map(item => escapeHtml(item)).join(" → ")}`;
+            card.appendChild(members);
+            collaboratorsList.appendChild(card);
+        }
+    }
+
+    function renderSavedFlags() {
+        savedFlagsList.innerHTML = "";
+        if (!availableFlags.length) {
+            const empty = document.createElement("p");
+            empty.className = "muted small";
+            empty.textContent = "Nenhuma flag configurada ainda.";
+            savedFlagsList.appendChild(empty);
+            return;
+        }
+
+        for (const flag of availableFlags) {
+            const names = [];
+            for (const pokemon of pokemonPool) {
+                if (savedHasFlag(pokemon, flag)) names.push(pokemon);
+            }
+
+            const card = document.createElement("div");
+            card.className = "flag-summary-card";
+            const title = document.createElement("div");
+            title.className = "flag-summary-title";
+            title.innerHTML = `<strong>${escapeHtml(flag)}</strong> <span class="badge">${names.length} Pokémon</span>`;
+            if (names.length) {
+                const clear = document.createElement("button");
+                clear.type = "button";
+                clear.className = "danger";
+                clear.textContent = "Limpar flag";
+                clear.addEventListener("click", () => {
+                    if (confirm(`Remover a flag ${flag} de todos os Pokémon?`)) {
+                        sendUpdate("clear_flag", { flag });
+                    }
+                });
+                title.appendChild(clear);
+            }
+            card.appendChild(title);
+
+            if (!names.length) {
+                const empty = document.createElement("p");
+                empty.className = "muted small";
+                empty.textContent = "Nenhum Pokémon marcado com essa flag.";
+                card.appendChild(empty);
+            } else {
+                const list = document.createElement("div");
+                for (const pokemon of names) {
+                    const row = document.createElement("span");
+                    row.className = "flag-pokemon-row";
+                    row.appendChild(document.createTextNode(pokemon));
+                    const remove = document.createElement("button");
+                    remove.type = "button";
+                    remove.className = "secondary";
+                    remove.textContent = "x";
+                    remove.title = `Remover ${flag} de ${pokemon}`;
+                    remove.addEventListener("click", () => sendUpdate("remove_flag", { pokemon, flag }));
+                    row.appendChild(remove);
+                    list.appendChild(row);
+                }
+                card.appendChild(list);
+            }
+            savedFlagsList.appendChild(card);
+        }
+    }
+
+    function renderAll() {
+        renderSelected();
+        renderChips();
+        renderCollaborators();
+        renderSavedFlags();
+    }
+
+    activeSelect.addEventListener("change", () => {
+        setActiveFlag(activeSelect.value);
+        renderAll();
+        sendUpdate("select", { selected });
+    });
+
+    searchInput.addEventListener("input", renderChips);
+    saveNameButton.addEventListener("click", () => sendUpdate("identify", { selected, active_flag: activeFlag() }));
+    refreshButton.addEventListener("click", () => fetchSnapshot(false));
+    applyLimitsButton.addEventListener("click", () => sendUpdate("set_limits", { flag_limits_text: limitsTextarea.value }));
+    saveFileButton.addEventListener("click", () => sendUpdate("save_to_file"));
+    clearSelectionButton.addEventListener("click", () => {
+        selected = [];
+        renderAll();
+        sendUpdate("clear_selection");
+    });
+    addToFlagButton.addEventListener("click", () => {
+        if (!activeFlag()) {
+            setFeedback("Crie/aplique pelo menos uma flag antes.", "error");
+            return;
+        }
+        if (!selected.length) {
+            setFeedback("Selecione pelo menos 1 Pokémon para marcar com a flag.", "muted");
+            return;
+        }
+        sendUpdate("add_to_flag", { selected, active_flag: activeFlag() });
+    });
+
+    renderFlagSelect(localStorage.getItem(activeFlagKey));
+    renderAll();
+    sendUpdate("identify", { selected, active_flag: activeFlag() });
+    setInterval(() => fetchSnapshot(true), 1200);
+})();
+</script>
 
 <script>
 (() => {
