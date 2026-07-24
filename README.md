@@ -11,6 +11,7 @@ Site simples em Flask para campeonato randomizer de Cobblemon.
 - A página do jogador atualiza automaticamente quando o Mestre sorteia.
 - Jogador escolhe 1 Pokémon.
 - O Pokémon escolhido é travado globalmente e não aparece mais para ninguém.
+- Se o Pokémon estiver em um grupo de evolução, o grupo inteiro também é travado. Ex.: escolhendo `Bulbasaur`, também bloqueia `Ivysaur` e `Venusaur`.
 - A página do Mestre atualiza automaticamente quando o jogador escolhe.
 - No Mestre cego, os Pokémon escolhidos aparecem apenas como **Slot 1**, **Slot 2**, etc.; o Mestre não vê nomes de Pokémon.
 - Mestre cego sorteia 3 abilities para um slot sem ver as opções nem o nome do Pokémon daquele slot.
@@ -95,6 +96,22 @@ Banlists opcionais:
 data/pokemon_banlist.txt
 data/abilities_banlist.txt
 ```
+
+Grupos de Pokémon/evoluções:
+
+```text
+data/pokemon_groups.txt
+```
+
+Um grupo por linha. Quando qualquer Pokémon daquela linha for escolhido, todos os outros nomes da mesma linha saem da pool global. Formatos aceitos:
+
+```text
+Bulbasaur, Ivysaur, Venusaur
+Charmander > Charmeleon > Charizard
+Abra | Kadabra | Alakazam
+```
+
+Também dá para editar esses grupos pela página Admin. Ao salvar, o sistema recalcula os bloqueios já existentes.
 
 Se quiser caos total, deixe as banlists vazias.
 

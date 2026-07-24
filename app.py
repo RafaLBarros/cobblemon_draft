@@ -17,6 +17,7 @@ POKEMON_FILE = DATA_DIR / "pokemon.txt"
 ABILITIES_FILE = DATA_DIR / "abilities.txt"
 POKEMON_BANLIST_FILE = DATA_DIR / "pokemon_banlist.txt"
 ABILITIES_BANLIST_FILE = DATA_DIR / "abilities_banlist.txt"
+POKEMON_GROUPS_FILE = DATA_DIR / "pokemon_groups.txt"
 
 MAX_POKEMON = 6
 OPTIONS_PER_DRAW = 3
@@ -115,6 +116,16 @@ def ensure_files_exist() -> None:
         if not path.exists():
             path.write_text("", encoding="utf-8")
 
+    if not POKEMON_GROUPS_FILE.exists():
+        POKEMON_GROUPS_FILE.write_text(
+            "# Um grupo por linha. Quando um Pokémon do grupo for escolhido, todos ficam bloqueados.\n"
+            "# Formatos aceitos:\n"
+            "# Bulbasaur, Ivysaur, Venusaur\n"
+            "# Charmander > Charmeleon > Charizard\n"
+            "# Abra | Kadabra | Alakazam\n",
+            encoding="utf-8",
+        )
+
 
 def load_lines(path: Path) -> List[str]:
     ensure_files_exist()
@@ -141,6 +152,97 @@ def load_pool(pool_file: Path, banlist_file: Path) -> List[str]:
     pool = load_lines(pool_file)
     banlist = {item.lower() for item in load_lines(banlist_file)}
     return [item for item in pool if item.lower() not in banlist]
+
+
+def normalize_name_key(value: str) -> str:
+    return str(value).strip().lower()
+
+
+def split_group_line(line: str) -> List[str]:
+    """Aceita linhas com vírgula, >, | ou ; como separador."""
+    separators = [",", ">", "|", ";"]
+    cleaned = line
+    for sep in separators[1:]:
+        cleaned = cleaned.replace(sep, separators[0])
+    return [part.strip() for part in cleaned.split(separators[0]) if part.strip()]
+
+
+def load_pokemon_groups() -> List[List[str]]:
+    ensure_files_exist()
+    if not POKEMON_GROUPS_FILE.exists():
+        return []
+
+    groups: List[List[str]] = []
+    for raw_line in POKEMON_GROUPS_FILE.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+
+        group = split_group_line(line)
+        seen = set()
+        unique_group = []
+        for pokemon in group:
+            key = normalize_name_key(pokemon)
+            if key not in seen:
+                seen.add(key)
+                unique_group.append(pokemon)
+
+        if len(unique_group) >= 2:
+            groups.append(unique_group)
+
+    return groups
+
+
+def related_pokemon_for(pokemon_name: str, groups: Optional[List[List[str]]] = None) -> List[str]:
+    """Retorna o grupo vinculado ao Pokémon, ou só ele mesmo se não estiver agrupado."""
+    wanted = normalize_name_key(pokemon_name)
+    for group in groups if groups is not None else load_pokemon_groups():
+        if wanted in {normalize_name_key(name) for name in group}:
+            return group
+    return [pokemon_name]
+
+
+def group_lookup_map(groups: Optional[List[List[str]]] = None) -> Dict[str, List[str]]:
+    mapping: Dict[str, List[str]] = {}
+    for group in groups if groups is not None else load_pokemon_groups():
+        for pokemon in group:
+            mapping[normalize_name_key(pokemon)] = group
+    return mapping
+
+
+def locked_pokemon_for_choice(pokemon_name: str) -> List[str]:
+    """Lista de Pokémon que devem sair da pool quando pokemon_name for escolhido."""
+    pokemon_pool = load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+    pool_keys = {normalize_name_key(name): name for name in pokemon_pool}
+    related = related_pokemon_for(pokemon_name)
+
+    # Mantém só nomes que existem na pool principal, mas sempre inclui o escolhido.
+    locked: List[str] = []
+    for name in related:
+        key = normalize_name_key(name)
+        if key in pool_keys:
+            locked.append(pool_keys[key])
+    if normalize_name_key(pokemon_name) not in {normalize_name_key(name) for name in locked}:
+        locked.append(pokemon_name)
+    return locked
+
+
+def recompute_used_pokemon(state: Dict[str, Any]) -> List[str]:
+    """Reconstrói a lista de Pokémon travados com base nas escolhas atuais."""
+    locked: List[str] = []
+    locked_keys = set()
+    for player in state.get("players", {}).values():
+        if not isinstance(player, dict):
+            continue
+        for pick in player.get("pokemon_picks", []):
+            pokemon_name = pick.get("name") if isinstance(pick, dict) else str(pick)
+            for related in locked_pokemon_for_choice(pokemon_name):
+                key = normalize_name_key(related)
+                if key not in locked_keys:
+                    locked_keys.add(key)
+                    locked.append(related)
+    state["used_pokemon"] = locked
+    return locked
 
 
 def normalize_player(player_id: str, player: Dict[str, Any]) -> Dict[str, Any]:
@@ -431,10 +533,20 @@ def choose_pokemon():
     player["pending"] = empty_pending()
 
     if state["settings"].get("lock_chosen_pokemon_globally", True):
-        state.setdefault("used_pokemon", []).append(chosen)
+        locked_names = locked_pokemon_for_choice(chosen)
+        used_keys = {normalize_name_key(name) for name in state.setdefault("used_pokemon", [])}
+        for name in locked_names:
+            if normalize_name_key(name) not in used_keys:
+                state["used_pokemon"].append(name)
+                used_keys.add(normalize_name_key(name))
+    else:
+        locked_names = [chosen]
 
     save_state(state)
-    flash(f"{chosen} escolhido e travado no seu draft.", "success")
+    if len(locked_names) > 1:
+        flash(f"{chosen} escolhido. Grupo bloqueado: {', '.join(locked_names)}.", "success")
+    else:
+        flash(f"{chosen} escolhido e travado no seu draft.", "success")
     return redirect(url_for("player_page", player_id=player_id))
 
 
@@ -601,6 +713,8 @@ def admin_page():
         players=sorted_players(state),
         pokemon_count=len(load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)),
         ability_count=len(load_pool(ABILITIES_FILE, ABILITIES_BANLIST_FILE)),
+        pokemon_groups=load_pokemon_groups(),
+        pokemon_groups_text=POKEMON_GROUPS_FILE.read_text(encoding="utf-8") if POKEMON_GROUPS_FILE.exists() else "",
         key=ADMIN_KEY,
         auto_refresh=True,
         state_version=state.get("version", 0),
@@ -646,10 +760,28 @@ def admin_remove_last_pick():
 
     removed = player["pokemon_picks"].pop()
     removed_name = removed["name"]
-    state["used_pokemon"] = [name for name in state.get("used_pokemon", []) if name.lower() != removed_name.lower()]
+    recompute_used_pokemon(state)
     save_state(state)
 
-    flash(f"Último Pokémon de {player['nickname']} removido: {removed_name}.", "success")
+    flash(f"Último Pokémon de {player['nickname']} removido: {removed_name}. Bloqueios globais recalculados.", "success")
+    return redirect(url_for("admin_page", key=ADMIN_KEY))
+
+
+@app.route("/admin/save-groups", methods=["POST"])
+def admin_save_groups():
+    locked = require_admin()
+    if locked:
+        return locked
+
+    groups_text = request.form.get("pokemon_groups", "")
+    POKEMON_GROUPS_FILE.write_text(groups_text.replace("\r\n", "\n"), encoding="utf-8")
+
+    # Recalcula bloqueios já existentes para refletir grupos novos/editados.
+    state = load_state()
+    recompute_used_pokemon(state)
+    save_state(state)
+
+    flash("Grupos de Pokémon salvos e bloqueios globais recalculados.", "success")
     return redirect(url_for("admin_page", key=ADMIN_KEY))
 
 

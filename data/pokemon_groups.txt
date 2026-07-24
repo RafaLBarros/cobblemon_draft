@@ -1,0 +1,6 @@
+# Um grupo por linha. Quando um Pokémon do grupo for escolhido, todos ficam bloqueados.
+# Formatos aceitos:
+# Bulbasaur, Ivysaur, Venusaur
+# Charmander > Charmeleon > Charizard
+# Abra | Kadabra | Alakazam
+

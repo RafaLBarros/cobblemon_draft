@@ -66,6 +66,36 @@
     {% endif %}
 </section>
 
+
+<section class="card">
+    <h2>Grupos de Pokémon</h2>
+    <p class="muted">Use isto para bloquear famílias/evoluções juntas. Quando qualquer Pokémon de um grupo for escolhido, todos os outros nomes da mesma linha saem da pool global.</p>
+    <p class="muted small">Formatos aceitos: <code>Bulbasaur, Ivysaur, Venusaur</code> ou <code>Charmander &gt; Charmeleon &gt; Charizard</code> ou <code>Abra | Kadabra | Alakazam</code>.</p>
+
+    <form method="post" action="{{ url_for('admin_save_groups') }}">
+        <input type="hidden" name="key" value="{{ key }}">
+        <label for="pokemon_groups">Um grupo por linha</label><br><br>
+        <textarea id="pokemon_groups" name="pokemon_groups" rows="12" spellcheck="false" style="width: 100%; box-sizing: border-box; font-family: monospace;">{{ pokemon_groups_text }}</textarea>
+        <br><br>
+        <button type="submit">Salvar grupos e recalcular bloqueios</button>
+    </form>
+
+    {% if pokemon_groups %}
+        <div class="hr"></div>
+        <h3>Grupos carregados: {{ pokemon_groups|length }}</h3>
+        <ul class="small">
+            {% for group in pokemon_groups[:20] %}
+                <li>{{ group|join(' → ') }}</li>
+            {% endfor %}
+        </ul>
+        {% if pokemon_groups|length > 20 %}
+            <p class="muted small">Mostrando os primeiros 20 grupos.</p>
+        {% endif %}
+    {% else %}
+        <p class="muted small">Nenhum grupo carregado ainda. Se a lista estiver vazia, só o Pokémon escolhido será bloqueado.</p>
+    {% endif %}
+</section>
+
 <section class="card">
     <h2>Resetar campeonato</h2>
     <p class="muted">Isso limpa jogadores, escolhas e Pokémon travados. Um backup JSON é criado antes.</p>
