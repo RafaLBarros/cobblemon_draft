@@ -1,9 +1,107 @@
 {
-  "created_at": "2026-07-24 06:38:52",
-  "updated_at": "2026-07-24 06:39:10",
-  "version": 3,
-  "used_pokemon": [],
-  "players": {},
+  "created_at": "2026-07-24 00:00:00",
+  "updated_at": "2026-07-24 06:38:14",
+  "version": 1246,
+  "used_pokemon": [
+    "Kyogre",
+    "Munchlax",
+    "Snorlax",
+    "Latias",
+    "Stonjourner",
+    "Emboar",
+    "Pignite",
+    "Tepig",
+    "Swanna",
+    "Ducklett",
+    "Caterpie",
+    "Metapod",
+    "Butterfree",
+    "Pawmot",
+    "Pawmo",
+    "Pawmi",
+    "Miraidon",
+    "Kangaskhan",
+    "Seviper",
+    "Turtwig",
+    "Grotle",
+    "Torterra"
+  ],
+  "players": {
+    "3176658060": {
+      "player_id": "3176658060",
+      "nickname": "HHShiro",
+      "created_at": "2026-07-24 06:28:22",
+      "pokemon_picks": [
+        {
+          "name": "Kyogre",
+          "ability": null
+        },
+        {
+          "name": "Latias",
+          "ability": null
+        },
+        {
+          "name": "Emboar",
+          "ability": null
+        },
+        {
+          "name": "Caterpie",
+          "ability": null
+        },
+        {
+          "name": "Miraidon",
+          "ability": null
+        },
+        {
+          "name": "Seviper",
+          "ability": null
+        }
+      ],
+      "pending": {
+        "type": null,
+        "pokemon_options": [],
+        "ability_for_index": null,
+        "ability_options": []
+      }
+    },
+    "1216824751": {
+      "player_id": "1216824751",
+      "nickname": "KL1gh",
+      "created_at": "2026-07-24 06:28:23",
+      "pokemon_picks": [
+        {
+          "name": "Munchlax",
+          "ability": null
+        },
+        {
+          "name": "Stonjourner",
+          "ability": null
+        },
+        {
+          "name": "Ducklett",
+          "ability": null
+        },
+        {
+          "name": "Pawmi",
+          "ability": null
+        },
+        {
+          "name": "Kangaskhan",
+          "ability": null
+        },
+        {
+          "name": "Turtwig",
+          "ability": null
+        }
+      ],
+      "pending": {
+        "type": null,
+        "pokemon_options": [],
+        "ability_for_index": null,
+        "ability_options": []
+      }
+    }
+  },
   "settings": {
     "max_pokemon": 6,
     "options_per_draw": 3,
@@ -1506,15 +1604,15 @@
       "178488203526081263": {
         "name": "Rafael",
         "selected": [],
-        "updated_at": "2026-07-24 06:38:52"
+        "updated_at": "2026-07-24 06:38:14"
       },
       "178488204749397336": {
         "name": "KL1gh",
         "selected": [],
-        "updated_at": "2026-07-24 06:39:10"
+        "updated_at": "2026-07-24 06:26:14"
       }
     },
-    "version": 2,
-    "updated_at": "2026-07-24 06:39:10"
+    "version": 1220,
+    "updated_at": "2026-07-24 06:38:14"
   }
 }

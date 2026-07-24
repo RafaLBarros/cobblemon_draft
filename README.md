@@ -29,6 +29,8 @@ Exemplo:
 ```
 
 - Admin completo pode auditar tudo, ver links dos jogadores, limpar pendências, remover último Pokémon e resetar.
+- O editor visual de grupos no Admin agora é colaborativo: duas pessoas podem abrir o Admin, informar seus nomes no editor, selecionar Pokémon e ver em tempo quase real quais grupos cada uma está montando.
+- Clique em **Salvar grupos no TXT e recalcular bloqueios** para gravar o rascunho colaborativo no `data/pokemon_groups.txt`.
 
 ## Rodando
 
@@ -111,7 +113,7 @@ Charmander > Charmeleon > Charizard
 Abra | Kadabra | Alakazam
 ```
 
-Também dá para editar esses grupos pela página Admin. Ao salvar, o sistema recalcula os bloqueios já existentes.
+Também dá para editar esses grupos pela página Admin. O editor visual é colaborativo: cada pessoa informa um nome no editor, seleciona Pokémon, e os outros Admins veem a seleção em andamento. Ao clicar em **Salvar grupos no TXT e recalcular bloqueios**, o sistema grava o arquivo e recalcula os bloqueios já existentes.
 
 Se quiser caos total, deixe as banlists vazias.
 

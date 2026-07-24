@@ -33,6 +33,11 @@
         background: var(--accent);
         border-color: var(--accent-2);
     }
+    .pokemon-chip.collab-selected {
+        background: #3b2d13;
+        border-color: var(--warning);
+        color: #fed7aa;
+    }
     .pokemon-chip.grouped {
         opacity: .45;
         cursor: not-allowed;
@@ -47,7 +52,7 @@
         border-radius: 14px;
         background: #111118;
     }
-    .group-card {
+    .group-card, .collab-card {
         display: flex;
         justify-content: space-between;
         gap: 12px;
@@ -63,7 +68,7 @@
         padding: 7px 10px;
         font-size: 13px;
     }
-    .group-members {
+    .group-members, .collab-members {
         overflow-wrap: anywhere;
         line-height: 1.5;
     }
@@ -75,11 +80,21 @@
         margin: 10px 0;
     }
     .group-editor-tools input { flex: 1; min-width: 200px; }
+    .editor-name-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 10px;
+    }
+    .editor-name-row input { width: min(280px, 100%); }
+    .saving-indicator { min-height: 20px; }
     @media (max-width: 780px) {
         .group-editor-layout { grid-template-columns: 1fr; }
         .chip-list { max-height: 320px; }
-        .group-card { flex-direction: column; }
+        .group-card, .collab-card { flex-direction: column; }
         .group-card button { width: 100%; }
+        .editor-name-row button { width: 100%; }
     }
 </style>
 
@@ -149,48 +164,56 @@
 </section>
 
 <section class="card">
-    <h2>Editor visual de grupos de Pokémon</h2>
-    <p class="muted">Monte famílias/evoluções clicando nos Pokémon da lista. Cada grupo salvo vira uma linha no <code>data/pokemon_groups.txt</code>. Quando qualquer membro for escolhido, todos os membros daquele grupo ficam bloqueados.</p>
+    <h2>Editor visual colaborativo de grupos</h2>
+    <p class="muted">Monte famílias/evoluções clicando nos Pokémon da lista. As seleções aparecem para todos os Admins em tempo quase real, então você e seu irmão conseguem montar juntos sem se atropelar.</p>
 
-    <form id="groups-form" method="post" action="{{ url_for('admin_save_groups') }}">
-        <input type="hidden" name="key" value="{{ key }}">
-        <textarea id="pokemon_groups" name="pokemon_groups" hidden>{{ pokemon_groups_text }}</textarea>
+    <div class="editor-name-row">
+        <label for="editor-name">Seu nome no editor</label>
+        <input id="editor-name" type="text" placeholder="Ex: Rafael">
+        <button id="save-editor-name" class="secondary" type="button">Usar esse nome</button>
+        <button id="refresh-groups" class="secondary" type="button">Atualizar agora</button>
+    </div>
+    <p id="group-feedback" class="small muted saving-indicator" aria-live="polite"></p>
 
-        <div class="group-editor-layout">
-            <div>
-                <h3>Lista de Pokémon</h3>
-                <p class="muted small">Clique em 2 ou mais Pokémon para montar o grupo atual. Pokémon que já estão em grupo ficam bloqueados até você remover o grupo.</p>
-                <div class="group-editor-tools">
-                    <input id="pokemon-search" type="search" placeholder="Buscar Pokémon..." autocomplete="off">
-                    <button id="clear-selection" class="secondary" type="button">Limpar seleção</button>
-                </div>
-                <div id="pokemon-chip-list" class="chip-list" aria-label="Lista de Pokémon para agrupar"></div>
+    <div class="group-editor-layout">
+        <div>
+            <h3>Lista de Pokémon</h3>
+            <p class="muted small">Clique em 2 ou mais Pokémon para montar o seu grupo atual. Pokémon já agrupados ficam bloqueados. Pokémon selecionados por outra pessoa aparecem destacados.</p>
+            <div class="group-editor-tools">
+                <input id="pokemon-search" type="search" placeholder="Buscar Pokémon..." autocomplete="off">
+                <button id="clear-selection" class="secondary" type="button">Limpar minha seleção</button>
             </div>
-
-            <div>
-                <h3>Grupo atual</h3>
-                <div id="selected-tray" class="selected-tray">
-                    <span class="muted small">Nenhum Pokémon selecionado.</span>
-                </div>
-                <div class="group-editor-tools">
-                    <button id="add-group" type="button">Adicionar grupo</button>
-                    <button id="save-groups" type="submit">Salvar grupos e recalcular bloqueios</button>
-                </div>
-                <p id="group-feedback" class="small muted" aria-live="polite"></p>
-
-                <div class="hr"></div>
-                <h3>Grupos montados: <span id="group-count">0</span></h3>
-                <div id="groups-list"></div>
-            </div>
+            <div id="pokemon-chip-list" class="chip-list" aria-label="Lista de Pokémon para agrupar"></div>
         </div>
 
-        <details class="card">
-            <summary>Modo avançado: editar texto bruto</summary>
-            <p class="muted small">Use só se quiser colar grupos manualmente. Ao sair do campo, a interface visual será atualizada.</p>
-            <label for="groups-raw">Um grupo por linha</label><br><br>
-            <textarea id="groups-raw" rows="12" spellcheck="false" style="width: 100%; box-sizing: border-box; font-family: monospace;">{{ pokemon_groups_text }}</textarea>
-        </details>
-    </form>
+        <div>
+            <h3>Minha seleção atual</h3>
+            <div id="selected-tray" class="selected-tray">
+                <span class="muted small">Nenhum Pokémon selecionado.</span>
+            </div>
+            <div class="group-editor-tools">
+                <button id="add-group" type="button">Adicionar grupo</button>
+                <button id="save-groups" type="button">Salvar grupos no TXT e recalcular bloqueios</button>
+            </div>
+
+            <div class="hr"></div>
+            <h3>Seleções em andamento</h3>
+            <div id="collaborators-list"></div>
+
+            <div class="hr"></div>
+            <h3>Grupos montados: <span id="group-count">0</span></h3>
+            <div id="groups-list"></div>
+        </div>
+    </div>
+
+    <details class="card">
+        <summary>Modo avançado: editar texto bruto</summary>
+        <p class="muted small">Use só se quiser colar grupos manualmente. Ao clicar em aplicar, todos os Admins verão o novo rascunho.</p>
+        <label for="groups-raw">Um grupo por linha</label><br><br>
+        <textarea id="groups-raw" rows="12" spellcheck="false" style="width: 100%; box-sizing: border-box; font-family: monospace;">{{ pokemon_groups_text }}</textarea>
+        <br><br>
+        <button id="apply-raw-groups" type="button">Aplicar texto bruto para todos</button>
+    </details>
 </section>
 
 <section class="card">
@@ -207,9 +230,21 @@
 
 <script>
 (() => {
-    const pokemonPool = {{ pokemon_pool|tojson }};
+    const adminKey = {{ key|tojson }};
+    const stateUrl = {{ url_for('admin_group_editor_state', key=key)|tojson }};
+    const updateUrl = {{ url_for('admin_group_editor_update')|tojson }};
+
+    let pokemonPool = {{ pokemon_pool|tojson }};
     let groups = {{ pokemon_groups|tojson }};
+    let collaborators = {};
+    let editorVersion = 0;
     let selected = [];
+    let isBusy = false;
+
+    const editorIdKey = "cobblemon_group_editor_id";
+    const editorNameKey = "cobblemon_group_editor_name";
+    const editorId = localStorage.getItem(editorIdKey) || String(Date.now()) + String(Math.floor(Math.random() * 100000));
+    localStorage.setItem(editorIdKey, editorId);
 
     const chipList = document.getElementById("pokemon-chip-list");
     const searchInput = document.getElementById("pokemon-search");
@@ -217,32 +252,31 @@
     const groupsList = document.getElementById("groups-list");
     const groupCount = document.getElementById("group-count");
     const feedback = document.getElementById("group-feedback");
-    const hiddenTextarea = document.getElementById("pokemon_groups");
     const rawTextarea = document.getElementById("groups-raw");
     const addGroupButton = document.getElementById("add-group");
     const clearSelectionButton = document.getElementById("clear-selection");
+    const collaboratorsList = document.getElementById("collaborators-list");
+    const editorNameInput = document.getElementById("editor-name");
+    const saveEditorNameButton = document.getElementById("save-editor-name");
+    const refreshButton = document.getElementById("refresh-groups");
+    const saveGroupsButton = document.getElementById("save-groups");
+    const applyRawButton = document.getElementById("apply-raw-groups");
+
+    editorNameInput.value = localStorage.getItem(editorNameKey) || "";
 
     function keyOf(value) {
         return String(value || "").trim().toLowerCase();
     }
 
-    function splitGroupLine(line) {
-        return String(line || "")
-            .replaceAll(">", ",")
-            .replaceAll("|", ",")
-            .replaceAll(";", ",")
-            .split(",")
-            .map(item => item.trim())
-            .filter(Boolean);
+    function editorName() {
+        const name = editorNameInput.value.trim() || "Editor";
+        localStorage.setItem(editorNameKey, name);
+        return name;
     }
 
-    function parseGroupsText(text) {
-        return String(text || "")
-            .split(/\r?\n/)
-            .map(line => line.trim())
-            .filter(line => line && !line.startsWith("#"))
-            .map(splitGroupLine)
-            .filter(group => group.length >= 2);
+    function setFeedback(message, type = "muted") {
+        feedback.textContent = message;
+        feedback.className = `small ${type} saving-indicator`;
     }
 
     function groupedKeys() {
@@ -253,15 +287,77 @@
         return keys;
     }
 
-    function syncTextarea() {
-        const text = groups.map(group => group.join(", ")).join("\n");
-        hiddenTextarea.value = text;
-        rawTextarea.value = text;
+    function otherSelectionsByKey() {
+        const map = new Map();
+        for (const [id, collaborator] of Object.entries(collaborators || {})) {
+            if (id === editorId) continue;
+            const name = collaborator.name || "Editor";
+            for (const pokemon of collaborator.selected || []) {
+                const key = keyOf(pokemon);
+                if (!map.has(key)) map.set(key, []);
+                map.get(key).push(name);
+            }
+        }
+        return map;
     }
 
-    function setFeedback(message, type = "muted") {
-        feedback.textContent = message;
-        feedback.className = `small ${type}`;
+    async function sendUpdate(action, payload = {}) {
+        isBusy = true;
+        setFeedback("Sincronizando...");
+        try {
+            const response = await fetch(updateUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    key: adminKey,
+                    action,
+                    editor_id: editorId,
+                    editor_name: editorName(),
+                    ...payload
+                })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                setFeedback(data.error || "Erro ao sincronizar.", "error");
+                return null;
+            }
+            applySnapshot(data);
+            setFeedback(action === "save_to_file" ? "Grupos salvos no TXT e bloqueios recalculados." : "Atualizado para todos.");
+            return data;
+        } catch (error) {
+            setFeedback("Não foi possível sincronizar com o servidor.", "error");
+            return null;
+        } finally {
+            isBusy = false;
+        }
+    }
+
+    async function fetchSnapshot(silent = true) {
+        if (isBusy) return;
+        try {
+            const response = await fetch(stateUrl, { cache: "no-store" });
+            if (!response.ok) return;
+            const data = await response.json();
+            if (Number(data.version || 0) !== Number(editorVersion || 0)) {
+                applySnapshot(data);
+                if (!silent) setFeedback("Dados atualizados.");
+            } else if (!silent) {
+                setFeedback("Você já está com a versão mais recente.");
+            }
+        } catch (error) {
+            if (!silent) setFeedback("Não foi possível atualizar agora.", "error");
+        }
+    }
+
+    function applySnapshot(data) {
+        editorVersion = Number(data.version || 0);
+        pokemonPool = data.pokemon_pool || pokemonPool;
+        groups = data.groups || [];
+        collaborators = data.collaborators || {};
+        const me = collaborators[editorId];
+        if (me && Array.isArray(me.selected)) selected = [...me.selected];
+        rawTextarea.value = data.groups_text || groups.map(group => group.join(", ")).join("\n");
+        renderAll();
     }
 
     function renderSelected() {
@@ -283,6 +379,7 @@
             button.addEventListener("click", () => {
                 selected = selected.filter(item => keyOf(item) !== keyOf(pokemon));
                 renderAll();
+                sendUpdate("select", { selected });
             });
             selectedTray.appendChild(button);
         });
@@ -291,6 +388,7 @@
     function renderChips() {
         const query = keyOf(searchInput.value);
         const used = groupedKeys();
+        const otherSelected = otherSelectionsByKey();
         chipList.innerHTML = "";
 
         const filtered = pokemonPool.filter(pokemon => keyOf(pokemon).includes(query));
@@ -307,16 +405,24 @@
                 button.title = "Já está em um grupo. Remova o grupo para mudar.";
             } else if (selected.some(item => keyOf(item) === pokemonKey)) {
                 button.classList.add("selected");
-                button.title = "Clique para remover da seleção atual";
+                button.title = "Clique para remover da sua seleção atual";
                 button.addEventListener("click", () => {
                     selected = selected.filter(item => keyOf(item) !== pokemonKey);
                     renderAll();
+                    sendUpdate("select", { selected });
                 });
             } else {
-                button.title = "Adicionar ao grupo atual";
+                const names = otherSelected.get(pokemonKey);
+                if (names && names.length) {
+                    button.classList.add("collab-selected");
+                    button.title = `Selecionado agora por: ${names.join(", ")}`;
+                } else {
+                    button.title = "Adicionar ao seu grupo atual";
+                }
                 button.addEventListener("click", () => {
                     selected.push(pokemon);
                     renderAll();
+                    sendUpdate("select", { selected });
                 });
             }
 
@@ -355,16 +461,35 @@
             remove.type = "button";
             remove.className = "danger";
             remove.textContent = "Remover";
-            remove.addEventListener("click", () => {
-                groups.splice(index, 1);
-                setFeedback("Grupo removido. Lembre de salvar para recalcular bloqueios.");
-                renderAll();
-            });
+            remove.addEventListener("click", () => sendUpdate("remove_group", { index }));
 
             card.appendChild(members);
             card.appendChild(remove);
             groupsList.appendChild(card);
         });
+    }
+
+    function renderCollaborators() {
+        collaboratorsList.innerHTML = "";
+        const entries = Object.entries(collaborators || {}).filter(([, c]) => Array.isArray(c.selected) && c.selected.length);
+        if (!entries.length) {
+            const empty = document.createElement("p");
+            empty.className = "muted small";
+            empty.textContent = "Ninguém está montando um grupo agora.";
+            collaboratorsList.appendChild(empty);
+            return;
+        }
+
+        for (const [id, collaborator] of entries) {
+            const card = document.createElement("div");
+            card.className = "collab-card";
+            const who = id === editorId ? "Você" : (collaborator.name || "Editor");
+            const members = document.createElement("div");
+            members.className = "collab-members";
+            members.innerHTML = `<strong>${escapeHtml(who)}</strong><br>${(collaborator.selected || []).map(item => escapeHtml(item)).join(" → ")}`;
+            card.appendChild(members);
+            collaboratorsList.appendChild(card);
+        }
     }
 
     function escapeHtml(value) {
@@ -377,9 +502,9 @@
     }
 
     function renderAll() {
-        syncTextarea();
         renderSelected();
         renderGroups();
+        renderCollaborators();
         renderChips();
     }
 
@@ -388,40 +513,28 @@
             setFeedback("Selecione pelo menos 2 Pokémon para criar um grupo.", "muted");
             return;
         }
-
-        const used = groupedKeys();
-        const invalid = selected.find(item => used.has(keyOf(item)));
-        if (invalid) {
-            setFeedback(`${invalid} já está em outro grupo. Remova o grupo antigo antes.`, "muted");
-            return;
-        }
-
-        groups.push([...selected]);
-        selected = [];
-        setFeedback("Grupo adicionado. Clique em salvar para gravar o arquivo e recalcular bloqueios.", "muted");
-        renderAll();
+        sendUpdate("add_group", { selected });
     });
 
     clearSelectionButton.addEventListener("click", () => {
         selected = [];
-        setFeedback("Seleção limpa.");
         renderAll();
+        sendUpdate("clear_selection");
     });
 
+    saveEditorNameButton.addEventListener("click", () => {
+        editorName();
+        sendUpdate("identify", { selected });
+    });
+
+    refreshButton.addEventListener("click", () => fetchSnapshot(false));
+    saveGroupsButton.addEventListener("click", () => sendUpdate("save_to_file"));
+    applyRawButton.addEventListener("click", () => sendUpdate("apply_raw", { groups_text: rawTextarea.value }));
     searchInput.addEventListener("input", renderChips);
 
-    rawTextarea.addEventListener("blur", () => {
-        groups = parseGroupsText(rawTextarea.value);
-        selected = [];
-        setFeedback("Texto bruto aplicado na interface. Clique em salvar para gravar.");
-        renderAll();
-    });
-
-    document.getElementById("groups-form").addEventListener("submit", () => {
-        syncTextarea();
-    });
-
     renderAll();
+    sendUpdate("identify", { selected });
+    setInterval(() => fetchSnapshot(true), 1200);
 })();
 </script>
 {% endblock %}

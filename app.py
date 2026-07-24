@@ -377,8 +377,18 @@ def require_master() -> Optional[Any]:
     return None
 
 
-def require_admin() -> Optional[Any]:
+def request_key() -> Optional[str]:
     key = request.args.get("key") or request.form.get("key")
+    if key:
+        return key
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        return data.get("key")
+    return None
+
+
+def require_admin() -> Optional[Any]:
+    key = request_key()
     if key != ADMIN_KEY:
         return render_template("locked.html", title="Admin"), 403
     return None
@@ -700,6 +710,87 @@ def master_draw_ability():
     return redirect(url_for("master_page", key=MASTER_KEY))
 
 
+def groups_to_text(groups: List[List[str]]) -> str:
+    return "\n".join(", ".join(str(item).strip() for item in group if str(item).strip()) for group in groups if len(group) >= 2)
+
+
+def parseGroupsText_for_python(text: str) -> List[List[str]]:
+    groups: List[List[str]] = []
+    for raw_line in str(text or "").replace("\r\n", "\n").split("\n"):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        group = split_group_line(line)
+        if len(group) >= 2:
+            groups.append(group)
+    return groups
+
+
+def normalize_groups(groups: Any) -> List[List[str]]:
+    normalized: List[List[str]] = []
+    used_keys = set()
+    pokemon_pool = load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+    canonical = {normalize_name_key(name): name for name in pokemon_pool}
+
+    if not isinstance(groups, list):
+        return normalized
+
+    for raw_group in groups:
+        if not isinstance(raw_group, list):
+            continue
+        group: List[str] = []
+        local_keys = set()
+        for raw_name in raw_group:
+            name = str(raw_name).strip()
+            key = normalize_name_key(name)
+            if not key or key in local_keys or key in used_keys:
+                continue
+            group.append(canonical.get(key, name))
+            local_keys.add(key)
+        if len(group) >= 2:
+            for name in group:
+                used_keys.add(normalize_name_key(name))
+            normalized.append(group)
+    return normalized
+
+
+def ensure_group_editor(state: Dict[str, Any]) -> Dict[str, Any]:
+    editor = state.setdefault("group_editor", {})
+    if not isinstance(editor, dict):
+        editor = {}
+        state["group_editor"] = editor
+
+    if not isinstance(editor.get("groups"), list):
+        editor["groups"] = load_pokemon_groups()
+    else:
+        editor["groups"] = normalize_groups(editor.get("groups"))
+
+    if not isinstance(editor.get("collaborators"), dict):
+        editor["collaborators"] = {}
+
+    editor.setdefault("version", 0)
+    editor.setdefault("updated_at", now_text())
+    return editor
+
+
+def touch_group_editor(state: Dict[str, Any]) -> None:
+    editor = ensure_group_editor(state)
+    editor["version"] = int(editor.get("version", 0)) + 1
+    editor["updated_at"] = now_text()
+
+
+def get_editor_payload(state: Dict[str, Any]) -> Dict[str, Any]:
+    editor = ensure_group_editor(state)
+    return {
+        "version": int(editor.get("version", 0)),
+        "updated_at": editor.get("updated_at"),
+        "groups": editor.get("groups", []),
+        "collaborators": editor.get("collaborators", {}),
+        "pokemon_pool": load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE),
+        "groups_text": groups_to_text(editor.get("groups", [])),
+    }
+
+
 @app.route("/admin", methods=["GET"])
 def admin_page():
     locked = require_admin()
@@ -707,6 +798,7 @@ def admin_page():
         return locked
 
     state = load_state()
+    editor = ensure_group_editor(state)
     return render_template(
         "admin.html",
         state=state,
@@ -714,8 +806,8 @@ def admin_page():
         pokemon_count=len(load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)),
         ability_count=len(load_pool(ABILITIES_FILE, ABILITIES_BANLIST_FILE)),
         pokemon_pool=load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE),
-        pokemon_groups=load_pokemon_groups(),
-        pokemon_groups_text=POKEMON_GROUPS_FILE.read_text(encoding="utf-8") if POKEMON_GROUPS_FILE.exists() else "",
+        pokemon_groups=editor.get("groups", []),
+        pokemon_groups_text=groups_to_text(editor.get("groups", [])),
         key=ADMIN_KEY,
         auto_refresh=False,
         state_version=state.get("version", 0),
@@ -775,15 +867,127 @@ def admin_save_groups():
         return locked
 
     groups_text = request.form.get("pokemon_groups", "")
-    POKEMON_GROUPS_FILE.write_text(groups_text.replace("\r\n", "\n"), encoding="utf-8")
+    groups = normalize_groups(parseGroupsText_for_python(groups_text))
+    POKEMON_GROUPS_FILE.write_text(groups_to_text(groups) + ("\n" if groups else ""), encoding="utf-8")
 
     # Recalcula bloqueios já existentes para refletir grupos novos/editados.
     state = load_state()
+    editor = ensure_group_editor(state)
+    editor["groups"] = groups
+    touch_group_editor(state)
     recompute_used_pokemon(state)
     save_state(state)
 
     flash("Grupos de Pokémon salvos e bloqueios globais recalculados.", "success")
     return redirect(url_for("admin_page", key=ADMIN_KEY))
+
+
+@app.route("/admin/group-editor-state", methods=["GET"])
+def admin_group_editor_state():
+    locked = require_admin()
+    if locked:
+        return {"error": "Acesso negado"}, 403
+
+    state = load_state()
+    ensure_group_editor(state)
+    return get_editor_payload(state)
+
+
+@app.route("/admin/group-editor-update", methods=["POST"])
+def admin_group_editor_update():
+    locked = require_admin()
+    if locked:
+        return {"error": "Acesso negado"}, 403
+
+    data = request.get_json(silent=True) or {}
+    action = str(data.get("action") or "").strip()
+    editor_id = str(data.get("editor_id") or "").strip()
+    editor_name = str(data.get("editor_name") or "").strip() or "Editor"
+
+    state = load_state()
+    editor = ensure_group_editor(state)
+    collaborators = editor.setdefault("collaborators", {})
+
+    if editor_id:
+        collaborator = collaborators.setdefault(editor_id, {"name": editor_name, "selected": [], "updated_at": now_text()})
+        collaborator["name"] = editor_name
+        collaborator["updated_at"] = now_text()
+
+    groups = normalize_groups(editor.get("groups", []))
+    editor["groups"] = groups
+
+    if action == "identify":
+        pass
+
+    elif action == "select":
+        if not editor_id:
+            return {"error": "editor_id obrigatório"}, 400
+        selected = data.get("selected", [])
+        if not isinstance(selected, list):
+            selected = []
+        collaborator = collaborators.setdefault(editor_id, {"name": editor_name, "selected": [], "updated_at": now_text()})
+        collaborator["selected"] = [str(item).strip() for item in selected if str(item).strip()]
+        collaborator["updated_at"] = now_text()
+
+    elif action == "clear_selection":
+        if not editor_id:
+            return {"error": "editor_id obrigatório"}, 400
+        collaborator = collaborators.setdefault(editor_id, {"name": editor_name, "selected": [], "updated_at": now_text()})
+        collaborator["selected"] = []
+        collaborator["updated_at"] = now_text()
+
+    elif action == "add_group":
+        if not editor_id:
+            return {"error": "editor_id obrigatório"}, 400
+        selected = data.get("selected", [])
+        if not isinstance(selected, list):
+            selected = []
+        selected_group = normalize_groups([selected])
+        if not selected_group:
+            return {"error": "Selecione pelo menos 2 Pokémon para criar um grupo."}, 400
+
+        selected_keys = {normalize_name_key(name) for name in selected_group[0]}
+        grouped_keys = {normalize_name_key(name) for group in groups for name in group}
+        conflict = selected_keys.intersection(grouped_keys)
+        if conflict:
+            return {"error": "Algum Pokémon selecionado já está em outro grupo. Atualize a tela e confira."}, 400
+
+        groups.append(selected_group[0])
+        editor["groups"] = groups
+        collaborator = collaborators.setdefault(editor_id, {"name": editor_name, "selected": [], "updated_at": now_text()})
+        collaborator["selected"] = []
+        collaborator["updated_at"] = now_text()
+
+    elif action == "remove_group":
+        index_raw = data.get("index")
+        try:
+            index = int(index_raw)
+        except (TypeError, ValueError):
+            return {"error": "Índice inválido."}, 400
+        if index < 0 or index >= len(groups):
+            return {"error": "Grupo não encontrado."}, 404
+        groups.pop(index)
+        editor["groups"] = groups
+
+    elif action == "apply_raw":
+        raw_text = str(data.get("groups_text") or "")
+        editor["groups"] = normalize_groups(parseGroupsText_for_python(raw_text))
+        if editor_id and editor_id in collaborators:
+            collaborators[editor_id]["selected"] = []
+            collaborators[editor_id]["updated_at"] = now_text()
+
+    elif action == "save_to_file":
+        groups = normalize_groups(editor.get("groups", []))
+        editor["groups"] = groups
+        POKEMON_GROUPS_FILE.write_text(groups_to_text(groups) + ("\n" if groups else ""), encoding="utf-8")
+        recompute_used_pokemon(state)
+
+    else:
+        return {"error": "Ação inválida."}, 400
+
+    touch_group_editor(state)
+    save_state(state)
+    return get_editor_payload(state)
 
 
 @app.route("/admin/reset", methods=["POST"])
