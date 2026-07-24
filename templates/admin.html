@@ -89,6 +89,24 @@
     }
     .editor-name-row input { width: min(280px, 100%); }
     .saving-indicator { min-height: 20px; }
+    .flag-table-wrapper {
+        max-height: 520px;
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #111118;
+    }
+    .flag-table { margin: 0; }
+    .flag-table th { position: sticky; top: 0; background: #171721; z-index: 1; }
+    .flag-check {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 8px 4px 0;
+        white-space: nowrap;
+    }
+    .flag-check input { width: auto; }
+    .export-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     @media (max-width: 780px) {
         .group-editor-layout { grid-template-columns: 1fr; }
         .chip-list { max-height: 320px; }
@@ -105,7 +123,14 @@
         <span class="badge">Pokémon na pool: {{ pokemon_count }}</span>
         <span class="badge">Abilities na pool: {{ ability_count }}</span>
         <span class="badge">Pokémon travados: {{ state.used_pokemon|length }}</span>
-        <a class="button" href="{{ url_for('export_json', key=key) }}">Exportar JSON</a>
+    </p>
+    <div class="export-actions">
+        <a class="button" href="{{ url_for('export_json', key=key) }}">Exportar estado completo JSON</a>
+        <a class="button secondary" href="{{ url_for('export_history_json', key=key) }}">Exportar escolhas JSON</a>
+        <a class="button secondary" href="{{ url_for('export_history_txt', key=key) }}">Exportar escolhas TXT</a>
+    </div>
+    <p class="muted small">O export de escolhas registra as 3 opções que cada jogador recebeu e qual opção foi selecionada. Isso é ótimo para analisar o draft depois do campeonato.</p>
+    <p style="display:none">
     </p>
 </section>
 
@@ -120,6 +145,7 @@
                 <p>
                     <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ player_pending_label(player) }}</span>
                     <span class="badge">ID: {{ player_id }}</span>
+                    <span class="badge">Escolhas registradas: {{ player.choice_history|length }}</span>
                 </p>
                 <p class="small muted">Link do jogador: <span class="url-box">{{ request.host_url.rstrip('/') }}{{ url_for('player_page', player_id=player_id) }}</span></p>
 
@@ -161,6 +187,53 @@
     {% else %}
         <p class="muted">Nenhum Pokémon travado ainda.</p>
     {% endif %}
+</section>
+
+<section class="card">
+    <h2>Flags e limites por jogador</h2>
+    <p class="muted">Marque flags nos Pokémon, como <strong>Lendario</strong>, <strong>Paradox</strong> ou qualquer outra categoria. Depois defina o limite por jogador. Quando o jogador atingir o limite, os próximos sorteios não trarão mais Pokémon daquela flag.</p>
+
+    <form method="post" action="{{ url_for('admin_save_flags') }}">
+        <input type="hidden" name="key" value="{{ key }}">
+
+        <label for="flag-limits"><strong>Limites</strong> — uma flag por linha, no formato <code>Flag=quantidade</code></label><br><br>
+        <textarea id="flag-limits" name="flag_limits" rows="5" spellcheck="false" style="width: 100%; box-sizing: border-box; font-family: monospace;">{{ flag_limits_text }}</textarea>
+        <p class="muted small">Exemplo: <code>Lendario=1</code>. Para criar uma nova flag, adicione uma linha aqui e salve; depois ela aparecerá como checkbox na lista.</p>
+
+        {% if available_flags %}
+            <div class="flag-table-wrapper">
+                <table class="flag-table">
+                    <thead>
+                        <tr>
+                            <th>Pokémon</th>
+                            <th>Flags</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pokemon in pokemon_pool %}
+                            {% set current_flags = flag_config.pokemon_flags.get(pokemon, []) %}
+                            <tr>
+                                <td><strong>{{ pokemon }}</strong></td>
+                                <td>
+                                    {% for flag in available_flags %}
+                                        <label class="flag-check">
+                                            <input type="checkbox" name="flags__{{ pokemon }}" value="{{ flag }}" {% if flag in current_flags %}checked{% endif %}>
+                                            {{ flag }}
+                                        </label>
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="muted">Nenhuma flag configurada ainda. Adicione algo como <code>Lendario=1</code> e salve.</p>
+        {% endif %}
+
+        <br>
+        <button type="submit">Salvar flags e limites</button>
+    </form>
 </section>
 
 <section class="card">

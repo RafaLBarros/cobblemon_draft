@@ -28,7 +28,8 @@ Exemplo:
 /pokegiveother Kl1gh abra ability=parentalbond
 ```
 
-- Admin completo pode auditar tudo, ver links dos jogadores, limpar pendências, remover último Pokémon e resetar.
+- Admin completo pode auditar tudo, ver links dos jogadores, limpar pendências, remover último Pokémon, resetar e exportar o histórico de opções/choices.
+- O Admin permite configurar **flags** por Pokémon, como `Lendario`, e limites por jogador, como `Lendario=1`. Depois que o jogador atingir o limite, aquela flag sai dos próximos sorteios dele.
 - O editor visual de grupos no Admin agora é colaborativo: duas pessoas podem abrir o Admin, informar seus nomes no editor, selecionar Pokémon e ver em tempo quase real quais grupos cada uma está montando.
 - Clique em **Salvar grupos no TXT e recalcular bloqueios** para gravar o rascunho colaborativo no `data/pokemon_groups.txt`.
 
@@ -77,10 +78,17 @@ Admin completo, acessado direto pelo endereço:
 http://localhost:5000/admin?key=cobbleverse
 ```
 
-Exportar JSON:
+Exportar estado completo JSON:
 
 ```text
 http://localhost:5000/export.json?key=cobbleverse
+```
+
+Exportar histórico das escolhas/opções:
+
+```text
+http://localhost:5000/export-history.json?key=cobbleverse
+http://localhost:5000/export-history.txt?key=cobbleverse
 ```
 
 ## Arquivos de dados
@@ -105,6 +113,12 @@ Grupos de Pokémon/evoluções:
 data/pokemon_groups.txt
 ```
 
+Flags e limites:
+
+```text
+data/pokemon_flags.json
+```
+
 Um grupo por linha. Quando qualquer Pokémon daquela linha for escolhido, todos os outros nomes da mesma linha saem da pool global. Formatos aceitos:
 
 ```text
@@ -114,6 +128,16 @@ Abra | Kadabra | Alakazam
 ```
 
 Também dá para editar esses grupos pela página Admin. O editor visual é colaborativo: cada pessoa informa um nome no editor, seleciona Pokémon, e os outros Admins veem a seleção em andamento. Ao clicar em **Salvar grupos no TXT e recalcular bloqueios**, o sistema grava o arquivo e recalcula os bloqueios já existentes.
+
+As flags também são editáveis pelo Admin. Exemplo de limite:
+
+```text
+Lendario=1
+Paradox=1
+Ultra Beast=1
+```
+
+Depois marque os checkboxes dos Pokémon correspondentes. Se um jogador já tiver 1 Pokémon com `Lendario`, os próximos sorteios dele não mostram mais Pokémon marcados com essa flag.
 
 Se quiser caos total, deixe as banlists vazias.
 

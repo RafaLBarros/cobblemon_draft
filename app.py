@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import Flask, Response, flash, redirect, render_template, request, url_for
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -18,6 +18,7 @@ ABILITIES_FILE = DATA_DIR / "abilities.txt"
 POKEMON_BANLIST_FILE = DATA_DIR / "pokemon_banlist.txt"
 ABILITIES_BANLIST_FILE = DATA_DIR / "abilities_banlist.txt"
 POKEMON_GROUPS_FILE = DATA_DIR / "pokemon_groups.txt"
+POKEMON_FLAGS_FILE = DATA_DIR / "pokemon_flags.json"
 
 MAX_POKEMON = 6
 OPTIONS_PER_DRAW = 3
@@ -54,6 +55,7 @@ def empty_pending() -> Dict[str, Any]:
         "pokemon_options": [],
         "ability_for_index": None,
         "ability_options": [],
+        "choice_id": None,
     }
 
 
@@ -126,6 +128,19 @@ def ensure_files_exist() -> None:
             encoding="utf-8",
         )
 
+    if not POKEMON_FLAGS_FILE.exists():
+        POKEMON_FLAGS_FILE.write_text(
+            json.dumps(
+                {
+                    "flag_limits": {"Lendario": 1},
+                    "pokemon_flags": {}
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
 
 def load_lines(path: Path) -> List[str]:
     ensure_files_exist()
@@ -152,6 +167,158 @@ def load_pool(pool_file: Path, banlist_file: Path) -> List[str]:
     pool = load_lines(pool_file)
     banlist = {item.lower() for item in load_lines(banlist_file)}
     return [item for item in pool if item.lower() not in banlist]
+
+
+def load_flag_config() -> Dict[str, Any]:
+    ensure_files_exist()
+    default = {"flag_limits": {"Lendario": 1}, "pokemon_flags": {}}
+    try:
+        data = json.loads(POKEMON_FLAGS_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, FileNotFoundError):
+        return default
+
+    if not isinstance(data, dict):
+        return default
+
+    limits = data.get("flag_limits") if isinstance(data.get("flag_limits"), dict) else {}
+    cleaned_limits: Dict[str, int] = {}
+    for raw_flag, raw_limit in limits.items():
+        flag = str(raw_flag).strip()
+        if not flag:
+            continue
+        try:
+            limit = int(raw_limit)
+        except (TypeError, ValueError):
+            continue
+        cleaned_limits[flag] = max(0, limit)
+
+    pokemon_flags = data.get("pokemon_flags") if isinstance(data.get("pokemon_flags"), dict) else {}
+    cleaned_pokemon_flags: Dict[str, List[str]] = {}
+    for raw_pokemon, raw_flags in pokemon_flags.items():
+        pokemon = str(raw_pokemon).strip()
+        if not pokemon:
+            continue
+        if isinstance(raw_flags, str):
+            raw_flags = [raw_flags]
+        if not isinstance(raw_flags, list):
+            continue
+        flags: List[str] = []
+        seen = set()
+        for raw_flag in raw_flags:
+            flag = str(raw_flag).strip()
+            key = flag.lower()
+            if flag and key not in seen:
+                flags.append(flag)
+                seen.add(key)
+        if flags:
+            cleaned_pokemon_flags[pokemon] = flags
+
+    return {
+        "flag_limits": cleaned_limits or default["flag_limits"],
+        "pokemon_flags": cleaned_pokemon_flags,
+    }
+
+
+def save_flag_config(config: Dict[str, Any]) -> None:
+    DATA_DIR.mkdir(exist_ok=True)
+    POKEMON_FLAGS_FILE.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def flags_for_pokemon(pokemon_name: str, config: Optional[Dict[str, Any]] = None) -> List[str]:
+    config = config or load_flag_config()
+    wanted = normalize_name_key(pokemon_name)
+    for configured_name, flags in config.get("pokemon_flags", {}).items():
+        if normalize_name_key(configured_name) == wanted:
+            return list(flags)
+    return []
+
+
+def player_flag_counts(player: Dict[str, Any], config: Optional[Dict[str, Any]] = None) -> Dict[str, int]:
+    config = config or load_flag_config()
+    counts: Dict[str, int] = {}
+    for pick in player.get("pokemon_picks", []):
+        pokemon_name = pick.get("name") if isinstance(pick, dict) else str(pick)
+        for flag in flags_for_pokemon(pokemon_name, config):
+            counts[flag] = counts.get(flag, 0) + 1
+    return counts
+
+
+def excluded_by_flag_limits(player: Dict[str, Any], pokemon_pool: List[str], config: Optional[Dict[str, Any]] = None) -> List[str]:
+    config = config or load_flag_config()
+    counts = player_flag_counts(player, config)
+    limits = config.get("flag_limits", {})
+    blocked_flags = {flag for flag, limit in limits.items() if int(limit) >= 0 and counts.get(flag, 0) >= int(limit)}
+    if not blocked_flags:
+        return []
+
+    excluded: List[str] = []
+    for pokemon in pokemon_pool:
+        if blocked_flags.intersection(set(flags_for_pokemon(pokemon, config))):
+            excluded.append(pokemon)
+    return excluded
+
+
+def normalize_flag_config_from_form(flag_limits_text: str, pokemon_flags: Any) -> Dict[str, Any]:
+    limits: Dict[str, int] = {}
+    for raw_line in str(flag_limits_text or "").replace("\r\n", "\n").split("\n"):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" in line:
+            flag, value = line.split("=", 1)
+        elif ":" in line:
+            flag, value = line.split(":", 1)
+        else:
+            continue
+        flag = flag.strip()
+        try:
+            limit = int(value.strip())
+        except ValueError:
+            continue
+        if flag:
+            limits[flag] = max(0, limit)
+
+    cleaned_flags: Dict[str, List[str]] = {}
+    if isinstance(pokemon_flags, dict):
+        pokemon_pool = load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+        canonical = {normalize_name_key(name): name for name in pokemon_pool}
+        known_flags = {flag.lower(): flag for flag in limits.keys()}
+        for raw_pokemon, raw_flags in pokemon_flags.items():
+            key = normalize_name_key(raw_pokemon)
+            pokemon = canonical.get(key, str(raw_pokemon).strip())
+            if not pokemon:
+                continue
+            if isinstance(raw_flags, str):
+                raw_flags = [raw_flags]
+            if not isinstance(raw_flags, list):
+                continue
+            flags: List[str] = []
+            seen = set()
+            for raw_flag in raw_flags:
+                flag_key = str(raw_flag).strip().lower()
+                flag = known_flags.get(flag_key, str(raw_flag).strip())
+                if flag and flag_key not in seen:
+                    flags.append(flag)
+                    seen.add(flag_key)
+            if flags:
+                cleaned_flags[pokemon] = flags
+
+    return {"flag_limits": limits or {"Lendario": 1}, "pokemon_flags": cleaned_flags}
+
+
+def flag_limits_text(config: Dict[str, Any]) -> str:
+    return "\n".join(f"{flag}={limit}" for flag, limit in config.get("flag_limits", {}).items())
+
+
+def available_flags(config: Dict[str, Any]) -> List[str]:
+    flags = list(config.get("flag_limits", {}).keys())
+    seen = {flag.lower() for flag in flags}
+    for flag_list in config.get("pokemon_flags", {}).values():
+        for flag in flag_list:
+            if str(flag).lower() not in seen:
+                flags.append(str(flag))
+                seen.add(str(flag).lower())
+    return flags
 
 
 def normalize_name_key(value: str) -> str:
@@ -258,6 +425,7 @@ def normalize_player(player_id: str, player: Dict[str, Any]) -> Dict[str, Any]:
     pending.setdefault("pokemon_options", [])
     pending.setdefault("ability_for_index", None)
     pending.setdefault("ability_options", [])
+    pending.setdefault("choice_id", None)
 
     fixed_picks = []
     for pick in player["pokemon_picks"]:
@@ -268,6 +436,9 @@ def normalize_player(player_id: str, player: Dict[str, Any]) -> Dict[str, Any]:
             pick.setdefault("ability", None)
             fixed_picks.append(pick)
     player["pokemon_picks"] = fixed_picks
+    player.setdefault("choice_history", [])
+    if not isinstance(player.get("choice_history"), list):
+        player["choice_history"] = []
     return player
 
 
@@ -418,6 +589,72 @@ def pokegive_command(nickname: str, pokemon_name: str, ability_name: str) -> str
     return f"/pokegiveother {nickname} {command_token(pokemon_name)} ability={command_token(ability_name)}"
 
 
+def new_choice_id() -> str:
+    return datetime.now().strftime("%Y%m%d%H%M%S%f") + "-" + "".join(random.choice("0123456789") for _ in range(4))
+
+
+def register_choice_history(player: Dict[str, Any], choice_type: str, options: List[str], slot_index: Optional[int] = None) -> str:
+    choice_id = new_choice_id()
+    history = player.setdefault("choice_history", [])
+    history.append({
+        "choice_id": choice_id,
+        "type": choice_type,
+        "slot_index": slot_index,
+        "slot_label": slot_label(slot_index) if isinstance(slot_index, int) else None,
+        "options": list(options),
+        "chosen": None,
+        "created_at": now_text(),
+        "chosen_at": None,
+    })
+    return choice_id
+
+
+def mark_choice_history(player: Dict[str, Any], choice_id: Optional[str], chosen: str) -> None:
+    if not choice_id:
+        return
+    for entry in reversed(player.setdefault("choice_history", [])):
+        if entry.get("choice_id") == choice_id:
+            entry["chosen"] = chosen
+            entry["chosen_at"] = now_text()
+            return
+
+
+def player_history_export_payload(state: Dict[str, Any]) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {
+        "exported_at": now_text(),
+        "version": state.get("version", 0),
+        "players": {},
+    }
+    for player_id, player in sorted_players(state).items():
+        payload["players"][player_id] = {
+            "nickname": player.get("nickname"),
+            "pokemon_picks": player.get("pokemon_picks", []),
+            "choice_history": player.get("choice_history", []),
+        }
+    return payload
+
+
+def history_text_export(state: Dict[str, Any]) -> str:
+    lines: List[str] = []
+    lines.append(f"Cobblemon Random Draft - Export de escolhas")
+    lines.append(f"Gerado em: {now_text()}")
+    lines.append("")
+    for _, player in sorted_players(state).items():
+        lines.append(f"=== {player.get('nickname')} ===")
+        if not player.get("choice_history"):
+            lines.append("Sem histórico de escolhas.")
+        for entry in player.get("choice_history", []):
+            label = entry.get("slot_label") or "Pokémon"
+            tipo = "Pokémon" if entry.get("type") == "pokemon" else f"Ability ({label})"
+            lines.append(f"[{tipo}] {entry.get('created_at', '')}")
+            lines.append("Opções: " + ", ".join(entry.get("options", [])))
+            chosen = entry.get("chosen") or "pendente/não escolhido"
+            lines.append(f"Escolha: {chosen}")
+            lines.append("")
+        lines.append("")
+    return "\n".join(lines)
+
+
 def slot_label(index: int) -> str:
     return f"Slot {index + 1}"
 
@@ -539,6 +776,7 @@ def choose_pokemon():
         flash("Esse Pokémon já foi travado por outro jogador. Peça para o mestre sortear novamente.", "error")
         return redirect(url_for("player_page", player_id=player_id))
 
+    mark_choice_history(player, pending.get("choice_id"), chosen)
     player["pokemon_picks"].append({"name": chosen, "ability": None})
     player["pending"] = empty_pending()
 
@@ -587,6 +825,7 @@ def choose_ability():
         save_state(state)
         return redirect(url_for("player_page", player_id=player_id))
 
+    mark_choice_history(player, pending.get("choice_id"), ability)
     player["pokemon_picks"][index]["ability"] = ability
     pokemon_name = player["pokemon_picks"][index]["name"]
     player["pending"] = empty_pending()
@@ -637,19 +876,30 @@ def master_draw_pokemon():
         return redirect(url_for("master_page", key=MASTER_KEY))
 
     pokemon_pool = load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+    flag_config = load_flag_config()
     already_in_team = [pick["name"] for pick in player["pokemon_picks"]]
     globally_used = state.get("used_pokemon", []) if state["settings"].get("lock_chosen_pokemon_globally", True) else []
-    options, error = draw_options(pokemon_pool, state["settings"].get("options_per_draw", OPTIONS_PER_DRAW), already_in_team + globally_used)
+    flag_blocked = excluded_by_flag_limits(player, pokemon_pool, flag_config)
+    options, error = draw_options(
+        pokemon_pool,
+        state["settings"].get("options_per_draw", OPTIONS_PER_DRAW),
+        already_in_team + globally_used + flag_blocked,
+    )
 
     if error:
-        flash(error, "error")
+        counts = player_flag_counts(player, flag_config)
+        limits = flag_config.get("flag_limits", {})
+        flag_status = ", ".join(f"{flag}: {counts.get(flag, 0)}/{limit}" for flag, limit in limits.items())
+        flash(error + (f" Limites de flags: {flag_status}." if flag_status else ""), "error")
         return redirect(url_for("master_page", key=MASTER_KEY))
 
+    choice_id = register_choice_history(player, "pokemon", options)
     player["pending"] = {
         "type": "pokemon",
         "pokemon_options": options,
         "ability_for_index": None,
         "ability_options": [],
+        "choice_id": choice_id,
     }
     save_state(state)
 
@@ -698,11 +948,13 @@ def master_draw_ability():
         flash(error, "error")
         return redirect(url_for("master_page", key=MASTER_KEY))
 
+    choice_id = register_choice_history(player, "ability", options, pokemon_index)
     player["pending"] = {
         "type": "ability",
         "pokemon_options": [],
         "ability_for_index": pokemon_index,
         "ability_options": options,
+        "choice_id": choice_id,
     }
     save_state(state)
 
@@ -808,6 +1060,9 @@ def admin_page():
         pokemon_pool=load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE),
         pokemon_groups=editor.get("groups", []),
         pokemon_groups_text=groups_to_text(editor.get("groups", [])),
+        flag_config=load_flag_config(),
+        flag_limits_text=flag_limits_text(load_flag_config()),
+        available_flags=available_flags(load_flag_config()),
         key=ADMIN_KEY,
         auto_refresh=False,
         state_version=state.get("version", 0),
@@ -990,6 +1245,25 @@ def admin_group_editor_update():
     return get_editor_payload(state)
 
 
+@app.route("/admin/save-flags", methods=["POST"])
+def admin_save_flags():
+    locked = require_admin()
+    if locked:
+        return locked
+
+    limits_text = request.form.get("flag_limits", "")
+    raw_pokemon_flags: Dict[str, List[str]] = {}
+    for key, values in request.form.lists():
+        if key.startswith("flags__"):
+            pokemon_name = key[len("flags__"):].strip()
+            raw_pokemon_flags[pokemon_name] = [str(value).strip() for value in values if str(value).strip()]
+
+    config = normalize_flag_config_from_form(limits_text, raw_pokemon_flags)
+    save_flag_config(config)
+    flash("Flags e limites salvos. Os próximos sorteios já respeitam esses limites.", "success")
+    return redirect(url_for("admin_page", key=ADMIN_KEY))
+
+
 @app.route("/admin/reset", methods=["POST"])
 def admin_reset():
     locked = require_admin()
@@ -1008,6 +1282,31 @@ def admin_reset():
     save_state(default_state())
     flash("Draft resetado. Um backup do estado anterior foi criado.", "success")
     return redirect(url_for("admin_page", key=ADMIN_KEY))
+
+
+@app.route("/export-history.json", methods=["GET"])
+def export_history_json():
+    key = request.args.get("key")
+    if key != ADMIN_KEY:
+        return {"error": "Acesso negado"}, 403
+    payload = player_history_export_payload(load_state())
+    return Response(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        mimetype="application/json; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=cobblemon-draft-escolhas.json"},
+    )
+
+
+@app.route("/export-history.txt", methods=["GET"])
+def export_history_txt():
+    key = request.args.get("key")
+    if key != ADMIN_KEY:
+        return {"error": "Acesso negado"}, 403
+    return Response(
+        history_text_export(load_state()),
+        mimetype="text/plain; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=cobblemon-draft-escolhas.txt"},
+    )
 
 
 @app.route("/export.json", methods=["GET"])
