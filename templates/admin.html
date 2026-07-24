@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Admin Completo{% endblock %}
+{% block content %}
+<section class="card">
+    <h1>Admin completo</h1>
+    <p class="muted">Esta página mostra tudo, inclusive opções pendentes. Use só para auditoria, correção ou finalização.</p>
+    <p>
+        <span class="badge">Pokémon na pool: {{ pokemon_count }}</span>
+        <span class="badge">Abilities na pool: {{ ability_count }}</span>
+        <span class="badge">Pokémon travados: {{ state.used_pokemon|length }}</span>
+        <a class="button" href="{{ url_for('export_json', key=key) }}">Exportar JSON</a>
+    </p>
+</section>
+
+<section class="card">
+    <h2>Times e pendências</h2>
+    {% if not players %}
+        <p class="muted">Nenhum jogador cadastrado.</p>
+    {% else %}
+        {% for nickname, player in players.items() %}
+            <div class="card">
+                <h3>{{ nickname }}</h3>
+                <p><span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ player_pending_label(player) }}</span></p>
+
+                <ol>
+                    {% for pick in player.pokemon_picks %}
+                        <li><strong>{{ pick.name }}</strong> — {{ pick.ability if pick.ability else "ability pendente" }}</li>
+                    {% endfor %}
+                </ol>
+
+                {% if player.pending.type == "pokemon" %}
+                    <p><strong>Opções pendentes de Pokémon:</strong> {{ player.pending.pokemon_options|join(', ') }}</p>
+                {% elif player.pending.type == "ability" %}
+                    {% set idx = player.pending.ability_for_index %}
+                    {% set pokemon_name = player.pokemon_picks[idx].name if idx is number and idx >= 0 and idx < player.pokemon_picks|length else "Pokémon" %}
+                    <p><strong>Ability pendente para {{ pokemon_name }}:</strong> {{ player.pending.ability_options|join(', ') }}</p>
+                {% endif %}
+
+                <div class="actions">
+                    <form method="post" action="{{ url_for('admin_clear_pending') }}">
+                        <input type="hidden" name="key" value="{{ key }}">
+                        <input type="hidden" name="nickname" value="{{ nickname }}">
+                        <button class="secondary" type="submit">Limpar pendência</button>
+                    </form>
+                    <form method="post" action="{{ url_for('admin_remove_last_pick') }}">
+                        <input type="hidden" name="key" value="{{ key }}">
+                        <input type="hidden" name="nickname" value="{{ nickname }}">
+                        <button class="danger" type="submit">Remover último Pokémon</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+</section>
+
+<section class="card">
+    <h2>Pokémon já travados</h2>
+    {% if state.used_pokemon %}
+        <p>{{ state.used_pokemon|join(', ') }}</p>
+    {% else %}
+        <p class="muted">Nenhum Pokémon travado ainda.</p>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h2>Resetar campeonato</h2>
+    <p class="muted">Isso limpa jogadores, escolhas e Pokémon travados. Um backup JSON é criado antes.</p>
+    <form method="post" action="{{ url_for('admin_reset') }}">
+        <input type="hidden" name="key" value="{{ key }}">
+        <label for="confirm">Digite RESETAR para confirmar</label><br><br>
+        <input id="confirm" name="confirm" type="text" placeholder="RESETAR">
+        <br><br>
+        <button class="danger" type="submit">Resetar tudo</button>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Jogador - {{ player.nickname }}{% endblock %}
+{% block content %}
+<section class="card">
+    <h1>{{ player.nickname }}</h1>
+    <p>
+        <span class="badge">Pokémon: {{ player.pokemon_picks|length }}/{{ state.settings.max_pokemon }}</span>
+        <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ player_pending_label(player) }}</span>
+    </p>
+</section>
+
+<section class="grid">
+    <div class="card">
+        <h2>Seu time</h2>
+        {% if player.pokemon_picks %}
+            <ol>
+                {% for pick in player.pokemon_picks %}
+                    <li>
+                        <strong>{{ pick.name }}</strong>
+                        {% if pick.ability %}
+                            — {{ pick.ability }}
+                        {% else %}
+                            <span class="muted">— ability pendente</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ol>
+        {% else %}
+            <p class="muted">Você ainda não escolheu nenhum Pokémon.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        {% if player.pending.type == "pokemon" %}
+            <h2>Escolha 1 Pokémon</h2>
+            <p class="muted">O escolhido entra no seu time e sai da pool global. Os recusados voltam para o sorteio.</p>
+            {% for option in player.pending.pokemon_options %}
+                <form method="post" action="{{ url_for('choose_pokemon') }}">
+                    <input type="hidden" name="nickname" value="{{ player.nickname }}">
+                    <input type="hidden" name="pokemon" value="{{ option }}">
+                    <button class="option-button" type="submit">{{ option }}</button>
+                </form>
+            {% endfor %}
+        {% elif player.pending.type == "ability" %}
+            {% set idx = player.pending.ability_for_index %}
+            {% set pokemon_name = player.pokemon_picks[idx].name if idx is number and idx >= 0 and idx < player.pokemon_picks|length else "Pokémon" %}
+            <h2>Escolha ability para {{ pokemon_name }}</h2>
+            <p class="muted">Ability caótica: saiu da pool global de abilities.</p>
+            {% for option in player.pending.ability_options %}
+                <form method="post" action="{{ url_for('choose_ability') }}">
+                    <input type="hidden" name="nickname" value="{{ player.nickname }}">
+                    <input type="hidden" name="ability" value="{{ option }}">
+                    <button class="option-button" type="submit">{{ option }}</button>
+                </form>
+            {% endfor %}
+        {% else %}
+            <h2>Aguardando o mestre</h2>
+            <p class="muted">Quando o mestre sortear algo para você, as 3 opções aparecem aqui.</p>
+            <button class="secondary" type="button" onclick="window.location.reload()">Atualizar</button>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

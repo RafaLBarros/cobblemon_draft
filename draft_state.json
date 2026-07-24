@@ -1,0 +1,31 @@
+{
+  "created_at": "2026-07-24 04:06:31",
+  "updated_at": "2026-07-24 04:07:31",
+  "used_pokemon": [
+    "Ceruledge"
+  ],
+  "players": {
+    "Rafael": {
+      "nickname": "Rafael",
+      "created_at": "2026-07-24 04:06:47",
+      "pokemon_picks": [
+        {
+          "name": "Ceruledge",
+          "ability": null
+        }
+      ],
+      "pending": {
+        "type": null,
+        "pokemon_options": [],
+        "ability_for_index": null,
+        "ability_options": []
+      }
+    }
+  },
+  "settings": {
+    "max_pokemon": 6,
+    "options_per_draw": 3,
+    "lock_chosen_pokemon_globally": true,
+    "lock_abilities_globally": false
+  }
+}

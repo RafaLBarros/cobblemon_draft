@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Entrar no Draft{% endblock %}
+{% block content %}
+<section class="card">
+    <h1>Entrar no draft</h1>
+    <p class="muted">Digite seu apelido. Não tem senha nem autenticação: o apelido identifica seu perfil enquanto o draft estiver salvo.</p>
+
+    <form method="post" action="{{ url_for('join') }}">
+        <label for="nickname">Apelido</label><br><br>
+        <input id="nickname" name="nickname" type="text" placeholder="Ex: Rafael" required autofocus>
+        <br><br>
+        <button type="submit">Entrar</button>
+    </form>
+</section>
+
+<section class="grid">
+    <div class="card">
+        <h2>Jogador</h2>
+        <p>Você só vê suas escolhas pendentes e seu próprio time.</p>
+    </div>
+    <div class="card">
+        <h2>Mestre cego</h2>
+        <p>O organizador sorteia para cada jogador, mas não vê as opções sorteadas.</p>
+    </div>
+    <div class="card">
+        <h2>Admin completo</h2>
+        <p>Página separada para auditar, resetar ou resolver algum problema.</p>
+    </div>
+</section>
+{% endblock %}

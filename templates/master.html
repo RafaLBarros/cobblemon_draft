@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Mestre Cego{% endblock %}
+{% block content %}
+<section class="card">
+    <h1>Mestre cego</h1>
+    <p class="muted">Aqui você controla o andamento sem ver as opções sorteadas. Use esta página para organizar e ainda jogar junto.</p>
+    <p>
+        <span class="badge">Pokémon usados: {{ state.used_pokemon|length }}</span>
+        <span class="badge">Máximo por jogador: {{ state.settings.max_pokemon }}</span>
+        <span class="badge">Opções por sorteio: {{ state.settings.options_per_draw }}</span>
+    </p>
+</section>
+
+{% if not players %}
+    <section class="card">
+        <h2>Nenhum jogador entrou ainda</h2>
+        <p class="muted">Peça para cada pessoa acessar a página inicial e entrar com apelido.</p>
+    </section>
+{% endif %}
+
+<section class="grid">
+{% for nickname, player in players.items() %}
+    <div class="card">
+        <h2>{{ nickname }}</h2>
+        <p>
+            <span class="badge">{{ player.pokemon_picks|length }}/{{ state.settings.max_pokemon }} Pokémon</span>
+            <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ player_pending_label(player) }}</span>
+        </p>
+
+        {% if player.pokemon_picks %}
+            <ol class="small">
+                {% for pick in player.pokemon_picks %}
+                    <li>
+                        <strong>{{ pick.name }}</strong>
+                        {% if pick.ability %}
+                            — ability escolhida
+                        {% else %}
+                            — ability pendente
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ol>
+        {% else %}
+            <p class="muted small">Nenhum Pokémon escolhido.</p>
+        {% endif %}
+
+        <div class="hr"></div>
+
+        <div class="actions">
+            <form method="post" action="{{ url_for('master_draw_pokemon') }}">
+                <input type="hidden" name="key" value="{{ key }}">
+                <input type="hidden" name="nickname" value="{{ nickname }}">
+                <button type="submit" {% if not player_can_draw_pokemon(player, state) %}disabled{% endif %}>Sortear 3 Pokémon</button>
+            </form>
+        </div>
+
+        {% if player.pokemon_picks|length > 0 %}
+            <div class="hr"></div>
+            <h3>Sortear ability</h3>
+            <div class="actions">
+                {% for pick in player.pokemon_picks %}
+                    <form method="post" action="{{ url_for('master_draw_ability') }}">
+                        <input type="hidden" name="key" value="{{ key }}">
+                        <input type="hidden" name="nickname" value="{{ nickname }}">
+                        <input type="hidden" name="pokemon_index" value="{{ loop.index0 }}">
+                        <button class="secondary" type="submit" {% if player.pending.type or pick.ability %}disabled{% endif %}>{{ pick.name }}</button>
+                    </form>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endfor %}
+</section>
+{% endblock %}
