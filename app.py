@@ -713,10 +713,11 @@ def admin_page():
         players=sorted_players(state),
         pokemon_count=len(load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)),
         ability_count=len(load_pool(ABILITIES_FILE, ABILITIES_BANLIST_FILE)),
+        pokemon_pool=load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE),
         pokemon_groups=load_pokemon_groups(),
         pokemon_groups_text=POKEMON_GROUPS_FILE.read_text(encoding="utf-8") if POKEMON_GROUPS_FILE.exists() else "",
         key=ADMIN_KEY,
-        auto_refresh=True,
+        auto_refresh=False,
         state_version=state.get("version", 0),
     )
 

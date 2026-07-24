@@ -1,6 +1,88 @@
 {% extends "base.html" %}
 {% block title %}Admin Completo{% endblock %}
 {% block content %}
+<style>
+    .group-editor-layout {
+        display: grid;
+        grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr);
+        gap: 16px;
+        align-items: start;
+    }
+    .chip-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        max-height: 420px;
+        overflow: auto;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #111118;
+    }
+    .pokemon-chip {
+        width: auto;
+        border-radius: 999px;
+        padding: 7px 10px;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .pokemon-chip.selected {
+        background: var(--accent);
+        border-color: var(--accent-2);
+    }
+    .pokemon-chip.grouped {
+        opacity: .45;
+        cursor: not-allowed;
+    }
+    .selected-tray {
+        min-height: 50px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px;
+        border: 1px dashed var(--border);
+        border-radius: 14px;
+        background: #111118;
+    }
+    .group-card {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #111118;
+        margin: 8px 0;
+    }
+    .group-card button {
+        width: auto;
+        padding: 7px 10px;
+        font-size: 13px;
+    }
+    .group-members {
+        overflow-wrap: anywhere;
+        line-height: 1.5;
+    }
+    .group-editor-tools {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 10px 0;
+    }
+    .group-editor-tools input { flex: 1; min-width: 200px; }
+    @media (max-width: 780px) {
+        .group-editor-layout { grid-template-columns: 1fr; }
+        .chip-list { max-height: 320px; }
+        .group-card { flex-direction: column; }
+        .group-card button { width: 100%; }
+    }
+</style>
+
 <section class="card">
     <h1>Admin completo</h1>
     <p class="muted">Esta página mostra tudo, inclusive opções pendentes. Use só para auditoria, correção ou finalização.</p>
@@ -66,34 +148,49 @@
     {% endif %}
 </section>
 
-
 <section class="card">
-    <h2>Grupos de Pokémon</h2>
-    <p class="muted">Use isto para bloquear famílias/evoluções juntas. Quando qualquer Pokémon de um grupo for escolhido, todos os outros nomes da mesma linha saem da pool global.</p>
-    <p class="muted small">Formatos aceitos: <code>Bulbasaur, Ivysaur, Venusaur</code> ou <code>Charmander &gt; Charmeleon &gt; Charizard</code> ou <code>Abra | Kadabra | Alakazam</code>.</p>
+    <h2>Editor visual de grupos de Pokémon</h2>
+    <p class="muted">Monte famílias/evoluções clicando nos Pokémon da lista. Cada grupo salvo vira uma linha no <code>data/pokemon_groups.txt</code>. Quando qualquer membro for escolhido, todos os membros daquele grupo ficam bloqueados.</p>
 
-    <form method="post" action="{{ url_for('admin_save_groups') }}">
+    <form id="groups-form" method="post" action="{{ url_for('admin_save_groups') }}">
         <input type="hidden" name="key" value="{{ key }}">
-        <label for="pokemon_groups">Um grupo por linha</label><br><br>
-        <textarea id="pokemon_groups" name="pokemon_groups" rows="12" spellcheck="false" style="width: 100%; box-sizing: border-box; font-family: monospace;">{{ pokemon_groups_text }}</textarea>
-        <br><br>
-        <button type="submit">Salvar grupos e recalcular bloqueios</button>
-    </form>
+        <textarea id="pokemon_groups" name="pokemon_groups" hidden>{{ pokemon_groups_text }}</textarea>
 
-    {% if pokemon_groups %}
-        <div class="hr"></div>
-        <h3>Grupos carregados: {{ pokemon_groups|length }}</h3>
-        <ul class="small">
-            {% for group in pokemon_groups[:20] %}
-                <li>{{ group|join(' → ') }}</li>
-            {% endfor %}
-        </ul>
-        {% if pokemon_groups|length > 20 %}
-            <p class="muted small">Mostrando os primeiros 20 grupos.</p>
-        {% endif %}
-    {% else %}
-        <p class="muted small">Nenhum grupo carregado ainda. Se a lista estiver vazia, só o Pokémon escolhido será bloqueado.</p>
-    {% endif %}
+        <div class="group-editor-layout">
+            <div>
+                <h3>Lista de Pokémon</h3>
+                <p class="muted small">Clique em 2 ou mais Pokémon para montar o grupo atual. Pokémon que já estão em grupo ficam bloqueados até você remover o grupo.</p>
+                <div class="group-editor-tools">
+                    <input id="pokemon-search" type="search" placeholder="Buscar Pokémon..." autocomplete="off">
+                    <button id="clear-selection" class="secondary" type="button">Limpar seleção</button>
+                </div>
+                <div id="pokemon-chip-list" class="chip-list" aria-label="Lista de Pokémon para agrupar"></div>
+            </div>
+
+            <div>
+                <h3>Grupo atual</h3>
+                <div id="selected-tray" class="selected-tray">
+                    <span class="muted small">Nenhum Pokémon selecionado.</span>
+                </div>
+                <div class="group-editor-tools">
+                    <button id="add-group" type="button">Adicionar grupo</button>
+                    <button id="save-groups" type="submit">Salvar grupos e recalcular bloqueios</button>
+                </div>
+                <p id="group-feedback" class="small muted" aria-live="polite"></p>
+
+                <div class="hr"></div>
+                <h3>Grupos montados: <span id="group-count">0</span></h3>
+                <div id="groups-list"></div>
+            </div>
+        </div>
+
+        <details class="card">
+            <summary>Modo avançado: editar texto bruto</summary>
+            <p class="muted small">Use só se quiser colar grupos manualmente. Ao sair do campo, a interface visual será atualizada.</p>
+            <label for="groups-raw">Um grupo por linha</label><br><br>
+            <textarea id="groups-raw" rows="12" spellcheck="false" style="width: 100%; box-sizing: border-box; font-family: monospace;">{{ pokemon_groups_text }}</textarea>
+        </details>
+    </form>
 </section>
 
 <section class="card">
@@ -107,4 +204,224 @@
         <button class="danger" type="submit">Resetar tudo</button>
     </form>
 </section>
+
+<script>
+(() => {
+    const pokemonPool = {{ pokemon_pool|tojson }};
+    let groups = {{ pokemon_groups|tojson }};
+    let selected = [];
+
+    const chipList = document.getElementById("pokemon-chip-list");
+    const searchInput = document.getElementById("pokemon-search");
+    const selectedTray = document.getElementById("selected-tray");
+    const groupsList = document.getElementById("groups-list");
+    const groupCount = document.getElementById("group-count");
+    const feedback = document.getElementById("group-feedback");
+    const hiddenTextarea = document.getElementById("pokemon_groups");
+    const rawTextarea = document.getElementById("groups-raw");
+    const addGroupButton = document.getElementById("add-group");
+    const clearSelectionButton = document.getElementById("clear-selection");
+
+    function keyOf(value) {
+        return String(value || "").trim().toLowerCase();
+    }
+
+    function splitGroupLine(line) {
+        return String(line || "")
+            .replaceAll(">", ",")
+            .replaceAll("|", ",")
+            .replaceAll(";", ",")
+            .split(",")
+            .map(item => item.trim())
+            .filter(Boolean);
+    }
+
+    function parseGroupsText(text) {
+        return String(text || "")
+            .split(/\r?\n/)
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith("#"))
+            .map(splitGroupLine)
+            .filter(group => group.length >= 2);
+    }
+
+    function groupedKeys() {
+        const keys = new Set();
+        for (const group of groups) {
+            for (const pokemon of group) keys.add(keyOf(pokemon));
+        }
+        return keys;
+    }
+
+    function syncTextarea() {
+        const text = groups.map(group => group.join(", ")).join("\n");
+        hiddenTextarea.value = text;
+        rawTextarea.value = text;
+    }
+
+    function setFeedback(message, type = "muted") {
+        feedback.textContent = message;
+        feedback.className = `small ${type}`;
+    }
+
+    function renderSelected() {
+        selectedTray.innerHTML = "";
+        if (!selected.length) {
+            const empty = document.createElement("span");
+            empty.className = "muted small";
+            empty.textContent = "Nenhum Pokémon selecionado.";
+            selectedTray.appendChild(empty);
+            return;
+        }
+
+        selected.forEach((pokemon, index) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "pokemon-chip selected";
+            button.textContent = `${index + 1}. ${pokemon}`;
+            button.title = "Clique para remover da seleção";
+            button.addEventListener("click", () => {
+                selected = selected.filter(item => keyOf(item) !== keyOf(pokemon));
+                renderAll();
+            });
+            selectedTray.appendChild(button);
+        });
+    }
+
+    function renderChips() {
+        const query = keyOf(searchInput.value);
+        const used = groupedKeys();
+        chipList.innerHTML = "";
+
+        const filtered = pokemonPool.filter(pokemon => keyOf(pokemon).includes(query));
+        for (const pokemon of filtered) {
+            const pokemonKey = keyOf(pokemon);
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "pokemon-chip";
+            button.textContent = pokemon;
+
+            if (used.has(pokemonKey)) {
+                button.classList.add("grouped");
+                button.disabled = true;
+                button.title = "Já está em um grupo. Remova o grupo para mudar.";
+            } else if (selected.some(item => keyOf(item) === pokemonKey)) {
+                button.classList.add("selected");
+                button.title = "Clique para remover da seleção atual";
+                button.addEventListener("click", () => {
+                    selected = selected.filter(item => keyOf(item) !== pokemonKey);
+                    renderAll();
+                });
+            } else {
+                button.title = "Adicionar ao grupo atual";
+                button.addEventListener("click", () => {
+                    selected.push(pokemon);
+                    renderAll();
+                });
+            }
+
+            chipList.appendChild(button);
+        }
+
+        if (!filtered.length) {
+            const empty = document.createElement("p");
+            empty.className = "muted small";
+            empty.textContent = "Nenhum Pokémon encontrado.";
+            chipList.appendChild(empty);
+        }
+    }
+
+    function renderGroups() {
+        groupsList.innerHTML = "";
+        groupCount.textContent = String(groups.length);
+
+        if (!groups.length) {
+            const empty = document.createElement("p");
+            empty.className = "muted small";
+            empty.textContent = "Nenhum grupo montado ainda.";
+            groupsList.appendChild(empty);
+            return;
+        }
+
+        groups.forEach((group, index) => {
+            const card = document.createElement("div");
+            card.className = "group-card";
+
+            const members = document.createElement("div");
+            members.className = "group-members";
+            members.innerHTML = `<strong>Grupo ${index + 1}</strong><br>${group.map(item => escapeHtml(item)).join(" → ")}`;
+
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "danger";
+            remove.textContent = "Remover";
+            remove.addEventListener("click", () => {
+                groups.splice(index, 1);
+                setFeedback("Grupo removido. Lembre de salvar para recalcular bloqueios.");
+                renderAll();
+            });
+
+            card.appendChild(members);
+            card.appendChild(remove);
+            groupsList.appendChild(card);
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function renderAll() {
+        syncTextarea();
+        renderSelected();
+        renderGroups();
+        renderChips();
+    }
+
+    addGroupButton.addEventListener("click", () => {
+        if (selected.length < 2) {
+            setFeedback("Selecione pelo menos 2 Pokémon para criar um grupo.", "muted");
+            return;
+        }
+
+        const used = groupedKeys();
+        const invalid = selected.find(item => used.has(keyOf(item)));
+        if (invalid) {
+            setFeedback(`${invalid} já está em outro grupo. Remova o grupo antigo antes.`, "muted");
+            return;
+        }
+
+        groups.push([...selected]);
+        selected = [];
+        setFeedback("Grupo adicionado. Clique em salvar para gravar o arquivo e recalcular bloqueios.", "muted");
+        renderAll();
+    });
+
+    clearSelectionButton.addEventListener("click", () => {
+        selected = [];
+        setFeedback("Seleção limpa.");
+        renderAll();
+    });
+
+    searchInput.addEventListener("input", renderChips);
+
+    rawTextarea.addEventListener("blur", () => {
+        groups = parseGroupsText(rawTextarea.value);
+        selected = [];
+        setFeedback("Texto bruto aplicado na interface. Clique em salvar para gravar.");
+        renderAll();
+    });
+
+    document.getElementById("groups-form").addEventListener("submit", () => {
+        syncTextarea();
+    });
+
+    renderAll();
+})();
+</script>
 {% endblock %}
