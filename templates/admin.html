@@ -107,6 +107,25 @@
     }
     .flag-check input { width: auto; }
     .export-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        align-items: end;
+    }
+    .setting-field label { display: block; font-weight: 700; margin-bottom: 6px; }
+    .setting-field input, .setting-field textarea { width: 100%; }
+    textarea {
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        font-size: 15px;
+        max-width: 100%;
+        background: #111118;
+        color: var(--text);
+        min-height: 120px;
+        resize: vertical;
+    }
 
     .flag-editor-layout {
         display: grid;
@@ -194,6 +213,52 @@
     <p class="muted small">O export de escolhas registra as 3 opções que cada jogador recebeu e qual opção foi selecionada. Isso é ótimo para analisar o draft depois do campeonato.</p>
     <p style="display:none">
     </p>
+</section>
+
+<section class="card">
+    <h2>Configurações do draft</h2>
+    <p class="muted">Configure antes de começar o sorteio. As mudanças valem para os próximos sorteios; escolhas já feitas não são alteradas.</p>
+
+    <form method="post" action="{{ url_for('admin_save_settings') }}">
+        <input type="hidden" name="key" value="{{ key }}">
+
+        <div class="settings-grid">
+            <div class="setting-field">
+                <label for="max_pokemon">Pokémon por pessoa</label>
+                <input id="max_pokemon" name="max_pokemon" type="number" min="1" max="30" value="{{ state.settings.max_pokemon }}">
+                <p class="muted small">Ex.: 6 para time completo.</p>
+            </div>
+
+            <div class="setting-field">
+                <label for="pokemon_options_per_draw">Opções no sorteio de Pokémon</label>
+                <input id="pokemon_options_per_draw" name="pokemon_options_per_draw" type="number" min="1" max="20" value="{{ get_pokemon_options_per_draw(state) }}">
+                <p class="muted small">Ex.: 3 para o formato “escolha 1 de 3”.</p>
+            </div>
+
+            <div class="setting-field">
+                <label for="ability_options_per_draw">Opções no sorteio de ability</label>
+                <input id="ability_options_per_draw" name="ability_options_per_draw" type="number" min="1" max="20" value="{{ get_ability_options_per_draw(state) }}">
+                <p class="muted small">Ex.: 3 abilities para escolher 1.</p>
+            </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <label class="flag-check">
+            <input type="checkbox" name="lock_chosen_pokemon_globally" {% if state.settings.lock_chosen_pokemon_globally %}checked{% endif %}>
+            Travar Pokémon/grupo escolhido globalmente
+        </label>
+
+        <div class="setting-field flag-config-box">
+            <label for="flag_karma">Karma por flag</label>
+            <textarea id="flag_karma" name="flag_karma" placeholder="Lendario=6&#10;Paradox=6">{{ flag_karma_text(state.settings) }}</textarea>
+            <p class="muted small">Formato: <code>Flag=rodada_obrigatória</code>. Ex.: <code>Lendario=6</code> faz a chance de aparecer lendário aumentar a cada sorteio de Pokémon do jogador e, se não apareceu nenhum antes, obriga pelo menos 1 opção lendária no 6º sorteio. Se o jogador já atingiu o limite da flag, ela não aparece mais.</p>
+        </div>
+
+        <div class="actions">
+            <button type="submit">Salvar configurações</button>
+        </div>
+    </form>
 </section>
 
 <section class="card">

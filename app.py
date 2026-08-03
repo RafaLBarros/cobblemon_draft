@@ -21,7 +21,9 @@ POKEMON_GROUPS_FILE = DATA_DIR / "pokemon_groups.txt"
 POKEMON_FLAGS_FILE = DATA_DIR / "pokemon_flags.json"
 
 MAX_POKEMON = 6
-OPTIONS_PER_DRAW = 3
+POKEMON_OPTIONS_PER_DRAW = 3
+ABILITY_OPTIONS_PER_DRAW = 3
+OPTIONS_PER_DRAW = 3  # legado: estados antigos usavam este nome
 ADMIN_KEY = os.environ.get("DRAFT_ADMIN_KEY", "cobbleverse")
 MASTER_KEY = os.environ.get("DRAFT_MASTER_KEY", "mestre")
 
@@ -42,9 +44,18 @@ def default_state() -> Dict[str, Any]:
         "players": {},
         "settings": {
             "max_pokemon": MAX_POKEMON,
-            "options_per_draw": OPTIONS_PER_DRAW,
+            "pokemon_options_per_draw": POKEMON_OPTIONS_PER_DRAW,
+            "ability_options_per_draw": ABILITY_OPTIONS_PER_DRAW,
+            "options_per_draw": POKEMON_OPTIONS_PER_DRAW,  # compatibilidade com versões antigas
             "lock_chosen_pokemon_globally": True,
             "lock_abilities_globally": False,
+            "flag_karma": {
+                "Lendario": {
+                    "enabled": True,
+                    "guarantee_draw": 6,
+                    "mode": "linear",
+                }
+            },
         },
     }
 
@@ -446,7 +457,20 @@ def migrate_state_shape(state: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:
     changed = False
     state.setdefault("used_pokemon", [])
     state.setdefault("players", {})
-    state.setdefault("settings", default_state()["settings"])
+    default_settings = default_state()["settings"]
+    settings = state.setdefault("settings", {})
+    if not isinstance(settings, dict):
+        settings = {}
+        state["settings"] = settings
+        changed = True
+    for key, value in default_settings.items():
+        if key not in settings:
+            settings[key] = value
+            changed = True
+    if "pokemon_options_per_draw" not in settings and "options_per_draw" in settings:
+        settings["pokemon_options_per_draw"] = settings.get("options_per_draw", POKEMON_OPTIONS_PER_DRAW)
+        changed = True
+    settings["flag_karma"] = normalize_flag_karma(settings.get("flag_karma", default_settings.get("flag_karma", {})))
     state.setdefault("version", 0)
 
     players = state.get("players", {})
@@ -574,6 +598,191 @@ def draw_options(pool: List[str], amount: int, excluded: List[str]) -> Tuple[Lis
 
     return random.sample(available, amount), None
 
+
+def setting_int(state: Dict[str, Any], key: str, default: int, min_value: int = 1, max_value: int = 999) -> int:
+    settings = state.setdefault("settings", {})
+    try:
+        value = int(settings.get(key, default))
+    except (TypeError, ValueError):
+        value = default
+    return max(min_value, min(max_value, value))
+
+
+def get_pokemon_options_per_draw(state: Dict[str, Any]) -> int:
+    settings = state.setdefault("settings", {})
+    fallback = settings.get("options_per_draw", POKEMON_OPTIONS_PER_DRAW)
+    try:
+        fallback_int = int(fallback)
+    except (TypeError, ValueError):
+        fallback_int = POKEMON_OPTIONS_PER_DRAW
+    return setting_int(state, "pokemon_options_per_draw", fallback_int, 1, 20)
+
+
+def get_ability_options_per_draw(state: Dict[str, Any]) -> int:
+    return setting_int(state, "ability_options_per_draw", ABILITY_OPTIONS_PER_DRAW, 1, 20)
+
+
+def normalize_flag_karma(raw: Any) -> Dict[str, Dict[str, Any]]:
+    if not isinstance(raw, dict):
+        return {}
+    cleaned: Dict[str, Dict[str, Any]] = {}
+    for raw_flag, raw_config in raw.items():
+        flag = str(raw_flag).strip()
+        if not flag:
+            continue
+        if isinstance(raw_config, dict):
+            enabled = bool(raw_config.get("enabled", True))
+            raw_draw = raw_config.get("guarantee_draw", 0)
+        else:
+            enabled = True
+            raw_draw = raw_config
+        try:
+            guarantee_draw = int(raw_draw)
+        except (TypeError, ValueError):
+            continue
+        if guarantee_draw <= 0:
+            continue
+        cleaned[flag] = {"enabled": enabled, "guarantee_draw": max(1, guarantee_draw), "mode": "linear"}
+    return cleaned
+
+
+def parse_flag_karma_text(text: str) -> Dict[str, Dict[str, Any]]:
+    karma: Dict[str, Dict[str, Any]] = {}
+    for raw_line in str(text or "").replace("\r\n", "\n").split("\n"):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" in line:
+            flag, value = line.split("=", 1)
+        elif ":" in line:
+            flag, value = line.split(":", 1)
+        else:
+            continue
+        flag = flag.strip()
+        if not flag:
+            continue
+        try:
+            guarantee_draw = int(value.strip())
+        except ValueError:
+            continue
+        if guarantee_draw > 0:
+            karma[flag] = {"enabled": True, "guarantee_draw": guarantee_draw, "mode": "linear"}
+    return karma
+
+
+def flag_karma_text(settings: Dict[str, Any]) -> str:
+    karma = normalize_flag_karma(settings.get("flag_karma", {}))
+    return "\n".join(f"{flag}={config.get('guarantee_draw', 0)}" for flag, config in karma.items() if config.get("enabled", True))
+
+
+def pokemon_options_have_flag(options: List[str], flag: str, config: Optional[Dict[str, Any]] = None) -> bool:
+    flag_key = str(flag).strip().lower()
+    return any(any(str(item).strip().lower() == flag_key for item in flags_for_pokemon(option, config)) for option in options)
+
+
+def player_has_reached_flag_limit(player: Dict[str, Any], flag: str, config: Dict[str, Any]) -> bool:
+    limits = config.get("flag_limits", {})
+    if flag not in limits:
+        return False
+    try:
+        limit = int(limits.get(flag, 0))
+    except (TypeError, ValueError):
+        return False
+    if limit < 0:
+        return False
+    return player_flag_counts(player, config).get(flag, 0) >= limit
+
+
+def flag_was_already_offered_or_chosen(player: Dict[str, Any], flag: str, config: Dict[str, Any]) -> bool:
+    if player_flag_counts(player, config).get(flag, 0) > 0:
+        return True
+    for entry in player.get("choice_history", []):
+        if entry.get("type") != "pokemon":
+            continue
+        options = entry.get("options", [])
+        if isinstance(options, list) and pokemon_options_have_flag(options, flag, config):
+            return True
+    return False
+
+
+def pokemon_draw_count(player: Dict[str, Any]) -> int:
+    return sum(1 for entry in player.get("choice_history", []) if entry.get("type") == "pokemon")
+
+
+def choose_karma_flag_for_draw(player: Dict[str, Any], state: Dict[str, Any], pokemon_pool: List[str], excluded: List[str], flag_config: Dict[str, Any]) -> Optional[str]:
+    karma = normalize_flag_karma(state.setdefault("settings", {}).get("flag_karma", {}))
+    if not karma:
+        return None
+
+    excluded_lower = {item.lower() for item in excluded}
+    candidates_by_flag: Dict[str, List[str]] = {}
+    for flag, config in karma.items():
+        if not config.get("enabled", True):
+            continue
+        if flag_was_already_offered_or_chosen(player, flag, flag_config):
+            continue
+        if player_has_reached_flag_limit(player, flag, flag_config):
+            continue
+        candidates = [
+            pokemon for pokemon in pokemon_pool
+            if pokemon.lower() not in excluded_lower and pokemon_options_have_flag([pokemon], flag, flag_config)
+        ]
+        if candidates:
+            candidates_by_flag[flag] = candidates
+
+    if not candidates_by_flag:
+        return None
+
+    next_draw_number = pokemon_draw_count(player) + 1
+    triggered: List[str] = []
+    for flag, config in karma.items():
+        if flag not in candidates_by_flag:
+            continue
+        guarantee_draw = max(1, int(config.get("guarantee_draw", 1)))
+        if next_draw_number >= guarantee_draw:
+            triggered.append(flag)
+            continue
+        # Chance linear: se garante na 6ª, a 1ª tem 0%, 2ª 20%, 3ª 40%, 4ª 60%, 5ª 80%, 6ª 100%.
+        chance = (next_draw_number - 1) / max(1, guarantee_draw - 1)
+        if random.random() < chance:
+            triggered.append(flag)
+
+    if not triggered:
+        return None
+    return random.choice(triggered)
+
+
+def draw_pokemon_options_for_player(player: Dict[str, Any], state: Dict[str, Any]) -> Tuple[List[str], Optional[str], Optional[Dict[str, Any]]]:
+    pokemon_pool = load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+    flag_config = load_flag_config()
+    amount = get_pokemon_options_per_draw(state)
+    already_in_team = [pick["name"] for pick in player.get("pokemon_picks", [])]
+    globally_used = state.get("used_pokemon", []) if state.setdefault("settings", {}).get("lock_chosen_pokemon_globally", True) else []
+    flag_blocked = excluded_by_flag_limits(player, pokemon_pool, flag_config)
+    excluded = already_in_team + globally_used + flag_blocked
+
+    forced_flag = choose_karma_flag_for_draw(player, state, pokemon_pool, excluded, flag_config)
+    metadata: Dict[str, Any] = {"forced_flag": forced_flag, "karma_applied": False}
+
+    if forced_flag:
+        excluded_lower = {item.lower() for item in excluded}
+        forced_candidates = [
+            pokemon for pokemon in pokemon_pool
+            if pokemon.lower() not in excluded_lower and pokemon_options_have_flag([pokemon], forced_flag, flag_config)
+        ]
+        if forced_candidates:
+            forced = random.choice(forced_candidates)
+            remaining_excluded = excluded + [forced]
+            remaining, error = draw_options(pokemon_pool, amount - 1, remaining_excluded) if amount > 1 else ([], None)
+            if error:
+                return [], error, metadata
+            options = [forced] + remaining
+            random.shuffle(options)
+            metadata["karma_applied"] = True
+            return options, None, metadata
+
+    options, error = draw_options(pokemon_pool, amount, excluded)
+    return options, error, metadata
 
 
 def command_token(value: str) -> str:
@@ -713,6 +922,9 @@ def inject_helpers():
         "command_token": command_token,
         "player_can_draw_pokemon": player_can_draw_pokemon,
         "player_can_draw_ability": player_can_draw_ability,
+        "get_pokemon_options_per_draw": get_pokemon_options_per_draw,
+        "get_ability_options_per_draw": get_ability_options_per_draw,
+        "flag_karma_text": flag_karma_text,
         "master_key": MASTER_KEY,
         "admin_key": ADMIN_KEY,
     }
@@ -875,16 +1087,8 @@ def master_draw_pokemon():
         flash(f"{nickname} já fechou os {max_pokemon} Pokémon.", "error")
         return redirect(url_for("master_page", key=MASTER_KEY))
 
-    pokemon_pool = load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
     flag_config = load_flag_config()
-    already_in_team = [pick["name"] for pick in player["pokemon_picks"]]
-    globally_used = state.get("used_pokemon", []) if state["settings"].get("lock_chosen_pokemon_globally", True) else []
-    flag_blocked = excluded_by_flag_limits(player, pokemon_pool, flag_config)
-    options, error = draw_options(
-        pokemon_pool,
-        state["settings"].get("options_per_draw", OPTIONS_PER_DRAW),
-        already_in_team + globally_used + flag_blocked,
-    )
+    options, error, draw_meta = draw_pokemon_options_for_player(player, state)
 
     if error:
         counts = player_flag_counts(player, flag_config)
@@ -894,6 +1098,8 @@ def master_draw_pokemon():
         return redirect(url_for("master_page", key=MASTER_KEY))
 
     choice_id = register_choice_history(player, "pokemon", options)
+    if draw_meta:
+        player.setdefault("choice_history", [])[-1]["metadata"] = draw_meta
     player["pending"] = {
         "type": "pokemon",
         "pokemon_options": options,
@@ -903,7 +1109,7 @@ def master_draw_pokemon():
     }
     save_state(state)
 
-    flash(f"3 Pokémon foram sorteados para {nickname}. Você não viu as opções.", "success")
+    flash(f"{len(options)} Pokémon foram sorteados para {nickname}. Você não viu as opções.", "success")
     return redirect(url_for("master_page", key=MASTER_KEY))
 
 
@@ -942,7 +1148,7 @@ def master_draw_ability():
         return redirect(url_for("master_page", key=MASTER_KEY))
 
     ability_pool = load_pool(ABILITIES_FILE, ABILITIES_BANLIST_FILE)
-    options, error = draw_options(ability_pool, state["settings"].get("options_per_draw", OPTIONS_PER_DRAW), [])
+    options, error = draw_options(ability_pool, get_ability_options_per_draw(state), [])
 
     if error:
         flash(error, "error")
@@ -958,7 +1164,7 @@ def master_draw_ability():
     }
     save_state(state)
 
-    flash(f"3 abilities foram sorteadas para {slot_label(pokemon_index)} de {nickname}. Você não viu as opções.", "success")
+    flash(f"{len(options)} abilities foram sorteadas para {slot_label(pokemon_index)} de {nickname}. Você não viu as opções.", "success")
     return redirect(url_for("master_page", key=MASTER_KEY))
 
 
@@ -1536,6 +1742,35 @@ def admin_save_flags():
     config = normalize_flag_config_from_form(limits_text, raw_pokemon_flags)
     save_flag_config(config)
     flash("Flags e limites salvos. Os próximos sorteios já respeitam esses limites.", "success")
+    return redirect(url_for("admin_page", key=ADMIN_KEY))
+
+
+@app.route("/admin/save-settings", methods=["POST"])
+def admin_save_settings():
+    locked = require_admin()
+    if locked:
+        return locked
+
+    state = load_state()
+    settings = state.setdefault("settings", {})
+
+    def form_int(name: str, default: int, min_value: int, max_value: int) -> int:
+        try:
+            value = int(request.form.get(name, default))
+        except (TypeError, ValueError):
+            value = default
+        return max(min_value, min(max_value, value))
+
+    settings["max_pokemon"] = form_int("max_pokemon", MAX_POKEMON, 1, 30)
+    settings["pokemon_options_per_draw"] = form_int("pokemon_options_per_draw", POKEMON_OPTIONS_PER_DRAW, 1, 20)
+    settings["ability_options_per_draw"] = form_int("ability_options_per_draw", ABILITY_OPTIONS_PER_DRAW, 1, 20)
+    settings["options_per_draw"] = settings["pokemon_options_per_draw"]
+    settings["lock_chosen_pokemon_globally"] = request.form.get("lock_chosen_pokemon_globally") == "on"
+    settings["lock_abilities_globally"] = request.form.get("lock_abilities_globally") == "on"
+    settings["flag_karma"] = parse_flag_karma_text(request.form.get("flag_karma", ""))
+
+    save_state(state)
+    flash("Configurações do draft salvas. Os próximos sorteios já usam esses valores.", "success")
     return redirect(url_for("admin_page", key=ADMIN_KEY))
 
 

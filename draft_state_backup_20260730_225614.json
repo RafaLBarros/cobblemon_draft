@@ -1,131 +1,149 @@
 {
-  "created_at": "2026-07-30 22:56:14",
-  "updated_at": "2026-07-30 23:28:08",
-  "version": 185,
+  "created_at": "2026-07-26 22:49:35",
+  "updated_at": "2026-07-30 22:56:10",
+  "version": 220,
   "used_pokemon": [
-    "Dragapult",
-    "Drakloak",
-    "Dreepy",
-    "Pawniard",
-    "Bisharp",
-    "Kingambit",
-    "Cleffa",
-    "Clefairy",
-    "Clefable",
-    "Slither Wing",
-    "Arboliva",
-    "Dolliv",
-    "Smoliv",
-    "Haxorus",
-    "Fraxure",
-    "Axew",
-    "Mawile",
-    "Celebi",
-    "Torchic",
-    "Combusken",
-    "Blaziken",
-    "Terrakion",
-    "Koffing",
-    "Weezing",
-    "Espeon",
-    "Greninja",
-    "Frogadier",
-    "Froakie",
-    "Larvitar",
-    "Pupitar",
-    "Tyranitar",
-    "Miraidon",
-    "Suicune",
-    "Barbaracle",
-    "Binacle",
-    "Thundurus",
-    "Roaring Moon",
-    "Oddish",
-    "Gloom",
-    "Vileplume",
-    "Bellossom",
-    "Tinkaton",
-    "Tinkatuff",
-    "Tinkatink",
-    "Doduo",
-    "Dodrio",
-    "Happiny",
-    "Chansey",
-    "Blissey",
-    "Iron Jugulis",
-    "Shinx",
-    "Luxio",
-    "Luxray",
-    "Cranidos",
-    "Rampardos",
-    "Quaquaval",
-    "Quaxwell",
-    "Quaxly",
-    "Iron Treads",
-    "Archeops",
-    "Archen",
-    "Remoraid",
-    "Octillery",
-    "Dratini",
-    "Dragonair",
-    "Dragonite",
-    "Nidoran♂",
-    "Nidorino",
-    "Nidoking",
-    "Chesnaught",
-    "Quilladin",
-    "Chespin",
-    "Shellder",
-    "Cloyster",
-    "Tsareena",
-    "Steenee",
-    "Bounsweet",
+    "Regidrago",
+    "Delphox",
+    "Braixen",
+    "Fennekin",
+    "Staryu",
+    "Starmie",
+    "Escavalier",
+    "Karrablast",
+    "Coalossal",
+    "Carkol",
+    "Rolycoly",
     "Beldum",
     "Metang",
     "Metagross",
-    "Kyogre",
-    "Scream Tail",
-    "Silvally",
-    "Type: Null",
-    "Klinklang",
-    "Klang",
-    "Klink",
-    "Glimmora",
-    "Glimmet",
-    "Ralts",
-    "Kirlia",
-    "Gardevoir",
-    "Gallade"
+    "Magearna",
+    "Urshifu",
+    "Kubfu",
+    "Roaring Moon",
+    "Zygarde",
+    "Hydrapple",
+    "Applin",
+    "Flapple",
+    "Appletun",
+    "Dipplin",
+    "Skeledirge",
+    "Crocalor",
+    "Fuecoco",
+    "Skarmory",
+    "Zarude",
+    "Sawsbuck",
+    "Deerling",
+    "Noivern",
+    "Noibat",
+    "Koffing",
+    "Weezing",
+    "Basculegion",
+    "Basculin",
+    "Drapion",
+    "Skorupi",
+    "Zamazenta",
+    "Shellder",
+    "Cloyster",
+    "Zacian",
+    "Greninja",
+    "Frogadier",
+    "Froakie",
+    "Amoonguss",
+    "Foongus",
+    "Squirtle",
+    "Wartortle",
+    "Blastoise",
+    "Pidgey",
+    "Pidgeotto",
+    "Pidgeot",
+    "Azurill",
+    "Marill",
+    "Azumarill",
+    "Arceus",
+    "Magnemite",
+    "Magneton",
+    "Magnezone",
+    "Salazzle",
+    "Salandit",
+    "Chi-Yu",
+    "Haxorus",
+    "Fraxure",
+    "Axew",
+    "Shuppet",
+    "Banette",
+    "Bronzor",
+    "Bronzong",
+    "Electrike",
+    "Manectric",
+    "Plusle",
+    "Minun",
+    "Frigibax",
+    "Arctibax",
+    "Baxcalibur",
+    "Braviary",
+    "Rufflet",
+    "Anorith",
+    "Armaldo",
+    "Bagon",
+    "Shelgon",
+    "Salamence",
+    "Tinkaton",
+    "Tinkatuff",
+    "Tinkatink",
+    "Hatterene",
+    "Hattrem",
+    "Hatenna",
+    "Grimmsnarl",
+    "Morgrem",
+    "Impidimp",
+    "Dragapult",
+    "Drakloak",
+    "Dreepy",
+    "Chandelure",
+    "Lampent",
+    "Litwick",
+    "Slakoth",
+    "Vigoroth",
+    "Slaking",
+    "Sandaconda",
+    "Silicobra",
+    "Scyther",
+    "Scizor",
+    "Kleavor",
+    "Piplup",
+    "Prinplup",
+    "Empoleon"
   ],
   "players": {
-    "8888462983": {
-      "player_id": "8888462983",
-      "nickname": "ShienDaburez",
-      "created_at": "2026-07-30 22:57:02",
+    "1505729191": {
+      "player_id": "1505729191",
+      "nickname": "Lanzellotti",
+      "created_at": "2026-07-26 23:25:55",
       "pokemon_picks": [
         {
-          "name": "Clefairy",
-          "ability": "Toxic Debris"
+          "name": "Regidrago",
+          "ability": "Tera Shift"
         },
         {
-          "name": "Terrakion",
-          "ability": "Moxie"
+          "name": "Noibat",
+          "ability": "Sand Stream"
         },
         {
-          "name": "Larvitar",
-          "ability": "RKS System"
+          "name": "Koffing",
+          "ability": "Steam Engine"
         },
         {
-          "name": "Tinkatuff",
-          "ability": "Hyper Cutter"
+          "name": "Haxorus",
+          "ability": "Soul-Heart"
         },
         {
-          "name": "Cranidos",
-          "ability": "Mirror Armor"
+          "name": "Shuppet",
+          "ability": "Sheer Force"
         },
         {
-          "name": "Nidoran♂",
-          "ability": "Pure Power"
+          "name": "Empoleon",
+          "ability": "Disguise"
         }
       ],
       "pending": {
@@ -137,227 +155,227 @@
       },
       "choice_history": [
         {
-          "choice_id": "20260730225857735076-5530",
+          "choice_id": "20260726233053173583-4208",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Ledian",
-            "Clefairy",
-            "Spearow"
+            "Regidrago",
+            "Kricketune",
+            "Budew"
           ],
-          "chosen": "Clefairy",
-          "created_at": "2026-07-30 22:58:57",
-          "chosen_at": "2026-07-30 22:59:28",
+          "chosen": "Regidrago",
+          "created_at": "2026-07-26 23:30:53",
+          "chosen_at": "2026-07-26 23:32:42",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230041233598-6201",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Terrakion",
-            "Jigglypuff",
-            "Riolu"
-          ],
-          "chosen": "Terrakion",
-          "created_at": "2026-07-30 23:00:41",
-          "chosen_at": "2026-07-30 23:01:11",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730230150606703-1905",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Mamoswine",
-            "Larvitar",
-            "Iron Hands"
-          ],
-          "chosen": "Larvitar",
-          "created_at": "2026-07-30 23:01:50",
-          "chosen_at": "2026-07-30 23:02:13",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730230326266305-5513",
+          "choice_id": "20260726235437635931-6471",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
             "Persian",
-            "Pikachu",
-            "Tinkatuff"
+            "Silicobra",
+            "Noibat"
           ],
-          "chosen": "Tinkatuff",
-          "created_at": "2026-07-30 23:03:26",
-          "chosen_at": "2026-07-30 23:03:56",
+          "chosen": "Noibat",
+          "created_at": "2026-07-26 23:54:37",
+          "chosen_at": "2026-07-26 23:55:19",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230528886617-7001",
+          "choice_id": "20260726235522775998-2243",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Aromatisse",
-            "Cranidos",
-            "Torkoal"
+            "Shroomish",
+            "Fletchling",
+            "Koffing"
           ],
-          "chosen": "Cranidos",
-          "created_at": "2026-07-30 23:05:28",
-          "chosen_at": "2026-07-30 23:05:57",
+          "chosen": "Koffing",
+          "created_at": "2026-07-26 23:55:22",
+          "chosen_at": "2026-07-26 23:56:21",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230704494652-9639",
+          "choice_id": "20260727001258846431-5121",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Nidoran♂",
-            "Donphan",
-            "Mabosstiff"
+            "Haxorus",
+            "Chinchou",
+            "Munna"
           ],
-          "chosen": "Nidoran♂",
-          "created_at": "2026-07-30 23:07:04",
-          "chosen_at": "2026-07-30 23:07:24",
+          "chosen": "Haxorus",
+          "created_at": "2026-07-27 00:12:58",
+          "chosen_at": "2026-07-27 00:13:26",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730231525455312-5159",
+          "choice_id": "20260727001329561635-8498",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Shuppet",
+            "Shelgon",
+            "Metapod"
+          ],
+          "chosen": "Shuppet",
+          "created_at": "2026-07-27 00:13:29",
+          "chosen_at": "2026-07-27 00:14:29",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727003652162085-1614",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Galvantula",
+            "Arctozolt",
+            "Empoleon"
+          ],
+          "chosen": "Empoleon",
+          "created_at": "2026-07-27 00:36:52",
+          "chosen_at": "2026-07-27 00:37:16",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727003721675095-9201",
           "type": "ability",
           "slot_index": 0,
           "slot_label": "Slot 1",
           "options": [
-            "Blaze",
-            "Wonder Skin",
-            "Toxic Debris"
+            "Mega Sol",
+            "Rain Dish",
+            "Tera Shift"
           ],
-          "chosen": "Toxic Debris",
-          "created_at": "2026-07-30 23:15:25",
-          "chosen_at": "2026-07-30 23:16:36"
+          "chosen": "Tera Shift",
+          "created_at": "2026-07-27 00:37:21",
+          "chosen_at": "2026-07-27 00:39:40"
         },
         {
-          "choice_id": "20260730231703109734-2897",
+          "choice_id": "20260727003945559009-6431",
           "type": "ability",
           "slot_index": 1,
           "slot_label": "Slot 2",
           "options": [
-            "Moxie",
-            "Neutralizing Gas",
-            "Cud Chew"
+            "Sand Stream",
+            "Cheek Pouch",
+            "Tangling Hair"
           ],
-          "chosen": "Moxie",
-          "created_at": "2026-07-30 23:17:03",
-          "chosen_at": "2026-07-30 23:18:00"
+          "chosen": "Sand Stream",
+          "created_at": "2026-07-27 00:39:45",
+          "chosen_at": "2026-07-27 00:41:22"
         },
         {
-          "choice_id": "20260730231850283860-0575",
+          "choice_id": "20260727004128660074-0357",
           "type": "ability",
           "slot_index": 2,
           "slot_label": "Slot 3",
           "options": [
-            "RKS System",
-            "Commander",
-            "Ball Fetch"
+            "Swift Swim",
+            "Overgrow",
+            "Steam Engine"
           ],
-          "chosen": "RKS System",
-          "created_at": "2026-07-30 23:18:50",
-          "chosen_at": "2026-07-30 23:21:03"
+          "chosen": "Steam Engine",
+          "created_at": "2026-07-27 00:41:28",
+          "chosen_at": "2026-07-27 00:42:17"
         },
         {
-          "choice_id": "20260730232106007443-4324",
+          "choice_id": "20260727004227336310-7573",
           "type": "ability",
           "slot_index": 3,
           "slot_label": "Slot 4",
           "options": [
-            "Mega Launcher",
-            "Snow Warning",
-            "Hyper Cutter"
+            "Gluttony",
+            "Soul-Heart",
+            "Pickpocket"
           ],
-          "chosen": "Hyper Cutter",
-          "created_at": "2026-07-30 23:21:06",
-          "chosen_at": "2026-07-30 23:22:18"
+          "chosen": "Soul-Heart",
+          "created_at": "2026-07-27 00:42:27",
+          "chosen_at": "2026-07-27 00:43:42"
         },
         {
-          "choice_id": "20260730232243822851-9898",
+          "choice_id": "20260727004406487460-8090",
           "type": "ability",
           "slot_index": 4,
           "slot_label": "Slot 5",
           "options": [
-            "Mirror Armor",
-            "Supersweet Syrup",
-            "Magician"
+            "Immunity",
+            "Run Away",
+            "Sheer Force"
           ],
-          "chosen": "Mirror Armor",
-          "created_at": "2026-07-30 23:22:43",
-          "chosen_at": "2026-07-30 23:23:38"
+          "chosen": "Sheer Force",
+          "created_at": "2026-07-27 00:44:06",
+          "chosen_at": "2026-07-27 00:44:55"
         },
         {
-          "choice_id": "20260730232343273842-0831",
+          "choice_id": "20260727004500053624-9781",
           "type": "ability",
           "slot_index": 5,
           "slot_label": "Slot 6",
           "options": [
-            "Flare Boost",
-            "Sand Force",
-            "Pure Power"
+            "Normalize",
+            "Stakeout",
+            "Disguise"
           ],
-          "chosen": "Pure Power",
-          "created_at": "2026-07-30 23:23:43",
-          "chosen_at": "2026-07-30 23:24:57"
+          "chosen": "Disguise",
+          "created_at": "2026-07-27 00:45:00",
+          "chosen_at": "2026-07-27 00:46:13"
         }
       ]
     },
-    "8687923958": {
-      "player_id": "8687923958",
-      "nickname": "NicolasNii",
-      "created_at": "2026-07-30 22:57:05",
+    "7747223839": {
+      "player_id": "7747223839",
+      "nickname": "KL1gh",
+      "created_at": "2026-07-26 23:26:02",
       "pokemon_picks": [
         {
-          "name": "Fraxure",
-          "ability": "Dauntless Shield"
+          "name": "Delphox",
+          "ability": "Dazzling"
         },
         {
-          "name": "Espeon",
+          "name": "Deerling",
+          "ability": "Neuroforce"
+        },
+        {
+          "name": "Basculin",
+          "ability": "Queenly Majesty"
+        },
+        {
+          "name": "Chi-Yu",
           "ability": "Cloud Nine"
         },
         {
-          "name": "Suicune",
-          "ability": "Quick Draw"
+          "name": "Bronzor",
+          "ability": "Defiant"
         },
         {
-          "name": "Roaring Moon",
-          "ability": "Comatose"
-        },
-        {
-          "name": "Iron Treads",
-          "ability": "Oblivious"
-        },
-        {
-          "name": "Beldum",
-          "ability": "Levitate"
+          "name": "Kleavor",
+          "ability": "Steam Engine"
         }
       ],
       "pending": {
@@ -369,227 +387,227 @@
       },
       "choice_history": [
         {
-          "choice_id": "20260730225858351458-9680",
+          "choice_id": "20260726233248621840-3723",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Snom",
-            "Fraxure",
-            "Monferno"
+            "Carnivine",
+            "Delphox",
+            "Dustox"
           ],
-          "chosen": "Fraxure",
-          "created_at": "2026-07-30 22:58:58",
-          "chosen_at": "2026-07-30 23:00:35",
+          "chosen": "Delphox",
+          "created_at": "2026-07-26 23:32:48",
+          "chosen_at": "2026-07-26 23:33:16",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230041819966-4504",
+          "choice_id": "20260726235147174798-7487",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Espeon",
-            "Woobat",
-            "Jigglypuff"
+            "Chingling",
+            "Deerling",
+            "Oricorio"
           ],
-          "chosen": "Espeon",
-          "created_at": "2026-07-30 23:00:41",
-          "chosen_at": "2026-07-30 23:01:45",
+          "chosen": "Deerling",
+          "created_at": "2026-07-26 23:51:47",
+          "chosen_at": "2026-07-26 23:54:36",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230151245729-5184",
+          "choice_id": "20260726235625466960-6360",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Suicune",
-            "Panpour",
-            "Sceptile"
+            "Basculin",
+            "Omastar",
+            "Unown"
           ],
-          "chosen": "Suicune",
-          "created_at": "2026-07-30 23:01:51",
-          "chosen_at": "2026-07-30 23:02:31",
+          "chosen": "Basculin",
+          "created_at": "2026-07-26 23:56:25",
+          "chosen_at": "2026-07-26 23:57:11",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727001209030358-9050",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Rowlet",
+            "Torracat",
+            "Chi-Yu"
+          ],
+          "chosen": "Chi-Yu",
+          "created_at": "2026-07-27 00:12:09",
+          "chosen_at": "2026-07-27 00:12:51",
           "metadata": {
             "forced_flag": "Lendario",
             "karma_applied": true
           }
         },
         {
-          "choice_id": "20260730230327542400-9673",
+          "choice_id": "20260727001433912889-5131",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Carvanha",
-            "Roaring Moon",
-            "Machop"
+            "Wailord",
+            "Bronzor",
+            "Brionne"
           ],
-          "chosen": "Roaring Moon",
-          "created_at": "2026-07-30 23:03:27",
-          "chosen_at": "2026-07-30 23:03:51",
+          "chosen": "Bronzor",
+          "created_at": "2026-07-27 00:14:33",
+          "chosen_at": "2026-07-27 00:17:48",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230529881653-4212",
+          "choice_id": "20260727003532379896-3341",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Sandaconda",
-            "Iron Treads",
-            "Lairon"
+            "Crustle",
+            "Kleavor",
+            "Gogoat"
           ],
-          "chosen": "Iron Treads",
-          "created_at": "2026-07-30 23:05:29",
-          "chosen_at": "2026-07-30 23:06:11",
+          "chosen": "Kleavor",
+          "created_at": "2026-07-27 00:35:32",
+          "chosen_at": "2026-07-27 00:36:48",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230705412522-7567",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Vivillon",
-            "Beldum",
-            "Lycanroc"
-          ],
-          "chosen": "Beldum",
-          "created_at": "2026-07-30 23:07:05",
-          "chosen_at": "2026-07-30 23:08:06",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730231526670699-3353",
+          "choice_id": "20260727003723106138-6028",
           "type": "ability",
           "slot_index": 0,
           "slot_label": "Slot 1",
           "options": [
-            "Mold Breaker",
-            "Dauntless Shield",
-            "Sand Veil"
+            "Tera Shift",
+            "Mycelium Might",
+            "Dazzling"
           ],
-          "chosen": "Dauntless Shield",
-          "created_at": "2026-07-30 23:15:26",
-          "chosen_at": "2026-07-30 23:16:56"
+          "chosen": "Dazzling",
+          "created_at": "2026-07-27 00:37:23",
+          "chosen_at": "2026-07-27 00:38:55"
         },
         {
-          "choice_id": "20260730231704048746-0350",
+          "choice_id": "20260727003931394399-2094",
           "type": "ability",
           "slot_index": 1,
           "slot_label": "Slot 2",
           "options": [
-            "Unseen Fist",
+            "Guard Dog",
+            "Neuroforce",
+            "Beads of Ruin"
+          ],
+          "chosen": "Neuroforce",
+          "created_at": "2026-07-27 00:39:31",
+          "chosen_at": "2026-07-27 00:41:57"
+        },
+        {
+          "choice_id": "20260727004217086146-7080",
+          "type": "ability",
+          "slot_index": 2,
+          "slot_label": "Slot 3",
+          "options": [
+            "Multitype",
+            "Stench",
+            "Queenly Majesty"
+          ],
+          "chosen": "Queenly Majesty",
+          "created_at": "2026-07-27 00:42:17",
+          "chosen_at": "2026-07-27 00:44:24"
+        },
+        {
+          "choice_id": "20260727004502751525-3892",
+          "type": "ability",
+          "slot_index": 3,
+          "slot_label": "Slot 4",
+          "options": [
+            "Mummy",
             "Cloud Nine",
-            "Compound Eyes"
+            "Overgrow"
           ],
           "chosen": "Cloud Nine",
-          "created_at": "2026-07-30 23:17:04",
-          "chosen_at": "2026-07-30 23:18:15"
+          "created_at": "2026-07-27 00:45:02",
+          "chosen_at": "2026-07-27 00:46:00"
         },
         {
-          "choice_id": "20260730231851685058-2321",
-          "type": "ability",
-          "slot_index": 2,
-          "slot_label": "Slot 3",
-          "options": [
-            "Magnet Pull",
-            "Gluttony",
-            "Quick Draw"
-          ],
-          "chosen": "Quick Draw",
-          "created_at": "2026-07-30 23:18:51",
-          "chosen_at": "2026-07-30 23:19:17"
-        },
-        {
-          "choice_id": "20260730232043544014-7420",
-          "type": "ability",
-          "slot_index": 3,
-          "slot_label": "Slot 4",
-          "options": [
-            "Sniper",
-            "Magician",
-            "Comatose"
-          ],
-          "chosen": "Comatose",
-          "created_at": "2026-07-30 23:20:43",
-          "chosen_at": "2026-07-30 23:21:16"
-        },
-        {
-          "choice_id": "20260730232244874607-5324",
+          "choice_id": "20260727004641761412-0596",
           "type": "ability",
           "slot_index": 4,
           "slot_label": "Slot 5",
           "options": [
-            "Run Away",
-            "Oblivious",
-            "Power of Alchemy"
+            "Shell Armor",
+            "Tough Claws",
+            "Defiant"
           ],
-          "chosen": "Oblivious",
-          "created_at": "2026-07-30 23:22:44",
-          "chosen_at": "2026-07-30 23:23:41"
+          "chosen": "Defiant",
+          "created_at": "2026-07-27 00:46:41",
+          "chosen_at": "2026-07-27 00:47:32"
         },
         {
-          "choice_id": "20260730232344419405-2762",
+          "choice_id": "20260727004734898802-5458",
           "type": "ability",
           "slot_index": 5,
           "slot_label": "Slot 6",
           "options": [
-            "Download",
-            "Anger Point",
-            "Levitate"
+            "Flower Veil",
+            "Innards Out",
+            "Steam Engine"
           ],
-          "chosen": "Levitate",
-          "created_at": "2026-07-30 23:23:44",
-          "chosen_at": "2026-07-30 23:25:17"
+          "chosen": "Steam Engine",
+          "created_at": "2026-07-27 00:47:34",
+          "chosen_at": "2026-07-27 00:48:20"
         }
       ]
     },
-    "2710990081": {
-      "player_id": "2710990081",
-      "nickname": "Lanzellotti",
-      "created_at": "2026-07-30 22:57:10",
+    "1409345885": {
+      "player_id": "1409345885",
+      "nickname": "HHShiro",
+      "created_at": "2026-07-26 23:26:18",
       "pokemon_picks": [
         {
-          "name": "Slither Wing",
-          "ability": "Perish Body"
+          "name": "Starmie",
+          "ability": "Beast Boost"
         },
         {
-          "name": "Celebi",
-          "ability": "Armor Tail"
+          "name": "Zarude",
+          "ability": "Slush Rush"
         },
         {
-          "name": "Binacle",
-          "ability": "Opportunist"
+          "name": "Drapion",
+          "ability": "Good as Gold"
         },
         {
-          "name": "Vileplume",
-          "ability": "Anticipation"
+          "name": "Salazzle",
+          "ability": "Grim Neigh"
         },
         {
-          "name": "Remoraid",
-          "ability": "Primordial Sea"
+          "name": "Electrike",
+          "ability": "Thick Fat"
         },
         {
-          "name": "Shellder",
-          "ability": "Well-Baked Body"
+          "name": "Silicobra",
+          "ability": "Hustle"
         }
       ],
       "pending": {
@@ -601,226 +619,708 @@
       },
       "choice_history": [
         {
-          "choice_id": "20260730225858932369-8228",
+          "choice_id": "20260726232903569370-5779",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Chespin",
-            "Slither Wing",
-            "Iron Jugulis"
+            "Nuzleaf",
+            "Dusclops",
+            "Toxel"
           ],
-          "chosen": "Slither Wing",
-          "created_at": "2026-07-30 22:58:58",
-          "chosen_at": "2026-07-30 22:59:41",
+          "chosen": "Toxel",
+          "created_at": "2026-07-26 23:29:03",
+          "chosen_at": "2026-07-26 23:29:13",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230042267167-3475",
+          "choice_id": "20260726233416333036-0996",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Unown",
-            "Drifblim",
-            "Celebi"
+            "Glameow",
+            "Glimmora",
+            "Starmie"
           ],
-          "chosen": "Celebi",
-          "created_at": "2026-07-30 23:00:42",
-          "chosen_at": "2026-07-30 23:00:57",
+          "chosen": "Starmie",
+          "created_at": "2026-07-26 23:34:16",
+          "chosen_at": "2026-07-26 23:34:33",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260726235049223452-5658",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Espurr",
+            "Zarude",
+            "Stunfisk"
+          ],
+          "chosen": "Zarude",
+          "created_at": "2026-07-26 23:50:49",
+          "chosen_at": "2026-07-26 23:51:31",
           "metadata": {
             "forced_flag": "Lendario",
             "karma_applied": true
           }
         },
         {
-          "choice_id": "20260730230151796689-9474",
+          "choice_id": "20260726235714863111-9030",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Blipbug",
-            "Binacle",
-            "Donphan"
+            "Clobbopus",
+            "Archen",
+            "Drapion"
           ],
-          "chosen": "Binacle",
-          "created_at": "2026-07-30 23:01:51",
-          "chosen_at": "2026-07-30 23:02:39",
+          "chosen": "Drapion",
+          "created_at": "2026-07-26 23:57:14",
+          "chosen_at": "2026-07-26 23:58:09",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230328117078-5190",
+          "choice_id": "20260727001116600582-7510",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Snivy",
-            "Farigiraf",
-            "Vileplume"
+            "Overqwil",
+            "Skitty",
+            "Salazzle"
           ],
-          "chosen": "Vileplume",
-          "created_at": "2026-07-30 23:03:28",
-          "chosen_at": "2026-07-30 23:03:54",
+          "chosen": "Salazzle",
+          "created_at": "2026-07-27 00:11:16",
+          "chosen_at": "2026-07-27 00:11:58",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230530576222-5531",
+          "choice_id": "20260727001751647789-5021",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Remoraid",
-            "Larvesta",
-            "Leavanny"
+            "Doublade",
+            "Bunnelby",
+            "Electrike"
           ],
-          "chosen": "Remoraid",
-          "created_at": "2026-07-30 23:05:30",
-          "chosen_at": "2026-07-30 23:06:57",
+          "chosen": "Electrike",
+          "created_at": "2026-07-27 00:17:51",
+          "chosen_at": "2026-07-27 00:19:41",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230705897352-2436",
+          "choice_id": "20260727003455004635-4291",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Kabutops",
-            "Shellder",
-            "Decidueye"
+            "Electabuzz",
+            "Silicobra",
+            "Toxtricity"
           ],
-          "chosen": "Shellder",
-          "created_at": "2026-07-30 23:07:05",
-          "chosen_at": "2026-07-30 23:07:39",
+          "chosen": "Silicobra",
+          "created_at": "2026-07-27 00:34:55",
+          "chosen_at": "2026-07-27 00:35:28",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730231527592297-2173",
+          "choice_id": "20260727003724678327-0936",
           "type": "ability",
           "slot_index": 0,
           "slot_label": "Slot 1",
           "options": [
-            "Perish Body",
-            "Liquid Voice",
-            "Snow Cloak"
+            "Guard Dog",
+            "Flame Body",
+            "Beast Boost"
           ],
-          "chosen": "Perish Body",
-          "created_at": "2026-07-30 23:15:27",
-          "chosen_at": "2026-07-30 23:16:20"
+          "chosen": "Beast Boost",
+          "created_at": "2026-07-27 00:37:24",
+          "chosen_at": "2026-07-27 00:39:27"
         },
         {
-          "choice_id": "20260730231704943588-1209",
+          "choice_id": "20260727003932447720-4665",
           "type": "ability",
           "slot_index": 1,
           "slot_label": "Slot 2",
           "options": [
-            "Armor Tail",
-            "Iron Barbs",
-            "Fluffy"
+            "Hunger Switch",
+            "Slush Rush",
+            "Stall"
           ],
-          "chosen": "Armor Tail",
-          "created_at": "2026-07-30 23:17:04",
-          "chosen_at": "2026-07-30 23:18:17"
+          "chosen": "Slush Rush",
+          "created_at": "2026-07-27 00:39:32",
+          "chosen_at": "2026-07-27 00:40:51"
         },
         {
-          "choice_id": "20260730231852856399-8169",
+          "choice_id": "20260727004108179204-3641",
           "type": "ability",
           "slot_index": 2,
           "slot_label": "Slot 3",
           "options": [
-            "Opportunist",
-            "Swarm",
-            "Ball Fetch"
+            "Natural Cure",
+            "Galvanize",
+            "Good as Gold"
           ],
-          "chosen": "Opportunist",
-          "created_at": "2026-07-30 23:18:52",
-          "chosen_at": "2026-07-30 23:19:49"
+          "chosen": "Good as Gold",
+          "created_at": "2026-07-27 00:41:08",
+          "chosen_at": "2026-07-27 00:42:23"
         },
         {
-          "choice_id": "20260730232044588476-0445",
+          "choice_id": "20260727004228676993-9138",
           "type": "ability",
           "slot_index": 3,
           "slot_label": "Slot 4",
           "options": [
-            "Limber",
-            "Anticipation",
-            "Gale Wings"
+            "Swift Swim",
+            "Grim Neigh",
+            "Dancer"
           ],
-          "chosen": "Anticipation",
-          "created_at": "2026-07-30 23:20:44",
-          "chosen_at": "2026-07-30 23:21:46"
+          "chosen": "Grim Neigh",
+          "created_at": "2026-07-27 00:42:28",
+          "chosen_at": "2026-07-27 00:43:20"
         },
         {
-          "choice_id": "20260730232245947768-6734",
+          "choice_id": "20260727004324121802-3741",
           "type": "ability",
           "slot_index": 4,
           "slot_label": "Slot 5",
           "options": [
-            "Primordial Sea",
-            "Ripen",
+            "Tinted Lens",
+            "Cute Charm",
             "Thick Fat"
           ],
-          "chosen": "Primordial Sea",
-          "created_at": "2026-07-30 23:22:45",
-          "chosen_at": "2026-07-30 23:23:48"
+          "chosen": "Thick Fat",
+          "created_at": "2026-07-27 00:43:24",
+          "chosen_at": "2026-07-27 00:44:57"
         },
         {
-          "choice_id": "20260730232351624732-9856",
+          "choice_id": "20260727004504110014-5588",
           "type": "ability",
           "slot_index": 5,
           "slot_label": "Slot 6",
           "options": [
-            "Sticky Hold",
-            "Well-Baked Body",
-            "Opportunist"
+            "Hustle",
+            "Motor Drive",
+            "Aura Break"
           ],
-          "chosen": "Well-Baked Body",
-          "created_at": "2026-07-30 23:23:51",
-          "chosen_at": "2026-07-30 23:25:01"
+          "chosen": "Hustle",
+          "created_at": "2026-07-27 00:45:04",
+          "chosen_at": "2026-07-27 00:46:25"
         }
       ]
     },
-    "7709940781": {
-      "player_id": "7709940781",
-      "nickname": "HHShiro",
-      "created_at": "2026-07-30 22:57:16",
+    "2901413383": {
+      "player_id": "2901413383",
+      "nickname": "ShienDaburez",
+      "created_at": "2026-07-26 23:26:47",
       "pokemon_picks": [
         {
-          "name": "Bisharp",
-          "ability": "Prankster"
+          "name": "Escavalier",
+          "ability": "Swarm"
         },
         {
-          "name": "Mawile",
-          "ability": "Regenerator"
+          "name": "Skarmory",
+          "ability": "Good as Gold"
         },
         {
-          "name": "Greninja",
-          "ability": "Wind Rider"
+          "name": "Zamazenta",
+          "ability": "Tablets of Ruin"
         },
         {
-          "name": "Dodrio",
-          "ability": "Poison Point"
+          "name": "Magnezone",
+          "ability": "Serene Grace"
         },
         {
-          "name": "Quaquaval",
-          "ability": "Static"
+          "name": "Arctibax",
+          "ability": "Protean"
         },
         {
-          "name": "Dragonite",
+          "name": "Slakoth",
+          "ability": "Magician"
+        }
+      ],
+      "pending": {
+        "type": null,
+        "pokemon_options": [],
+        "ability_for_index": null,
+        "ability_options": [],
+        "choice_id": null
+      },
+      "choice_history": [
+        {
+          "choice_id": "20260726233438440113-6035",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Escavalier",
+            "Oricorio",
+            "Beautifly"
+          ],
+          "chosen": "Escavalier",
+          "created_at": "2026-07-26 23:34:38",
+          "chosen_at": "2026-07-26 23:35:11",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260726234945011035-3984",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Skarmory",
+            "Skitty",
+            "Shellos"
+          ],
+          "chosen": "Skarmory",
+          "created_at": "2026-07-26 23:49:45",
+          "chosen_at": "2026-07-26 23:50:46",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260726235814172973-5780",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Ursaluna",
+            "Zamazenta",
+            "Whimsicott"
+          ],
+          "chosen": "Zamazenta",
+          "created_at": "2026-07-26 23:58:14",
+          "chosen_at": "2026-07-26 23:59:28",
+          "metadata": {
+            "forced_flag": "Lendario",
+            "karma_applied": true
+          }
+        },
+        {
+          "choice_id": "20260727001006199416-7328",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Goldeen",
+            "Magnezone",
+            "Chimchar"
+          ],
+          "chosen": "Magnezone",
+          "created_at": "2026-07-27 00:10:06",
+          "chosen_at": "2026-07-27 00:11:12",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727001945495553-3811",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Great Tusk",
+            "Arctibax",
+            "Garganacl"
+          ],
+          "chosen": "Arctibax",
+          "created_at": "2026-07-27 00:19:45",
+          "chosen_at": "2026-07-27 00:21:04",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727003341598386-3397",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Gumshoos",
+            "Heliolisk",
+            "Slakoth"
+          ],
+          "chosen": "Slakoth",
+          "created_at": "2026-07-27 00:33:41",
+          "chosen_at": "2026-07-27 00:34:39",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727003726629386-6514",
+          "type": "ability",
+          "slot_index": 0,
+          "slot_label": "Slot 1",
+          "options": [
+            "Swarm",
+            "Pixilate",
+            "Minus"
+          ],
+          "chosen": "Swarm",
+          "created_at": "2026-07-27 00:37:26",
+          "chosen_at": "2026-07-27 00:39:45"
+        },
+        {
+          "choice_id": "20260727003947225664-1269",
+          "type": "ability",
+          "slot_index": 1,
+          "slot_label": "Slot 2",
+          "options": [
+            "Corrosion",
+            "Beads of Ruin",
+            "Good as Gold"
+          ],
+          "chosen": "Good as Gold",
+          "created_at": "2026-07-27 00:39:47",
+          "chosen_at": "2026-07-27 00:40:52"
+        },
+        {
+          "choice_id": "20260727004110073301-2583",
+          "type": "ability",
+          "slot_index": 2,
+          "slot_label": "Slot 3",
+          "options": [
+            "Tablets of Ruin",
+            "Defeatist",
+            "Sturdy"
+          ],
+          "chosen": "Tablets of Ruin",
+          "created_at": "2026-07-27 00:41:10",
+          "chosen_at": "2026-07-27 00:42:39"
+        },
+        {
+          "choice_id": "20260727004325925445-9710",
+          "type": "ability",
+          "slot_index": 3,
+          "slot_label": "Slot 4",
+          "options": [
+            "Serene Grace",
+            "Iron Fist",
+            "Light Metal"
+          ],
+          "chosen": "Serene Grace",
+          "created_at": "2026-07-27 00:43:25",
+          "chosen_at": "2026-07-27 00:45:14"
+        },
+        {
+          "choice_id": "20260727004551918376-4721",
+          "type": "ability",
+          "slot_index": 4,
+          "slot_label": "Slot 5",
+          "options": [
+            "Protean",
+            "Teravolt",
+            "Turboblaze"
+          ],
+          "chosen": "Protean",
+          "created_at": "2026-07-27 00:45:51",
+          "chosen_at": "2026-07-27 00:47:38"
+        },
+        {
+          "choice_id": "20260727004740082601-6030",
+          "type": "ability",
+          "slot_index": 5,
+          "slot_label": "Slot 6",
+          "options": [
+            "Snow Warning",
+            "Magician",
+            "Corrosion"
+          ],
+          "chosen": "Magician",
+          "created_at": "2026-07-27 00:47:40",
+          "chosen_at": "2026-07-27 00:49:28"
+        }
+      ]
+    },
+    "4441033829": {
+      "player_id": "4441033829",
+      "nickname": "ThMoraes18",
+      "created_at": "2026-07-26 23:27:40",
+      "pokemon_picks": [
+        {
+          "name": "Carkol",
+          "ability": "Technician"
+        },
+        {
+          "name": "Fuecoco",
+          "ability": "Full Metal Body"
+        },
+        {
+          "name": "Cloyster",
+          "ability": "Dazzling"
+        },
+        {
+          "name": "Arceus",
+          "ability": "Disguise"
+        },
+        {
+          "name": "Braviary",
+          "ability": "Fairy Aura"
+        },
+        {
+          "name": "Lampent",
+          "ability": "Water Compaction"
+        }
+      ],
+      "pending": {
+        "type": null,
+        "pokemon_options": [],
+        "ability_for_index": null,
+        "ability_options": [],
+        "choice_id": null
+      },
+      "choice_history": [
+        {
+          "choice_id": "20260726233601492341-1336",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Toedscruel",
+            "Silvally",
+            "Carkol"
+          ],
+          "chosen": "Carkol",
+          "created_at": "2026-07-26 23:36:01",
+          "chosen_at": "2026-07-26 23:38:37",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260726234913675170-2382",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Magby",
+            "Fuecoco",
+            "Luxray"
+          ],
+          "chosen": "Fuecoco",
+          "created_at": "2026-07-26 23:49:13",
+          "chosen_at": "2026-07-26 23:49:40",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260726235938722442-5569",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Shedinja",
+            "Cloyster",
+            "Cryogonal"
+          ],
+          "chosen": "Cloyster",
+          "created_at": "2026-07-26 23:59:38",
+          "chosen_at": "2026-07-27 00:00:43",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727000949217827-6922",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Arceus",
+            "Bombirdier",
+            "Conkeldurr"
+          ],
+          "chosen": "Arceus",
+          "created_at": "2026-07-27 00:09:49",
+          "chosen_at": "2026-07-27 00:10:02",
+          "metadata": {
+            "forced_flag": "Lendario",
+            "karma_applied": true
+          }
+        },
+        {
+          "choice_id": "20260727002110301563-6236",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Bellossom",
+            "Braviary",
+            "Skwovet"
+          ],
+          "chosen": "Braviary",
+          "created_at": "2026-07-27 00:21:10",
+          "chosen_at": "2026-07-27 00:22:43",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727003155352778-5915",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Lunatone",
+            "Lampent",
+            "Shuckle"
+          ],
+          "chosen": "Lampent",
+          "created_at": "2026-07-27 00:31:55",
+          "chosen_at": "2026-07-27 00:33:30",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727003728737772-9628",
+          "type": "ability",
+          "slot_index": 0,
+          "slot_label": "Slot 1",
+          "options": [
+            "Guard Dog",
+            "Grim Neigh",
+            "Technician"
+          ],
+          "chosen": "Technician",
+          "created_at": "2026-07-27 00:37:28",
+          "chosen_at": "2026-07-27 00:39:02"
+        },
+        {
+          "choice_id": "20260727003934367151-6931",
+          "type": "ability",
+          "slot_index": 1,
+          "slot_label": "Slot 2",
+          "options": [
+            "Tangling Hair",
+            "Full Metal Body",
+            "Seed Sower"
+          ],
+          "chosen": "Full Metal Body",
+          "created_at": "2026-07-27 00:39:34",
+          "chosen_at": "2026-07-27 00:41:03"
+        },
+        {
+          "choice_id": "20260727004111872191-9718",
+          "type": "ability",
+          "slot_index": 2,
+          "slot_label": "Slot 3",
+          "options": [
+            "Purifying Salt",
+            "Dazzling",
+            "Queenly Majesty"
+          ],
+          "chosen": "Dazzling",
+          "created_at": "2026-07-27 00:41:11",
+          "chosen_at": "2026-07-27 00:42:53"
+        },
+        {
+          "choice_id": "20260727004327953680-8222",
+          "type": "ability",
+          "slot_index": 3,
+          "slot_label": "Slot 4",
+          "options": [
+            "Battle Bond",
+            "Disguise",
+            "Toxic Debris"
+          ],
+          "chosen": "Disguise",
+          "created_at": "2026-07-27 00:43:27",
+          "chosen_at": "2026-07-27 00:44:26"
+        },
+        {
+          "choice_id": "20260727004506319141-6764",
+          "type": "ability",
+          "slot_index": 4,
+          "slot_label": "Slot 5",
+          "options": [
+            "Receiver",
+            "Pickpocket",
+            "Fairy Aura"
+          ],
+          "chosen": "Fairy Aura",
+          "created_at": "2026-07-27 00:45:06",
+          "chosen_at": "2026-07-27 00:47:21"
+        },
+        {
+          "choice_id": "20260727004732966635-1203",
+          "type": "ability",
+          "slot_index": 5,
+          "slot_label": "Slot 6",
+          "options": [
+            "Sniper",
+            "Water Compaction",
+            "Imposter"
+          ],
+          "chosen": "Water Compaction",
+          "created_at": "2026-07-27 00:47:32",
+          "chosen_at": "2026-07-27 00:49:16"
+        }
+      ]
+    },
+    "9627324154": {
+      "player_id": "9627324154",
+      "nickname": "Ayphzz",
+      "created_at": "2026-07-26 23:27:49",
+      "pokemon_picks": [
+        {
+          "name": "Metang",
+          "ability": "Overcoat"
+        },
+        {
+          "name": "Applin",
+          "ability": "Reckless"
+        },
+        {
+          "name": "Zacian",
+          "ability": "Flower Gift"
+        },
+        {
+          "name": "Marill",
+          "ability": "Intimidate"
+        },
+        {
+          "name": "Armaldo",
+          "ability": "Multiscale"
+        },
+        {
+          "name": "Dreepy",
           "ability": "Neuroforce"
         }
       ],
@@ -833,459 +1333,245 @@
       },
       "choice_history": [
         {
-          "choice_id": "20260730225859489158-4840",
+          "choice_id": "20260726233842967936-0439",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Tapu Koko",
-            "Cryogonal",
-            "Bisharp"
+            "Metang",
+            "Vanilluxe",
+            "Remoraid"
           ],
-          "chosen": "Bisharp",
-          "created_at": "2026-07-30 22:58:59",
-          "chosen_at": "2026-07-30 22:59:28",
+          "chosen": "Metang",
+          "created_at": "2026-07-26 23:38:42",
+          "chosen_at": "2026-07-26 23:39:01",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230043085746-2196",
+          "choice_id": "20260726234655938897-4190",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Mawile",
-            "Iron Leaves",
-            "Cubchoo"
+            "Kecleon",
+            "Vibrava",
+            "Brambleghast"
           ],
-          "chosen": "Mawile",
-          "created_at": "2026-07-30 23:00:43",
-          "chosen_at": "2026-07-30 23:00:54",
+          "chosen": "Kecleon",
+          "created_at": "2026-07-26 23:46:55",
+          "chosen_at": "2026-07-26 23:47:10",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230154596248-9659",
+          "choice_id": "20260726234812270355-1409",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Boltund",
-            "Greninja",
-            "Herdier"
+            "Applin",
+            "Clawitzer",
+            "Hattrem"
           ],
-          "chosen": "Greninja",
-          "created_at": "2026-07-30 23:01:54",
-          "chosen_at": "2026-07-30 23:02:03",
+          "chosen": "Applin",
+          "created_at": "2026-07-26 23:48:12",
+          "chosen_at": "2026-07-26 23:49:09",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230329158201-4679",
+          "choice_id": "20260727000048170864-6980",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Geodude",
-            "Beldum",
-            "Dodrio"
+            "Abomasnow",
+            "Accelgor",
+            "Zacian"
           ],
-          "chosen": "Dodrio",
-          "created_at": "2026-07-30 23:03:29",
-          "chosen_at": "2026-07-30 23:04:03",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730230531651895-7726",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Salazzle",
-            "Golem",
-            "Quaquaval"
-          ],
-          "chosen": "Quaquaval",
-          "created_at": "2026-07-30 23:05:31",
-          "chosen_at": "2026-07-30 23:06:08",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730230707497726-6505",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Dragonite",
-            "Starmie",
-            "Heracross"
-          ],
-          "chosen": "Dragonite",
-          "created_at": "2026-07-30 23:07:07",
-          "chosen_at": "2026-07-30 23:07:14",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730231529608066-2823",
-          "type": "ability",
-          "slot_index": 0,
-          "slot_label": "Slot 1",
-          "options": [
-            "Prankster",
-            "Sap Sipper",
-            "Innards Out"
-          ],
-          "chosen": "Prankster",
-          "created_at": "2026-07-30 23:15:29",
-          "chosen_at": "2026-07-30 23:16:59"
-        },
-        {
-          "choice_id": "20260730231706393527-3715",
-          "type": "ability",
-          "slot_index": 1,
-          "slot_label": "Slot 2",
-          "options": [
-            "Transistor",
-            "Leaf Guard",
-            "Regenerator"
-          ],
-          "chosen": "Regenerator",
-          "created_at": "2026-07-30 23:17:06",
-          "chosen_at": "2026-07-30 23:18:03"
-        },
-        {
-          "choice_id": "20260730231854300802-8511",
-          "type": "ability",
-          "slot_index": 2,
-          "slot_label": "Slot 3",
-          "options": [
-            "Orichalcum Pulse",
-            "Wind Rider",
-            "Snow Warning"
-          ],
-          "chosen": "Wind Rider",
-          "created_at": "2026-07-30 23:18:54",
-          "chosen_at": "2026-07-30 23:20:38"
-        },
-        {
-          "choice_id": "20260730232045726804-6673",
-          "type": "ability",
-          "slot_index": 3,
-          "slot_label": "Slot 4",
-          "options": [
-            "Ice Face",
-            "Embody Aspect",
-            "Poison Point"
-          ],
-          "chosen": "Poison Point",
-          "created_at": "2026-07-30 23:20:45",
-          "chosen_at": "2026-07-30 23:22:41"
-        },
-        {
-          "choice_id": "20260730232247493122-6886",
-          "type": "ability",
-          "slot_index": 4,
-          "slot_label": "Slot 5",
-          "options": [
-            "Truant",
-            "Static",
-            "Stench"
-          ],
-          "chosen": "Static",
-          "created_at": "2026-07-30 23:22:47",
-          "chosen_at": "2026-07-30 23:23:29"
-        },
-        {
-          "choice_id": "20260730232345855370-9622",
-          "type": "ability",
-          "slot_index": 5,
-          "slot_label": "Slot 6",
-          "options": [
-            "Rocky Payload",
-            "Light Metal",
-            "Neuroforce"
-          ],
-          "chosen": "Neuroforce",
-          "created_at": "2026-07-30 23:23:45",
-          "chosen_at": "2026-07-30 23:24:48"
-        }
-      ]
-    },
-    "9717820547": {
-      "player_id": "9717820547",
-      "nickname": "ThMoraes18",
-      "created_at": "2026-07-30 22:57:16",
-      "pokemon_picks": [
-        {
-          "name": "Dreepy",
-          "ability": "Unaware"
-        },
-        {
-          "name": "Weezing",
-          "ability": "Poison Puppeteer"
-        },
-        {
-          "name": "Miraidon",
-          "ability": "Prankster"
-        },
-        {
-          "name": "Iron Jugulis",
-          "ability": "Heatproof"
-        },
-        {
-          "name": "Luxray",
-          "ability": "Transistor"
-        },
-        {
-          "name": "Chesnaught",
-          "ability": "Keen Eye"
-        }
-      ],
-      "pending": {
-        "type": null,
-        "pokemon_options": [],
-        "ability_for_index": null,
-        "ability_options": [],
-        "choice_id": null
-      },
-      "choice_history": [
-        {
-          "choice_id": "20260730225900067195-6854",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Dreepy",
-            "Chandelure",
-            "Simipour"
-          ],
-          "chosen": "Dreepy",
-          "created_at": "2026-07-30 22:59:00",
-          "chosen_at": "2026-07-30 22:59:10",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730230044282152-2654",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Passimian",
-            "Trumbeak",
-            "Weezing"
-          ],
-          "chosen": "Weezing",
-          "created_at": "2026-07-30 23:00:44",
-          "chosen_at": "2026-07-30 23:01:13",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730230153756530-0116",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Miraidon",
-            "Shelmet",
-            "Scream Tail"
-          ],
-          "chosen": "Miraidon",
-          "created_at": "2026-07-30 23:01:53",
-          "chosen_at": "2026-07-30 23:02:21",
+          "chosen": "Zacian",
+          "created_at": "2026-07-27 00:00:48",
+          "chosen_at": "2026-07-27 00:02:33",
           "metadata": {
             "forced_flag": "Lendario",
             "karma_applied": true
           }
         },
         {
-          "choice_id": "20260730230330010411-7579",
+          "choice_id": "20260727000929671218-4683",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Iron Jugulis",
-            "Ninetales",
-            "Rellor"
+            "Cascoon",
+            "Marill",
+            "Persian"
           ],
-          "chosen": "Iron Jugulis",
-          "created_at": "2026-07-30 23:03:30",
-          "chosen_at": "2026-07-30 23:04:52",
+          "chosen": "Marill",
+          "created_at": "2026-07-27 00:09:29",
+          "chosen_at": "2026-07-27 00:09:46",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230532777313-8605",
+          "choice_id": "20260727002247375147-5618",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Luxray",
-            "Swoobat",
-            "Lopunny"
+            "Alcremie",
+            "Flamigo",
+            "Armaldo"
           ],
-          "chosen": "Luxray",
-          "created_at": "2026-07-30 23:05:32",
-          "chosen_at": "2026-07-30 23:05:45",
+          "chosen": "Armaldo",
+          "created_at": "2026-07-27 00:22:47",
+          "chosen_at": "2026-07-27 00:23:17",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230709074359-9783",
+          "choice_id": "20260727003034549679-7834",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Delibird",
-            "Chesnaught",
-            "Eevee"
+            "Milcery",
+            "Yamask",
+            "Dreepy"
           ],
-          "chosen": "Chesnaught",
-          "created_at": "2026-07-30 23:07:09",
-          "chosen_at": "2026-07-30 23:07:27",
+          "chosen": "Dreepy",
+          "created_at": "2026-07-27 00:30:34",
+          "chosen_at": "2026-07-27 00:31:30",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730231531368976-2920",
+          "choice_id": "20260727003731383400-0357",
           "type": "ability",
           "slot_index": 0,
           "slot_label": "Slot 1",
           "options": [
-            "Stamina",
-            "Unaware",
-            "Opportunist"
+            "Wimp Out",
+            "Unnerve",
+            "Overcoat"
           ],
-          "chosen": "Unaware",
-          "created_at": "2026-07-30 23:15:31",
-          "chosen_at": "2026-07-30 23:16:27"
+          "chosen": "Overcoat",
+          "created_at": "2026-07-27 00:37:31",
+          "chosen_at": "2026-07-27 00:38:58"
         },
         {
-          "choice_id": "20260730231707925535-8612",
+          "choice_id": "20260727003936933732-4277",
           "type": "ability",
           "slot_index": 1,
           "slot_label": "Slot 2",
           "options": [
-            "Full Metal Body",
-            "Poison Puppeteer",
-            "Unnerve"
+            "Reckless",
+            "Receiver",
+            "Sand Veil"
           ],
-          "chosen": "Poison Puppeteer",
-          "created_at": "2026-07-30 23:17:07",
-          "chosen_at": "2026-07-30 23:18:59"
+          "chosen": "Reckless",
+          "created_at": "2026-07-27 00:39:36",
+          "chosen_at": "2026-07-27 00:41:04"
         },
         {
-          "choice_id": "20260730231901346230-9726",
+          "choice_id": "20260727004113832258-2542",
           "type": "ability",
           "slot_index": 2,
           "slot_label": "Slot 3",
           "options": [
-            "Imposter",
-            "RKS System",
-            "Prankster"
+            "Power Construct",
+            "Tera Shift",
+            "Flower Gift"
           ],
-          "chosen": "Prankster",
-          "created_at": "2026-07-30 23:19:01",
-          "chosen_at": "2026-07-30 23:20:28"
+          "chosen": "Flower Gift",
+          "created_at": "2026-07-27 00:41:13",
+          "chosen_at": "2026-07-27 00:42:19"
         },
         {
-          "choice_id": "20260730232047141240-7258",
+          "choice_id": "20260727004231077517-6023",
           "type": "ability",
           "slot_index": 3,
           "slot_label": "Slot 4",
           "options": [
-            "Flower Gift",
-            "Suction Cups",
-            "Heatproof"
+            "Run Away",
+            "Intimidate",
+            "Electromorphosis"
           ],
-          "chosen": "Heatproof",
-          "created_at": "2026-07-30 23:20:47",
-          "chosen_at": "2026-07-30 23:21:46"
+          "chosen": "Intimidate",
+          "created_at": "2026-07-27 00:42:31",
+          "chosen_at": "2026-07-27 00:43:37"
         },
         {
-          "choice_id": "20260730232249806304-5557",
+          "choice_id": "20260727004409063645-1301",
           "type": "ability",
           "slot_index": 4,
           "slot_label": "Slot 5",
           "options": [
             "Bad Dreams",
-            "Transistor",
-            "Battery"
+            "Ball Fetch",
+            "Multiscale"
           ],
-          "chosen": "Transistor",
-          "created_at": "2026-07-30 23:22:49",
-          "chosen_at": "2026-07-30 23:23:44"
+          "chosen": "Multiscale",
+          "created_at": "2026-07-27 00:44:09",
+          "chosen_at": "2026-07-27 00:44:48"
         },
         {
-          "choice_id": "20260730232347087255-0290",
+          "choice_id": "20260727004509425578-9947",
           "type": "ability",
           "slot_index": 5,
           "slot_label": "Slot 6",
           "options": [
-            "Rain Dish",
-            "Pixilate",
-            "Keen Eye"
+            "Compound Eyes",
+            "Sweet Veil",
+            "Neuroforce"
           ],
-          "chosen": "Keen Eye",
-          "created_at": "2026-07-30 23:23:47",
-          "chosen_at": "2026-07-30 23:24:53"
+          "chosen": "Neuroforce",
+          "created_at": "2026-07-27 00:45:09",
+          "chosen_at": "2026-07-27 00:46:08"
         }
       ]
     },
-    "5201450820": {
-      "player_id": "5201450820",
+    "2022607922": {
+      "player_id": "2022607922",
       "nickname": "VasectomiaDOIS",
-      "created_at": "2026-07-30 22:57:54",
+      "created_at": "2026-07-26 23:27:54",
       "pokemon_picks": [
         {
-          "name": "Arboliva",
-          "ability": "Sniper"
+          "name": "Magearna",
+          "ability": "Super Luck"
         },
         {
-          "name": "Torchic",
-          "ability": "Tera Shell"
+          "name": "Kubfu",
+          "ability": "Thermal Exchange"
         },
         {
-          "name": "Thundurus",
-          "ability": "Pickpocket"
+          "name": "Frogadier",
+          "ability": "Magic Guard"
         },
         {
-          "name": "Chansey",
-          "ability": "Oblivious"
+          "name": "Pidgey",
+          "ability": "Prankster"
         },
         {
-          "name": "Archen",
-          "ability": "Huge Power"
+          "name": "Salamence",
+          "ability": "Queenly Majesty"
         },
         {
-          "name": "Steenee",
-          "ability": "Beast Boost"
+          "name": "Morgrem",
+          "ability": "Libero"
         }
       ],
       "pending": {
@@ -1297,428 +1583,428 @@
       },
       "choice_history": [
         {
-          "choice_id": "20260730225900634348-3470",
+          "choice_id": "20260726233906441718-9965",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Leafeon",
-            "Honedge",
-            "Arboliva"
+            "Rookidee",
+            "Barboach",
+            "Magearna"
           ],
-          "chosen": "Arboliva",
-          "created_at": "2026-07-30 22:59:00",
-          "chosen_at": "2026-07-30 23:00:18",
+          "chosen": "Magearna",
+          "created_at": "2026-07-26 23:39:06",
+          "chosen_at": "2026-07-26 23:40:58",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230045171674-9181",
+          "choice_id": "20260726234439102457-5314",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Gogoat",
-            "Torchic",
-            "Ferroseed"
+            "Doduo",
+            "Kubfu",
+            "Electivire"
           ],
-          "chosen": "Torchic",
-          "created_at": "2026-07-30 23:00:45",
-          "chosen_at": "2026-07-30 23:01:05",
+          "chosen": "Kubfu",
+          "created_at": "2026-07-26 23:44:39",
+          "chosen_at": "2026-07-26 23:46:17",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230152942508-5803",
+          "choice_id": "20260727000238471364-5976",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Keldeo",
-            "Dartrix",
-            "Thundurus"
+            "Frogadier",
+            "Aegislash",
+            "Honedge"
           ],
-          "chosen": "Thundurus",
-          "created_at": "2026-07-30 23:01:52",
-          "chosen_at": "2026-07-30 23:03:22",
+          "chosen": "Frogadier",
+          "created_at": "2026-07-27 00:02:38",
+          "chosen_at": "2026-07-27 00:03:57",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727000734038868-7990",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Pidgey",
+            "Comfey",
+            "Nickit"
+          ],
+          "chosen": "Pidgey",
+          "created_at": "2026-07-27 00:07:34",
+          "chosen_at": "2026-07-27 00:09:26",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727002323279728-0664",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Pheromosa",
+            "Aron",
+            "Salamence"
+          ],
+          "chosen": "Salamence",
+          "created_at": "2026-07-27 00:23:23",
+          "chosen_at": "2026-07-27 00:24:54",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727002917240800-8954",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Morgrem",
+            "Bruxish",
+            "Mime Jr."
+          ],
+          "chosen": "Morgrem",
+          "created_at": "2026-07-27 00:29:17",
+          "chosen_at": "2026-07-27 00:30:29",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727003734118638-6083",
+          "type": "ability",
+          "slot_index": 0,
+          "slot_label": "Slot 1",
+          "options": [
+            "Gulp Missile",
+            "Sand Veil",
+            "Super Luck"
+          ],
+          "chosen": "Super Luck",
+          "created_at": "2026-07-27 00:37:34",
+          "chosen_at": "2026-07-27 00:39:18"
+        },
+        {
+          "choice_id": "20260727003939108620-2432",
+          "type": "ability",
+          "slot_index": 1,
+          "slot_label": "Slot 2",
+          "options": [
+            "Thermal Exchange",
+            "Rocky Payload",
+            "Queenly Majesty"
+          ],
+          "chosen": "Thermal Exchange",
+          "created_at": "2026-07-27 00:39:39",
+          "chosen_at": "2026-07-27 00:41:34"
+        },
+        {
+          "choice_id": "20260727004143952198-5219",
+          "type": "ability",
+          "slot_index": 2,
+          "slot_label": "Slot 3",
+          "options": [
+            "Prankster",
+            "Magic Guard",
+            "Multiscale"
+          ],
+          "chosen": "Magic Guard",
+          "created_at": "2026-07-27 00:41:43",
+          "chosen_at": "2026-07-27 00:43:17"
+        },
+        {
+          "choice_id": "20260727004330053917-4290",
+          "type": "ability",
+          "slot_index": 3,
+          "slot_label": "Slot 4",
+          "options": [
+            "Plus",
+            "Prankster",
+            "Solid Rock"
+          ],
+          "chosen": "Prankster",
+          "created_at": "2026-07-27 00:43:30",
+          "chosen_at": "2026-07-27 00:45:46"
+        },
+        {
+          "choice_id": "20260727004553952013-9868",
+          "type": "ability",
+          "slot_index": 4,
+          "slot_label": "Slot 5",
+          "options": [
+            "Queenly Majesty",
+            "Solid Rock",
+            "Hydration"
+          ],
+          "chosen": "Queenly Majesty",
+          "created_at": "2026-07-27 00:45:53",
+          "chosen_at": "2026-07-27 00:48:32"
+        },
+        {
+          "choice_id": "20260727004839895300-5717",
+          "type": "ability",
+          "slot_index": 5,
+          "slot_label": "Slot 6",
+          "options": [
+            "Libero",
+            "Solar Power",
+            "Thick Fat"
+          ],
+          "chosen": "Libero",
+          "created_at": "2026-07-27 00:48:39",
+          "chosen_at": "2026-07-27 00:49:43"
+        }
+      ]
+    },
+    "1021810309": {
+      "player_id": "1021810309",
+      "nickname": "NicolasNII",
+      "created_at": "2026-07-26 23:29:59",
+      "pokemon_picks": [
+        {
+          "name": "Roaring Moon",
+          "ability": "Sharpness"
+        },
+        {
+          "name": "Zygarde",
+          "ability": "Aerilate"
+        },
+        {
+          "name": "Foongus",
+          "ability": "Drought"
+        },
+        {
+          "name": "Wartortle",
+          "ability": "Arena Trap"
+        },
+        {
+          "name": "Tinkaton",
+          "ability": "Mirror Armor"
+        },
+        {
+          "name": "Hattrem",
+          "ability": "No Guard"
+        }
+      ],
+      "pending": {
+        "type": null,
+        "pokemon_options": [],
+        "ability_for_index": null,
+        "ability_options": [],
+        "choice_id": null
+      },
+      "choice_history": [
+        {
+          "choice_id": "20260726234118163154-3190",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Electrode",
+            "Roaring Moon",
+            "Dratini"
+          ],
+          "chosen": "Roaring Moon",
+          "created_at": "2026-07-26 23:41:18",
+          "chosen_at": "2026-07-26 23:43:00",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260726234312779034-3470",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Tinkaton",
+            "Quaxly",
+            "Zygarde"
+          ],
+          "chosen": "Zygarde",
+          "created_at": "2026-07-26 23:43:12",
+          "chosen_at": "2026-07-26 23:44:36",
           "metadata": {
             "forced_flag": "Lendario",
             "karma_applied": true
           }
         },
         {
-          "choice_id": "20260730230331198047-1652",
+          "choice_id": "20260727000406007018-4394",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Whimsicott",
-            "Poliwag",
-            "Chansey"
+            "Vibrava",
+            "Foongus",
+            "Diglett"
           ],
-          "chosen": "Chansey",
-          "created_at": "2026-07-30 23:03:31",
-          "chosen_at": "2026-07-30 23:04:30",
+          "chosen": "Foongus",
+          "created_at": "2026-07-27 00:04:06",
+          "chosen_at": "2026-07-27 00:06:25",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230533835102-4443",
+          "choice_id": "20260727000630808144-2830",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Timburr",
-            "Archen",
-            "Hariyama"
+            "Oshawott",
+            "Pancham",
+            "Wartortle"
           ],
-          "chosen": "Archen",
-          "created_at": "2026-07-30 23:05:33",
-          "chosen_at": "2026-07-30 23:06:54",
+          "chosen": "Wartortle",
+          "created_at": "2026-07-27 00:06:30",
+          "chosen_at": "2026-07-27 00:07:31",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730230710629596-6404",
+          "choice_id": "20260727002456746795-8589",
           "type": "pokemon",
           "slot_index": null,
           "slot_label": null,
           "options": [
-            "Aegislash",
-            "Litleo",
-            "Steenee"
+            "Bastiodon",
+            "Tinkaton",
+            "Bewear"
           ],
-          "chosen": "Steenee",
-          "created_at": "2026-07-30 23:07:10",
-          "chosen_at": "2026-07-30 23:08:05",
+          "chosen": "Tinkaton",
+          "created_at": "2026-07-27 00:24:56",
+          "chosen_at": "2026-07-27 00:27:48",
           "metadata": {
             "forced_flag": null,
             "karma_applied": false
           }
         },
         {
-          "choice_id": "20260730231532793190-9264",
+          "choice_id": "20260727002752875508-9055",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Kadabra",
+            "Shiinotic",
+            "Hattrem"
+          ],
+          "chosen": "Hattrem",
+          "created_at": "2026-07-27 00:27:52",
+          "chosen_at": "2026-07-27 00:29:12",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false
+          }
+        },
+        {
+          "choice_id": "20260727003736225432-1097",
           "type": "ability",
           "slot_index": 0,
           "slot_label": "Slot 1",
           "options": [
-            "Frisk",
-            "Sniper",
-            "Pickup"
+            "Mind's Eye",
+            "Normalize",
+            "Sharpness"
           ],
-          "chosen": "Sniper",
-          "created_at": "2026-07-30 23:15:32",
-          "chosen_at": "2026-07-30 23:17:07"
+          "chosen": "Sharpness",
+          "created_at": "2026-07-27 00:37:36",
+          "chosen_at": "2026-07-27 00:39:20"
         },
         {
-          "choice_id": "20260730231710351410-7621",
+          "choice_id": "20260727003940809392-8789",
           "type": "ability",
           "slot_index": 1,
           "slot_label": "Slot 2",
           "options": [
-            "Tera Shell",
-            "Sand Stream",
-            "Slow Start"
+            "Aerilate",
+            "Gluttony",
+            "Hunger Switch"
           ],
-          "chosen": "Tera Shell",
-          "created_at": "2026-07-30 23:17:10",
-          "chosen_at": "2026-07-30 23:18:34"
+          "chosen": "Aerilate",
+          "created_at": "2026-07-27 00:39:40",
+          "chosen_at": "2026-07-27 00:41:59"
         },
         {
-          "choice_id": "20260730231855663290-0910",
+          "choice_id": "20260727004219248545-8540",
           "type": "ability",
           "slot_index": 2,
           "slot_label": "Slot 3",
           "options": [
-            "Pickpocket",
-            "Rivalry",
-            "Receiver"
+            "Drought",
+            "Honey Gather",
+            "Perish Body"
           ],
-          "chosen": "Pickpocket",
-          "created_at": "2026-07-30 23:18:55",
-          "chosen_at": "2026-07-30 23:20:20"
+          "chosen": "Drought",
+          "created_at": "2026-07-27 00:42:19",
+          "chosen_at": "2026-07-27 00:44:44"
         },
         {
-          "choice_id": "20260730232048540058-5849",
+          "choice_id": "20260727004511680769-5177",
           "type": "ability",
           "slot_index": 3,
           "slot_label": "Slot 4",
           "options": [
-            "Tinted Lens",
-            "Oblivious",
-            "Galvanize"
+            "Arena Trap",
+            "Technician",
+            "Defiant"
           ],
-          "chosen": "Oblivious",
-          "created_at": "2026-07-30 23:20:48",
-          "chosen_at": "2026-07-30 23:22:40"
+          "chosen": "Arena Trap",
+          "created_at": "2026-07-27 00:45:11",
+          "chosen_at": "2026-07-27 00:46:19"
         },
         {
-          "choice_id": "20260730232251318079-1637",
+          "choice_id": "20260727004644372554-0904",
           "type": "ability",
           "slot_index": 4,
           "slot_label": "Slot 5",
           "options": [
-            "Huge Power",
-            "Dry Skin",
-            "Honey Gather"
+            "Mirror Armor",
+            "Mega Launcher",
+            "Sniper"
           ],
-          "chosen": "Huge Power",
-          "created_at": "2026-07-30 23:22:51",
-          "chosen_at": "2026-07-30 23:24:01"
+          "chosen": "Mirror Armor",
+          "created_at": "2026-07-27 00:46:44",
+          "chosen_at": "2026-07-27 00:47:27"
         },
         {
-          "choice_id": "20260730232522770756-0401",
+          "choice_id": "20260727004737198933-4255",
           "type": "ability",
           "slot_index": 5,
           "slot_label": "Slot 6",
           "options": [
-            "Supreme Overlord",
-            "Wind Rider",
-            "Beast Boost"
-          ],
-          "chosen": "Beast Boost",
-          "created_at": "2026-07-30 23:25:22",
-          "chosen_at": "2026-07-30 23:27:30"
-        }
-      ]
-    },
-    "9196394031": {
-      "player_id": "9196394031",
-      "nickname": "KL1gh",
-      "created_at": "2026-07-30 23:08:16",
-      "pokemon_picks": [
-        {
-          "name": "Kyogre",
-          "ability": "Solid Rock"
-        },
-        {
-          "name": "Scream Tail",
-          "ability": "No Guard"
-        },
-        {
-          "name": "Silvally",
-          "ability": "Solar Power"
-        },
-        {
-          "name": "Klinklang",
-          "ability": "Speed Boost"
-        },
-        {
-          "name": "Glimmet",
-          "ability": "Poison Heal"
-        },
-        {
-          "name": "Ralts",
-          "ability": "Motor Drive"
-        }
-      ],
-      "pending": {
-        "type": null,
-        "pokemon_options": [],
-        "ability_for_index": null,
-        "ability_options": [],
-        "choice_id": null
-      },
-      "choice_history": [
-        {
-          "choice_id": "20260730230821519069-2040",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Kyogre",
-            "Torkoal",
-            "Omanyte"
-          ],
-          "chosen": "Kyogre",
-          "created_at": "2026-07-30 23:08:21",
-          "chosen_at": "2026-07-30 23:08:34",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730230838916638-7752",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Ribombee",
-            "Scream Tail",
-            "Trubbish"
-          ],
-          "chosen": "Scream Tail",
-          "created_at": "2026-07-30 23:08:38",
-          "chosen_at": "2026-07-30 23:09:16",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730230919222821-5503",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Kingdra",
-            "Silvally",
-            "Kricketune"
-          ],
-          "chosen": "Silvally",
-          "created_at": "2026-07-30 23:09:19",
-          "chosen_at": "2026-07-30 23:09:35",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730230941335247-6007",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Blastoise",
-            "Hattrem",
-            "Klinklang"
-          ],
-          "chosen": "Klinklang",
-          "created_at": "2026-07-30 23:09:41",
-          "chosen_at": "2026-07-30 23:10:39",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730231050249941-3266",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Floatzel",
-            "Glimmet",
-            "Voltorb"
-          ],
-          "chosen": "Glimmet",
-          "created_at": "2026-07-30 23:10:50",
-          "chosen_at": "2026-07-30 23:11:23",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730231228321545-8971",
-          "type": "pokemon",
-          "slot_index": null,
-          "slot_label": null,
-          "options": [
-            "Ralts",
-            "Stufful",
-            "Munna"
-          ],
-          "chosen": "Ralts",
-          "created_at": "2026-07-30 23:12:28",
-          "chosen_at": "2026-07-30 23:13:07",
-          "metadata": {
-            "forced_flag": null,
-            "karma_applied": false
-          }
-        },
-        {
-          "choice_id": "20260730231535456479-1071",
-          "type": "ability",
-          "slot_index": 0,
-          "slot_label": "Slot 1",
-          "options": [
-            "Compound Eyes",
-            "Minus",
-            "Solid Rock"
-          ],
-          "chosen": "Solid Rock",
-          "created_at": "2026-07-30 23:15:35",
-          "chosen_at": "2026-07-30 23:16:38"
-        },
-        {
-          "choice_id": "20260730231712188888-2438",
-          "type": "ability",
-          "slot_index": 1,
-          "slot_label": "Slot 2",
-          "options": [
-            "Dragon's Maw",
+            "Wind Power",
             "No Guard",
-            "Mummy"
+            "Sap Sipper"
           ],
           "chosen": "No Guard",
-          "created_at": "2026-07-30 23:17:12",
-          "chosen_at": "2026-07-30 23:17:35"
-        },
-        {
-          "choice_id": "20260730231857476637-8062",
-          "type": "ability",
-          "slot_index": 2,
-          "slot_label": "Slot 3",
-          "options": [
-            "Battle Bond",
-            "Swarm",
-            "Solar Power"
-          ],
-          "chosen": "Solar Power",
-          "created_at": "2026-07-30 23:18:57",
-          "chosen_at": "2026-07-30 23:20:41"
-        },
-        {
-          "choice_id": "20260730232049997999-5906",
-          "type": "ability",
-          "slot_index": 3,
-          "slot_label": "Slot 4",
-          "options": [
-            "Toxic Boost",
-            "Protean",
-            "Speed Boost"
-          ],
-          "chosen": "Speed Boost",
-          "created_at": "2026-07-30 23:20:49",
-          "chosen_at": "2026-07-30 23:21:44"
-        },
-        {
-          "choice_id": "20260730232253013555-3972",
-          "type": "ability",
-          "slot_index": 4,
-          "slot_label": "Slot 5",
-          "options": [
-            "Tera Shell",
-            "Poison Heal",
-            "Soundproof"
-          ],
-          "chosen": "Poison Heal",
-          "created_at": "2026-07-30 23:22:53",
-          "chosen_at": "2026-07-30 23:23:18"
-        },
-        {
-          "choice_id": "20260730232348824853-6145",
-          "type": "ability",
-          "slot_index": 5,
-          "slot_label": "Slot 6",
-          "options": [
-            "Rock Head",
-            "Motor Drive",
-            "Gooey"
-          ],
-          "chosen": "Motor Drive",
-          "created_at": "2026-07-30 23:23:48",
-          "chosen_at": "2026-07-30 23:24:52"
+          "created_at": "2026-07-27 00:47:37",
+          "chosen_at": "2026-07-27 00:48:04"
         }
       ]
     }
@@ -2031,15 +2317,21 @@
       ]
     },
     "collaborators": {
+      "178511692298456267": {
+        "name": "Editor",
+        "active_flag": "Lendario",
+        "selected": [],
+        "updated_at": "2026-07-26 23:48:06"
+      },
       "178546138559283304": {
         "name": "Editor",
         "active_flag": "Lendario",
         "selected": [],
-        "updated_at": "2026-07-30 23:28:08"
+        "updated_at": "2026-07-30 22:56:10"
       }
     },
-    "version": 4,
-    "updated_at": "2026-07-30 23:28:08"
+    "version": 7,
+    "updated_at": "2026-07-30 22:56:10"
   },
   "group_editor": {
     "groups": [
@@ -3534,13 +3826,18 @@
       ]
     ],
     "collaborators": {
+      "178511692306015335": {
+        "name": "Editor",
+        "selected": [],
+        "updated_at": "2026-07-26 23:48:06"
+      },
       "178546138570453716": {
         "name": "Editor",
         "selected": [],
-        "updated_at": "2026-07-30 23:28:08"
+        "updated_at": "2026-07-30 22:56:10"
       }
     },
-    "version": 5,
-    "updated_at": "2026-07-30 23:28:08"
+    "version": 6,
+    "updated_at": "2026-07-30 22:56:10"
   }
 }

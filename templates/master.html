@@ -8,7 +8,8 @@
         <span class="badge">Jogadores: {{ players|length }}</span>
         <span class="badge">Pokémon usados: {{ state.used_pokemon|length }}</span>
         <span class="badge">Máximo por jogador: {{ state.settings.max_pokemon }}</span>
-        <span class="badge">Opções por sorteio: {{ state.settings.options_per_draw }}</span>
+        <span class="badge">Opções Pokémon: {{ get_pokemon_options_per_draw(state) }}</span>
+        <span class="badge">Opções ability: {{ get_ability_options_per_draw(state) }}</span>
     </p>
 </section>
 
@@ -51,7 +52,7 @@
             <form method="post" action="{{ url_for('master_draw_pokemon') }}">
                 <input type="hidden" name="key" value="{{ key }}">
                 <input type="hidden" name="player_id" value="{{ player_id }}">
-                <button type="submit" {% if not player_can_draw_pokemon(player, state) %}disabled{% endif %}>Sortear 3 Pokémon</button>
+                <button type="submit" {% if not player_can_draw_pokemon(player, state) %}disabled{% endif %}>Sortear {{ get_pokemon_options_per_draw(state) }} Pokémon</button>
             </form>
         </div>
 
