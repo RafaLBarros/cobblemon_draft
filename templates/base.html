@@ -187,7 +187,13 @@
 <body>
     <main class="container">
         <div class="topbar">
-            <div class="brand">Cobblemon Random Draft</div>
+            <div class="brand">
+                <a href="{{ url_for('index') }}">Random Draft</a>
+                <span class="muted">/</span>
+                <a href="{{ url_for('dex') }}">MegaDex</a>
+                <span class="muted">/</span>
+                <a href="{{ url_for('presets_page') }}">Presets</a>
+            </div>
             {% if auto_refresh %}
                 <div class="small muted"><span class="status-dot"></span>Atualização automática</div>
             {% endif %}

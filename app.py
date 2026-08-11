@@ -9,9 +9,22 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from flask import Flask, Response, flash, redirect, render_template, request, url_for
 
+from services.dex_db import (
+    DexUnavailable,
+    delete_preset,
+    dex_summary,
+    get_preset,
+    get_pokemon_pool_from_preset,
+    list_ability_names,
+    list_presets,
+    save_preset,
+    search_pokemon_from_filters,
+)
+
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 STATE_FILE = BASE_DIR / "draft_state.json"
+DEX_DB_FILE = DATA_DIR / "mega_dex.sqlite3"
 
 POKEMON_FILE = DATA_DIR / "pokemon.txt"
 ABILITIES_FILE = DATA_DIR / "abilities.txt"
@@ -24,6 +37,10 @@ MAX_POKEMON = 6
 POKEMON_OPTIONS_PER_DRAW = 3
 ABILITY_OPTIONS_PER_DRAW = 3
 OPTIONS_PER_DRAW = 3  # legado: estados antigos usavam este nome
+POKEMON_POOL_SOURCE_TXT = "txt"
+POKEMON_POOL_SOURCE_DEX_PRESET = "dex_preset"
+ABILITY_POOL_SOURCE_TXT = "txt"
+ABILITY_POOL_SOURCE_DEX = "dex_all"
 ADMIN_KEY = os.environ.get("DRAFT_ADMIN_KEY", "cobbleverse")
 MASTER_KEY = os.environ.get("DRAFT_MASTER_KEY", "mestre")
 
@@ -47,6 +64,9 @@ def default_state() -> Dict[str, Any]:
             "pokemon_options_per_draw": POKEMON_OPTIONS_PER_DRAW,
             "ability_options_per_draw": ABILITY_OPTIONS_PER_DRAW,
             "options_per_draw": POKEMON_OPTIONS_PER_DRAW,  # compatibilidade com versões antigas
+            "pokemon_pool_source": POKEMON_POOL_SOURCE_TXT,
+            "pokemon_preset_id": None,
+            "ability_pool_source": ABILITY_POOL_SOURCE_TXT,
             "lock_chosen_pokemon_globally": True,
             "lock_abilities_globally": False,
             "flag_karma": {
@@ -179,6 +199,99 @@ def load_pool(pool_file: Path, banlist_file: Path) -> List[str]:
     banlist = {item.lower() for item in load_lines(banlist_file)}
     return [item for item in pool if item.lower() not in banlist]
 
+
+
+def safe_int_value(value: Any) -> Optional[int]:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def get_active_pokemon_preset(state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    settings = state.setdefault("settings", {})
+    preset_id = safe_int_value(settings.get("pokemon_preset_id"))
+    if preset_id is None:
+        return None
+    try:
+        return get_preset(preset_id, DEX_DB_FILE)
+    except DexUnavailable:
+        return None
+
+
+def get_current_pokemon_pool(state: Dict[str, Any]) -> List[str]:
+    """Retorna a pool ativa de Pokémon, podendo vir do TXT legado ou de preset do MegaDex."""
+    settings = state.setdefault("settings", {})
+    source = settings.get("pokemon_pool_source", POKEMON_POOL_SOURCE_TXT)
+    if source == POKEMON_POOL_SOURCE_DEX_PRESET:
+        preset_id = safe_int_value(settings.get("pokemon_preset_id"))
+        if preset_id is None:
+            return []
+        try:
+            pool = get_pokemon_pool_from_preset(preset_id, db_path=DEX_DB_FILE, limit=10000)
+        except DexUnavailable:
+            return []
+        banlist = {item.lower() for item in load_lines(POKEMON_BANLIST_FILE)}
+        return [item for item in pool if item.lower() not in banlist]
+    return load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+
+
+def get_current_ability_pool(state: Dict[str, Any]) -> List[str]:
+    settings = state.setdefault("settings", {})
+    source = settings.get("ability_pool_source", ABILITY_POOL_SOURCE_TXT)
+    if source == ABILITY_POOL_SOURCE_DEX:
+        try:
+            pool = list_ability_names(db_path=DEX_DB_FILE, include_banned=False, limit=10000)
+        except DexUnavailable:
+            return []
+        banlist = {item.lower() for item in load_lines(ABILITIES_BANLIST_FILE)}
+        return [item for item in pool if item.lower() not in banlist]
+    return load_pool(ABILITIES_FILE, ABILITIES_BANLIST_FILE)
+
+
+def pokemon_pool_source_label(state: Dict[str, Any]) -> str:
+    settings = state.setdefault("settings", {})
+    if settings.get("pokemon_pool_source") == POKEMON_POOL_SOURCE_DEX_PRESET:
+        preset = get_active_pokemon_preset(state)
+        return f"MegaDex: {preset['name']}" if preset else "MegaDex: preset inválido"
+    return "TXT legado"
+
+
+def ability_pool_source_label(state: Dict[str, Any]) -> str:
+    settings = state.setdefault("settings", {})
+    if settings.get("ability_pool_source") == ABILITY_POOL_SOURCE_DEX:
+        return "MegaDex: todas as abilities"
+    return "TXT legado"
+
+
+def pool_summary(state: Dict[str, Any]) -> Dict[str, Any]:
+    pokemon_pool = get_current_pokemon_pool(state)
+    ability_pool = get_current_ability_pool(state)
+    return {
+        "pokemon_count": len(pokemon_pool),
+        "ability_count": len(ability_pool),
+        "pokemon_source": pokemon_pool_source_label(state),
+        "ability_source": ability_pool_source_label(state),
+    }
+
+
+def used_abilities_for_state(state: Dict[str, Any]) -> List[str]:
+    used: List[str] = []
+    seen = set()
+    for player in state.get("players", {}).values():
+        if not isinstance(player, dict):
+            continue
+        for pick in player.get("pokemon_picks", []):
+            if not isinstance(pick, dict):
+                continue
+            ability = str(pick.get("ability") or "").strip()
+            key = ability.lower()
+            if ability and key not in seen:
+                used.append(ability)
+                seen.add(key)
+    return used
 
 def load_flag_config() -> Dict[str, Any]:
     ensure_files_exist()
@@ -388,13 +501,19 @@ def group_lookup_map(groups: Optional[List[List[str]]] = None) -> Dict[str, List
     return mapping
 
 
-def locked_pokemon_for_choice(pokemon_name: str) -> List[str]:
+def locked_pokemon_for_choice(
+    pokemon_name: str,
+    *,
+    state: Optional[Dict[str, Any]] = None,
+    pokemon_pool: Optional[List[str]] = None,
+) -> List[str]:
     """Lista de Pokémon que devem sair da pool quando pokemon_name for escolhido."""
-    pokemon_pool = load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+    if pokemon_pool is None:
+        pokemon_pool = get_current_pokemon_pool(state) if state is not None else load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
     pool_keys = {normalize_name_key(name): name for name in pokemon_pool}
     related = related_pokemon_for(pokemon_name)
 
-    # Mantém só nomes que existem na pool principal, mas sempre inclui o escolhido.
+    # Mantém só nomes que existem na pool ativa, mas sempre inclui o escolhido.
     locked: List[str] = []
     for name in related:
         key = normalize_name_key(name)
@@ -414,7 +533,7 @@ def recompute_used_pokemon(state: Dict[str, Any]) -> List[str]:
             continue
         for pick in player.get("pokemon_picks", []):
             pokemon_name = pick.get("name") if isinstance(pick, dict) else str(pick)
-            for related in locked_pokemon_for_choice(pokemon_name):
+            for related in locked_pokemon_for_choice(pokemon_name, state=state):
                 key = normalize_name_key(related)
                 if key not in locked_keys:
                     locked_keys.add(key)
@@ -753,7 +872,7 @@ def choose_karma_flag_for_draw(player: Dict[str, Any], state: Dict[str, Any], po
 
 
 def draw_pokemon_options_for_player(player: Dict[str, Any], state: Dict[str, Any]) -> Tuple[List[str], Optional[str], Optional[Dict[str, Any]]]:
-    pokemon_pool = load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+    pokemon_pool = get_current_pokemon_pool(state)
     flag_config = load_flag_config()
     amount = get_pokemon_options_per_draw(state)
     already_in_team = [pick["name"] for pick in player.get("pokemon_picks", [])]
@@ -925,10 +1044,162 @@ def inject_helpers():
         "get_pokemon_options_per_draw": get_pokemon_options_per_draw,
         "get_ability_options_per_draw": get_ability_options_per_draw,
         "flag_karma_text": flag_karma_text,
+        "pokemon_pool_source_label": pokemon_pool_source_label,
+        "ability_pool_source_label": ability_pool_source_label,
         "master_key": MASTER_KEY,
         "admin_key": ADMIN_KEY,
+        "POKEMON_POOL_SOURCE_TXT": POKEMON_POOL_SOURCE_TXT,
+        "POKEMON_POOL_SOURCE_DEX_PRESET": POKEMON_POOL_SOURCE_DEX_PRESET,
+        "ABILITY_POOL_SOURCE_TXT": ABILITY_POOL_SOURCE_TXT,
+        "ABILITY_POOL_SOURCE_DEX": ABILITY_POOL_SOURCE_DEX,
     }
 
+
+
+
+
+def parse_optional_int(value: str) -> Optional[int]:
+    value = (value or "").strip()
+    if not value:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+DEX_FILTER_KEYS = [
+    "q",
+    "type",
+    "ability",
+    "move",
+    "tag",
+    "min_bst",
+    "max_bst",
+    "min_hp",
+    "min_attack",
+    "min_defense",
+    "min_sp_attack",
+    "min_sp_defense",
+    "min_speed",
+    "include_legendary",
+    "include_mythical",
+]
+
+
+def dex_filters_from_request() -> Dict[str, str]:
+    filters = {key: request.args.get(key, "").strip() for key in DEX_FILTER_KEYS}
+    # Checkboxes desmarcados não aparecem no request. Por padrão a Dex mostra tudo.
+    legendary_values = request.args.getlist("include_legendary")
+    mythical_values = request.args.getlist("include_mythical")
+    if legendary_values:
+        filters["include_legendary"] = "1" if "1" in legendary_values else "0"
+    else:
+        filters["include_legendary"] = "1"
+
+    if mythical_values:
+        filters["include_mythical"] = "1" if "1" in mythical_values else "0"
+    else:
+        filters["include_mythical"] = "1"
+    return filters
+
+
+def filters_from_form() -> Dict[str, str]:
+    filters = {key: request.form.get(key, "").strip() for key in DEX_FILTER_KEYS}
+    for key in ["include_legendary", "include_mythical"]:
+        values = request.form.getlist(key)
+        if values:
+            filters[key] = "1" if "1" in values else "0"
+    return filters
+
+
+@app.route("/dex", methods=["GET"])
+def dex() -> str:
+    filters = dex_filters_from_request()
+
+    try:
+        summary = dex_summary(DEX_DB_FILE)
+        pokemon = search_pokemon_from_filters(filters, db_path=DEX_DB_FILE)
+        presets = list_presets(DEX_DB_FILE)
+        unavailable = False
+    except DexUnavailable:
+        summary = {}
+        pokemon = []
+        presets = []
+        unavailable = True
+
+    return render_template(
+        "dex.html",
+        filters=filters,
+        pokemon=pokemon,
+        presets=presets,
+        summary=summary,
+        unavailable=unavailable,
+    )
+
+
+@app.route("/presets", methods=["GET"])
+def presets_page() -> str:
+    selected_id = parse_optional_int(request.args.get("preset_id", ""))
+    try:
+        summary = dex_summary(DEX_DB_FILE)
+        presets = list_presets(DEX_DB_FILE)
+        selected = get_preset(selected_id, DEX_DB_FILE) if selected_id else (presets[0] if presets else None)
+        pokemon = search_pokemon_from_filters(selected.get("filters", {}), db_path=DEX_DB_FILE) if selected else []
+        unavailable = False
+    except DexUnavailable:
+        summary = {}
+        presets = []
+        selected = None
+        pokemon = []
+        unavailable = True
+
+    return render_template(
+        "presets.html",
+        summary=summary,
+        presets=presets,
+        selected=selected,
+        pokemon=pokemon,
+        unavailable=unavailable,
+        admin_key=ADMIN_KEY,
+    )
+
+
+@app.route("/presets/save", methods=["POST"])
+def save_preset_route():
+    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
+        flash("Chave admin inválida para salvar preset.", "error")
+        return redirect(url_for("dex"))
+
+    name = request.form.get("preset_name", "").strip()
+    description = request.form.get("preset_description", "").strip()
+    filters = filters_from_form()
+    try:
+        preset_id = save_preset(name=name, description=description, filters=filters, db_path=DEX_DB_FILE)
+        flash("Preset salvo com sucesso.", "success")
+        return redirect(url_for("presets_page", preset_id=preset_id, key=ADMIN_KEY))
+    except (DexUnavailable, ValueError) as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("dex"))
+
+
+@app.route("/presets/delete", methods=["POST"])
+def delete_preset_route():
+    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
+        flash("Chave admin inválida para apagar preset.", "error")
+        return redirect(url_for("presets_page"))
+
+    preset_id = parse_optional_int(request.form.get("preset_id", ""))
+    if preset_id is None:
+        flash("Preset inválido.", "error")
+        return redirect(url_for("presets_page", key=ADMIN_KEY))
+    try:
+        deleted = delete_preset(preset_id, DEX_DB_FILE)
+    except DexUnavailable as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("presets_page", key=ADMIN_KEY))
+    flash("Preset apagado." if deleted else "Preset não encontrado.", "success" if deleted else "error")
+    return redirect(url_for("presets_page", key=ADMIN_KEY))
 
 @app.route("/", methods=["GET"])
 def index():
@@ -993,7 +1264,7 @@ def choose_pokemon():
     player["pending"] = empty_pending()
 
     if state["settings"].get("lock_chosen_pokemon_globally", True):
-        locked_names = locked_pokemon_for_choice(chosen)
+        locked_names = locked_pokemon_for_choice(chosen, state=state)
         used_keys = {normalize_name_key(name) for name in state.setdefault("used_pokemon", [])}
         for name in locked_names:
             if normalize_name_key(name) not in used_keys:
@@ -1058,6 +1329,7 @@ def master_page():
         "master.html",
         state=state,
         players=sorted_players(state),
+        pool_summary=pool_summary(state),
         key=MASTER_KEY,
         auto_refresh=True,
         state_version=state.get("version", 0),
@@ -1147,8 +1419,9 @@ def master_draw_ability():
         flash("Esse Pokémon já tem ability escolhida.", "error")
         return redirect(url_for("master_page", key=MASTER_KEY))
 
-    ability_pool = load_pool(ABILITIES_FILE, ABILITIES_BANLIST_FILE)
-    options, error = draw_options(ability_pool, get_ability_options_per_draw(state), [])
+    ability_pool = get_current_ability_pool(state)
+    excluded_abilities = used_abilities_for_state(state) if state.setdefault("settings", {}).get("lock_abilities_globally", False) else []
+    options, error = draw_options(ability_pool, get_ability_options_per_draw(state), excluded_abilities)
 
     if error:
         flash(error, "error")
@@ -1244,7 +1517,7 @@ def get_editor_payload(state: Dict[str, Any]) -> Dict[str, Any]:
         "updated_at": editor.get("updated_at"),
         "groups": editor.get("groups", []),
         "collaborators": editor.get("collaborators", {}),
-        "pokemon_pool": load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE),
+        "pokemon_pool": get_current_pokemon_pool(state),
         "groups_text": groups_to_text(editor.get("groups", [])),
     }
 
@@ -1358,7 +1631,7 @@ def get_flag_editor_payload(state: Dict[str, Any]) -> Dict[str, Any]:
         "available_flags": available_flags(flag_config),
         "pokemon_flags": editor.get("pokemon_flags", {}),
         "collaborators": editor.get("collaborators", {}),
-        "pokemon_pool": load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE),
+        "pokemon_pool": get_current_pokemon_pool(state),
     }
 
 
@@ -1371,19 +1644,29 @@ def admin_page():
     state = load_state()
     editor = ensure_group_editor(state)
     flag_editor = ensure_flag_editor(state)
+    try:
+        presets = list_presets(DEX_DB_FILE)
+        active_preset = get_active_pokemon_preset(state)
+    except DexUnavailable:
+        presets = []
+        active_preset = None
+    current_summary = pool_summary(state)
     return render_template(
         "admin.html",
         state=state,
         players=sorted_players(state),
-        pokemon_count=len(load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)),
-        ability_count=len(load_pool(ABILITIES_FILE, ABILITIES_BANLIST_FILE)),
-        pokemon_pool=load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE),
+        pokemon_count=current_summary["pokemon_count"],
+        ability_count=current_summary["ability_count"],
+        pokemon_pool=get_current_pokemon_pool(state),
         pokemon_groups=editor.get("groups", []),
         pokemon_groups_text=groups_to_text(editor.get("groups", [])),
         flag_config=load_flag_config(),
         flag_limits_text=flag_limits_text(load_flag_config()),
         available_flags=available_flags(load_flag_config()),
         flag_editor_payload=get_flag_editor_payload(state),
+        presets=presets,
+        active_preset=active_preset,
+        pool_summary=current_summary,
         key=ADMIN_KEY,
         auto_refresh=False,
         state_version=state.get("version", 0),
@@ -1765,10 +2048,24 @@ def admin_save_settings():
     settings["pokemon_options_per_draw"] = form_int("pokemon_options_per_draw", POKEMON_OPTIONS_PER_DRAW, 1, 20)
     settings["ability_options_per_draw"] = form_int("ability_options_per_draw", ABILITY_OPTIONS_PER_DRAW, 1, 20)
     settings["options_per_draw"] = settings["pokemon_options_per_draw"]
+
+    pokemon_pool_source = request.form.get("pokemon_pool_source", POKEMON_POOL_SOURCE_TXT)
+    if pokemon_pool_source not in {POKEMON_POOL_SOURCE_TXT, POKEMON_POOL_SOURCE_DEX_PRESET}:
+        pokemon_pool_source = POKEMON_POOL_SOURCE_TXT
+    settings["pokemon_pool_source"] = pokemon_pool_source
+    preset_id = safe_int_value(request.form.get("pokemon_preset_id"))
+    settings["pokemon_preset_id"] = preset_id if pokemon_pool_source == POKEMON_POOL_SOURCE_DEX_PRESET else None
+
+    ability_pool_source = request.form.get("ability_pool_source", ABILITY_POOL_SOURCE_TXT)
+    if ability_pool_source not in {ABILITY_POOL_SOURCE_TXT, ABILITY_POOL_SOURCE_DEX}:
+        ability_pool_source = ABILITY_POOL_SOURCE_TXT
+    settings["ability_pool_source"] = ability_pool_source
+
     settings["lock_chosen_pokemon_globally"] = request.form.get("lock_chosen_pokemon_globally") == "on"
     settings["lock_abilities_globally"] = request.form.get("lock_abilities_globally") == "on"
     settings["flag_karma"] = parse_flag_karma_text(request.form.get("flag_karma", ""))
 
+    recompute_used_pokemon(state)
     save_state(state)
     flash("Configurações do draft salvas. Os próximos sorteios já usam esses valores.", "success")
     return redirect(url_for("admin_page", key=ADMIN_KEY))

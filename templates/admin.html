@@ -202,7 +202,9 @@
     <p class="muted">Esta página mostra tudo, inclusive opções pendentes. Use só para auditoria, correção ou finalização.</p>
     <p>
         <span class="badge">Pokémon na pool: {{ pokemon_count }}</span>
+        <span class="badge">Fonte Pokémon: {{ pool_summary.pokemon_source }}</span>
         <span class="badge">Abilities na pool: {{ ability_count }}</span>
+        <span class="badge">Fonte ability: {{ pool_summary.ability_source }}</span>
         <span class="badge">Pokémon travados: {{ state.used_pokemon|length }}</span>
     </p>
     <div class="export-actions">
@@ -244,9 +246,48 @@
 
         <div class="hr"></div>
 
+        <h3>Fonte das pools</h3>
+        <p class="muted small">Agora o sorteio pode continuar usando os arquivos TXT antigos ou puxar a pool de Pokémon a partir de um preset salvo no MegaDex.</p>
+        <div class="settings-grid">
+            <div class="setting-field">
+                <label for="pokemon_pool_source">Pool de Pokémon</label>
+                <select id="pokemon_pool_source" name="pokemon_pool_source">
+                    <option value="{{ POKEMON_POOL_SOURCE_TXT }}" {% if state.settings.pokemon_pool_source != POKEMON_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>TXT legado — data/pokemon.txt</option>
+                    <option value="{{ POKEMON_POOL_SOURCE_DEX_PRESET }}" {% if state.settings.pokemon_pool_source == POKEMON_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>MegaDex — preset salvo</option>
+                </select>
+            </div>
+
+            <div class="setting-field">
+                <label for="pokemon_preset_id">Preset do MegaDex</label>
+                <select id="pokemon_preset_id" name="pokemon_preset_id">
+                    <option value="">Selecione um preset</option>
+                    {% for preset in presets %}
+                        <option value="{{ preset.id }}" {% if state.settings.pokemon_preset_id|string == preset.id|string %}selected{% endif %}>{{ preset.name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="muted small">Ex.: <strong>Metronome Cup</strong>. Salve novos presets pela tela MegaDex/Presets.</p>
+            </div>
+
+            <div class="setting-field">
+                <label for="ability_pool_source">Pool de abilities</label>
+                <select id="ability_pool_source" name="ability_pool_source">
+                    <option value="{{ ABILITY_POOL_SOURCE_TXT }}" {% if state.settings.ability_pool_source != ABILITY_POOL_SOURCE_DEX %}selected{% endif %}>TXT legado — data/abilities.txt</option>
+                    <option value="{{ ABILITY_POOL_SOURCE_DEX }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX %}selected{% endif %}>MegaDex — todas as abilities importadas</option>
+                </select>
+                <p class="muted small">No próximo passo vamos criar tags de abilities para sortear só as “funcionais”.</p>
+            </div>
+        </div>
+
+        <div class="hr"></div>
+
         <label class="flag-check">
             <input type="checkbox" name="lock_chosen_pokemon_globally" {% if state.settings.lock_chosen_pokemon_globally %}checked{% endif %}>
             Travar Pokémon/grupo escolhido globalmente
+        </label>
+
+        <label class="flag-check">
+            <input type="checkbox" name="lock_abilities_globally" {% if state.settings.lock_abilities_globally %}checked{% endif %}>
+            Travar ability escolhida globalmente
         </label>
 
         <div class="setting-field flag-config-box">

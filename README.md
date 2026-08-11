@@ -195,3 +195,84 @@ Isso não é autenticação real, mas melhora bastante para o uso de campeonato 
 - O Mestre cego não vê nomes de Pokémon, nem opções de Pokémon/ability sorteadas.
 
 Se alguém tiver acesso ao Admin, essa pessoa consegue ver tudo.
+
+## MegaDex experimental
+
+O MegaDex é a primeira etapa para transformar o draft em um projeto independente do Cobblemon, usando uma Pokédex local em SQLite alimentada pela PokéAPI.
+
+### Criar/atualizar o banco
+
+```bash
+python scripts/init_dex_db.py
+```
+
+Esse comando também cria alguns presets padrão, como `Metronome Cup`.
+
+### Importar dados iniciais
+
+Para testar rápido com os 151 primeiros Pokémon/forms:
+
+```bash
+python scripts/import_pokeapi.py --limit 151 --version-group scarlet-violet --ability-details
+```
+
+Para também baixar detalhes completos dos moves, use:
+
+```bash
+python scripts/import_pokeapi.py --limit 151 --version-group scarlet-violet --ability-details --move-details
+```
+
+A opção `--move-details` faz mais chamadas para a PokéAPI, então demora mais. Os resultados ficam em cache em `data/.pokeapi_cache/`.
+
+### Importar tudo da PokéAPI
+
+Para deixar rodando e popular tudo disponível no endpoint `/pokemon`:
+
+```bash
+python scripts/import_pokeapi.py --all --version-group scarlet-violet --ability-details
+```
+
+Ou, em um comando só, inicializando banco, importando tudo, marcando tags e recriando presets:
+
+```bash
+python scripts/rebuild_dex_full.py
+```
+
+Se quiser baixar detalhes completos de todos os golpes, use:
+
+```bash
+python scripts/import_pokeapi.py --all --version-group scarlet-violet --ability-details --move-details
+```
+
+Essa versão é bem mais demorada, mas o cache local evita baixar tudo de novo nas próximas execuções.
+
+Depois da importação completa, rode:
+
+```bash
+python scripts/seed_dex_tags.py
+```
+
+Esse script marca tags e flags úteis que a PokéAPI não entrega diretamente como filtro pronto, incluindo `Inicial`, `Pseudo`, `Ultra Beast` e `Paradox`.
+
+Para recriar os presets padrão:
+
+```bash
+python scripts/seed_default_presets.py
+```
+
+### Acessar no navegador
+
+Depois de rodar o app:
+
+```bash
+python app.py
+```
+
+acesse:
+
+```text
+http://localhost:5000/dex
+http://localhost:5000/presets
+```
+
+Nesta versão, o MegaDex ainda não substitui o sorteio atual. Ele serve para validar a modelagem, consultar Pokémon, testar filtros e salvar presets que depois serão usados nas rodadas do Mega Draft.

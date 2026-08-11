@@ -7,6 +7,8 @@
     <p>
         <span class="badge">Jogadores: {{ players|length }}</span>
         <span class="badge">Pokémon usados: {{ state.used_pokemon|length }}</span>
+        <span class="badge">Pool Pokémon: {{ pool_summary.pokemon_source }} ({{ pool_summary.pokemon_count }})</span>
+        <span class="badge">Pool ability: {{ pool_summary.ability_source }} ({{ pool_summary.ability_count }})</span>
         <span class="badge">Máximo por jogador: {{ state.settings.max_pokemon }}</span>
         <span class="badge">Opções Pokémon: {{ get_pokemon_options_per_draw(state) }}</span>
         <span class="badge">Opções ability: {{ get_ability_options_per_draw(state) }}</span>

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Presets do Mega Draft{% endblock %}
+{% block content %}
+<h1>Presets do Mega Draft</h1>
+<p class="muted">
+    Presets são filtros salvos. Eles serão usados depois como base para rodadas de draft e campeonatos temáticos.
+</p>
+
+{% if unavailable %}
+    <div class="card">
+        <h2>Banco ainda não inicializado</h2>
+        <p>Execute:</p>
+        <div class="command-box">python scripts/init_dex_db.py</div>
+    </div>
+{% else %}
+    <div class="grid">
+        <div class="card"><strong>{{ summary.pokemon_count }}</strong><br><span class="muted">Pokémon/forms</span></div>
+        <div class="card"><strong>{{ summary.ability_count }}</strong><br><span class="muted">Abilities</span></div>
+        <div class="card"><strong>{{ summary.move_count }}</strong><br><span class="muted">Moves</span></div>
+        <div class="card"><strong>{{ presets|length }}</strong><br><span class="muted">Presets</span></div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>Lista de presets</h2>
+            {% if presets %}
+                {% for preset in presets %}
+                    <div class="card">
+                        <h3>{{ preset.name }}</h3>
+                        {% if preset.description %}<p class="muted small">{{ preset.description }}</p>{% endif %}
+                        <p class="small">
+                            {% for key, value in preset.filters.items() %}
+                                <span class="badge">{{ key }}={{ value }}</span>
+                            {% endfor %}
+                        </p>
+                        <div class="actions">
+                            <a class="button secondary" href="{{ url_for('presets_page', preset_id=preset.id) }}">Testar</a>
+                            <a class="button secondary" href="{{ url_for('dex', **preset.filters) }}">Abrir na Dex</a>
+                            <form method="post" action="{{ url_for('delete_preset_route') }}" class="inline">
+                                <input type="hidden" name="preset_id" value="{{ preset.id }}">
+                                <input type="hidden" name="admin_key" value="{{ request.args.get('key', '') }}">
+                                <button class="danger" type="submit">Apagar</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="muted">Nenhum preset salvo ainda.</p>
+                <p class="small muted">Rode <code>python scripts/seed_default_presets.py</code> ou salve filtros pela tela MegaDex.</p>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h2>Resultado do preset</h2>
+            {% if selected %}
+                <h3>{{ selected.name }}</h3>
+                {% if selected.description %}<p class="muted">{{ selected.description }}</p>{% endif %}
+                <p class="small">
+                    {% for key, value in selected.filters.items() %}
+                        <span class="badge">{{ key }}={{ value }}</span>
+                    {% endfor %}
+                </p>
+                <p class="muted small">Mostrando até 200 resultados, ordenados por BST.</p>
+                {% if pokemon %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pokémon</th>
+                                <th>Tipos</th>
+                                <th>BST</th>
+                                <th>Flags</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mon in pokemon %}
+                                <tr>
+                                    <td><strong>{{ mon.name }}</strong><br><span class="muted small">{{ mon.slug }}</span></td>
+                                    <td>
+                                        <span class="badge">{{ mon.type1 }}</span>
+                                        {% if mon.type2 %}<span class="badge">{{ mon.type2 }}</span>{% endif %}
+                                    </td>
+                                    <td>{{ mon.bst }}</td>
+                                    <td class="small">
+                                        {% if mon.is_legendary %}<span class="badge warning">lendário</span>{% endif %}
+                                        {% if mon.is_mythical %}<span class="badge warning">mítico</span>{% endif %}
+                                        {% if mon.is_starter %}<span class="badge">inicial</span>{% endif %}
+                                        {% if mon.is_pseudo %}<span class="badge">pseudo</span>{% endif %}
+                                        {% if mon.is_paradox %}<span class="badge">paradox</span>{% endif %}
+                                        {% if mon.is_ultra_beast %}<span class="badge">ultra beast</span>{% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="muted">Nenhum Pokémon encontrado por este preset.</p>
+                {% endif %}
+            {% else %}
+                <p class="muted">Selecione ou crie um preset.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

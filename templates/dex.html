@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}MegaDex{% endblock %}
+{% block content %}
+<h1>MegaDex</h1>
+<p class="muted">
+    Pokédex local do Mega Draft. Nesta etapa, ela serve para validar dados, filtros e presets antes de migrarmos o sorteio.
+</p>
+
+{% if unavailable %}
+    <div class="card">
+        <h2>Banco ainda não inicializado</h2>
+        <p>Execute no terminal:</p>
+        <div class="command-box">python scripts/init_dex_db.py</div>
+        <p>Depois importe um pacote inicial da PokéAPI:</p>
+        <div class="command-box">python scripts/import_pokeapi.py --all --version-group scarlet-violet --ability-details</div>
+        <p class="muted small">
+            Depois rode <code>python scripts/seed_dex_tags.py</code> para marcar iniciais, pseudo-lendários, paradox e Ultra Beasts.
+        </p>
+    </div>
+{% else %}
+    <div class="grid">
+        <div class="card"><strong>{{ summary.pokemon_count }}</strong><br><span class="muted">Pokémon/forms</span></div>
+        <div class="card"><strong>{{ summary.ability_count }}</strong><br><span class="muted">Abilities</span></div>
+        <div class="card"><strong>{{ summary.move_count }}</strong><br><span class="muted">Moves</span></div>
+        <div class="card"><strong>{{ summary.pokemon_move_count }}</strong><br><span class="muted">Relações Pokémon/move</span></div>
+    </div>
+
+    <div class="card">
+        <h2>Filtros</h2>
+        <form method="get" class="grid">
+            <label>
+                Nome
+                <input name="q" value="{{ filters.q }}" placeholder="ex.: muk, chansey, iron">
+            </label>
+            <label>
+                Tipo
+                <input name="type" value="{{ filters.type }}" placeholder="ex.: fairy, poison, dark">
+            </label>
+            <label>
+                Ability
+                <input name="ability" value="{{ filters.ability }}" placeholder="ex.: huge power">
+            </label>
+            <label>
+                Move aprendido
+                <input name="move" value="{{ filters.move }}" placeholder="ex.: metronome">
+            </label>
+            <label>
+                Tag
+                <input name="tag" value="{{ filters.tag }}" placeholder="ex.: Inicial, Paradox, Pseudo">
+            </label>
+            <label>
+                BST mínimo
+                <input name="min_bst" value="{{ filters.min_bst }}" placeholder="ex.: 400">
+            </label>
+            <label>
+                BST máximo
+                <input name="max_bst" value="{{ filters.max_bst }}" placeholder="ex.: 500">
+            </label>
+            <label>
+                HP mínimo
+                <input name="min_hp" value="{{ filters.min_hp }}" placeholder="ex.: 80">
+            </label>
+            <label>
+                Attack mínimo
+                <input name="min_attack" value="{{ filters.min_attack }}" placeholder="ex.: 100">
+            </label>
+            <label>
+                Sp. Atk mínimo
+                <input name="min_sp_attack" value="{{ filters.min_sp_attack }}" placeholder="ex.: 100">
+            </label>
+            <label>
+                Defense mínima
+                <input name="min_defense" value="{{ filters.min_defense }}" placeholder="ex.: 100">
+            </label>
+            <label>
+                Sp. Def mínima
+                <input name="min_sp_defense" value="{{ filters.min_sp_defense }}" placeholder="ex.: 100">
+            </label>
+            <label>
+                Speed mínima
+                <input name="min_speed" value="{{ filters.min_speed }}" placeholder="ex.: 80">
+            </label>
+            <label>
+                <input type="hidden" name="include_legendary" value="0">
+                <input type="checkbox" name="include_legendary" value="1" {% if filters.include_legendary != '0' %}checked{% endif %}>
+                Incluir lendários
+            </label>
+            <label>
+                <input type="hidden" name="include_mythical" value="0">
+                <input type="checkbox" name="include_mythical" value="1" {% if filters.include_mythical != '0' %}checked{% endif %}>
+                Incluir míticos
+            </label>
+            <div class="actions">
+                <button type="submit">Filtrar</button>
+                <a class="button secondary" href="{{ url_for('dex') }}">Limpar</a>
+                <a class="button secondary" href="{{ url_for('presets_page') }}">Presets</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Salvar filtros como preset</h2>
+        <form method="post" action="{{ url_for('save_preset_route') }}" class="grid">
+            <label>
+                Nome do preset
+                <input name="preset_name" placeholder="ex.: Metronome Cup bulky">
+            </label>
+            <label>
+                Descrição
+                <input name="preset_description" placeholder="ex.: Aprende Metronome, sem lendários, BST 400+">
+            </label>
+            <label>
+                Chave admin
+                <input name="admin_key" placeholder="chave admin">
+            </label>
+            {% for key, value in filters.items() %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endfor %}
+            <div class="actions">
+                <button type="submit">Salvar preset</button>
+            </div>
+        </form>
+        {% if presets %}
+            <p class="small muted">Presets existentes: {{ presets|length }}. <a href="{{ url_for('presets_page') }}">Ver todos</a>.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Resultados</h2>
+        <p class="muted small">Mostrando até 200 resultados, ordenados por BST.</p>
+        {% if pokemon %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pokémon</th>
+                        <th>Tipos</th>
+                        <th>Stats</th>
+                        <th>Flags</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mon in pokemon %}
+                        <tr>
+                            <td>
+                                <strong>{{ mon.name }}</strong><br>
+                                <span class="muted small">{{ mon.slug }}</span>
+                            </td>
+                            <td>
+                                <span class="badge">{{ mon.type1 }}</span>
+                                {% if mon.type2 %}<span class="badge">{{ mon.type2 }}</span>{% endif %}
+                            </td>
+                            <td class="small">
+                                HP {{ mon.hp }} / Atk {{ mon.attack }} / Def {{ mon.defense }}<br>
+                                SpA {{ mon.sp_attack }} / SpD {{ mon.sp_defense }} / Spe {{ mon.speed }}<br>
+                                <strong>BST {{ mon.bst }}</strong>
+                            </td>
+                            <td class="small">
+                                {% if mon.is_legendary %}<span class="badge warning">lendário</span>{% endif %}
+                                {% if mon.is_mythical %}<span class="badge warning">mítico</span>{% endif %}
+                                {% if mon.is_starter %}<span class="badge">inicial</span>{% endif %}
+                                {% if mon.is_pseudo %}<span class="badge">pseudo</span>{% endif %}
+                                {% if mon.is_paradox %}<span class="badge">paradox</span>{% endif %}
+                                {% if mon.is_ultra_beast %}<span class="badge">ultra beast</span>{% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="muted">Nenhum resultado encontrado para os filtros atuais.</p>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}
