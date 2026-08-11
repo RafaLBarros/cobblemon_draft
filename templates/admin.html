@@ -274,8 +274,23 @@
                     <option value="{{ ABILITY_POOL_SOURCE_TXT }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_TXT or not state.settings.ability_pool_source %}selected{% endif %}>TXT legado — data/abilities.txt</option>
                     <option value="{{ ABILITY_POOL_SOURCE_DEX }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX %}selected{% endif %}>MegaDex — todas as abilities importadas</option>
                     <option value="{{ ABILITY_POOL_SOURCE_DEX_TAG }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_TAG %}selected{% endif %}>MegaDex — abilities por tag</option>
+                    <option value="{{ ABILITY_POOL_SOURCE_DEX_PRESET }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>MegaDex — preset de abilities</option>
                 </select>
-                <p class="muted small">Use tags para sortear apenas abilities funcionais, defensivas, baníveis, dependentes de contato etc.</p>
+                <p class="muted small">Use tags ou presets para sortear apenas abilities funcionais, defensivas, baníveis, dependentes de contato etc.</p>
+            </div>
+
+            <div class="setting-field">
+                <label for="ability_preset_id">Preset de abilities</label>
+                <select id="ability_preset_id" name="ability_preset_id">
+                    <option value="">Selecione um preset</option>
+                    {% for preset in ability_presets %}
+                        <option value="{{ preset.id }}" {% if state.settings.ability_preset_id == preset.id %}selected{% endif %}>{{ preset.name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="muted small">Crie e revise em <a href="{{ url_for('ability_presets_page') }}">Presets de Abilities</a>.</p>
+                {% if active_ability_preset %}
+                    <p class="small">Ativo: <strong>{{ active_ability_preset.name }}</strong></p>
+                {% endif %}
             </div>
 
             <div class="setting-field">

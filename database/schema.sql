@@ -141,3 +141,18 @@ CREATE TABLE IF NOT EXISTS draft_presets (
 );
 
 CREATE INDEX IF NOT EXISTS idx_draft_presets_name ON draft_presets(name);
+
+CREATE TABLE IF NOT EXISTS ability_presets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    description TEXT,
+    required_tags_json TEXT NOT NULL DEFAULT '[]',
+    excluded_tags_json TEXT NOT NULL DEFAULT '[]',
+    required_mode TEXT NOT NULL DEFAULT 'any',
+    include_banned INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_ability_presets_name ON ability_presets(name);

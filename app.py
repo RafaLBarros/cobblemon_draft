@@ -11,15 +11,21 @@ from flask import Flask, Response, flash, redirect, render_template, request, ur
 
 from services.dex_db import (
     DexUnavailable,
+    delete_ability_preset,
     delete_preset,
     dex_summary,
+    get_ability_pool_from_preset,
+    get_ability_preset,
     get_preset,
     get_pokemon_pool_from_preset,
     list_ability_names,
+    list_ability_presets,
     list_ability_tags,
     list_presets,
+    save_ability_preset,
     save_preset,
     search_abilities,
+    search_abilities_from_preset,
     search_pokemon_from_filters,
     update_ability_metadata,
 )
@@ -45,6 +51,7 @@ POKEMON_POOL_SOURCE_DEX_PRESET = "dex_preset"
 ABILITY_POOL_SOURCE_TXT = "txt"
 ABILITY_POOL_SOURCE_DEX = "dex_all"
 ABILITY_POOL_SOURCE_DEX_TAG = "dex_tag"
+ABILITY_POOL_SOURCE_DEX_PRESET = "dex_preset"
 ADMIN_KEY = os.environ.get("DRAFT_ADMIN_KEY", "cobbleverse")
 MASTER_KEY = os.environ.get("DRAFT_MASTER_KEY", "mestre")
 
@@ -72,6 +79,7 @@ def default_state() -> Dict[str, Any]:
             "pokemon_preset_id": None,
             "ability_pool_source": ABILITY_POOL_SOURCE_TXT,
             "ability_tag_filter": "Metronome Boa",
+            "ability_preset_id": None,
             "lock_chosen_pokemon_globally": True,
             "lock_abilities_globally": False,
             "flag_karma": {
@@ -226,6 +234,17 @@ def get_active_pokemon_preset(state: Dict[str, Any]) -> Optional[Dict[str, Any]]
         return None
 
 
+def get_active_ability_preset(state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    settings = state.setdefault("settings", {})
+    preset_id = safe_int_value(settings.get("ability_preset_id"))
+    if preset_id is None:
+        return None
+    try:
+        return get_ability_preset(preset_id, DEX_DB_FILE)
+    except DexUnavailable:
+        return None
+
+
 def get_current_pokemon_pool(state: Dict[str, Any]) -> List[str]:
     """Retorna a pool ativa de Pokémon, podendo vir do TXT legado ou de preset do MegaDex."""
     settings = state.setdefault("settings", {})
@@ -246,6 +265,16 @@ def get_current_pokemon_pool(state: Dict[str, Any]) -> List[str]:
 def get_current_ability_pool(state: Dict[str, Any]) -> List[str]:
     settings = state.setdefault("settings", {})
     source = settings.get("ability_pool_source", ABILITY_POOL_SOURCE_TXT)
+    if source == ABILITY_POOL_SOURCE_DEX_PRESET:
+        preset_id = safe_int_value(settings.get("ability_preset_id"))
+        if preset_id is None:
+            return []
+        try:
+            pool = get_ability_pool_from_preset(preset_id, db_path=DEX_DB_FILE, limit=10000)
+        except DexUnavailable:
+            return []
+        banlist = {item.lower() for item in load_lines(ABILITIES_BANLIST_FILE)}
+        return [item for item in pool if item.lower() not in banlist]
     if source in {ABILITY_POOL_SOURCE_DEX, ABILITY_POOL_SOURCE_DEX_TAG}:
         tag_filter = str(settings.get("ability_tag_filter") or "").strip() if source == ABILITY_POOL_SOURCE_DEX_TAG else ""
         try:
@@ -277,6 +306,9 @@ def ability_pool_source_label(state: Dict[str, Any]) -> str:
     if settings.get("ability_pool_source") == ABILITY_POOL_SOURCE_DEX_TAG:
         tag_filter = str(settings.get("ability_tag_filter") or "").strip()
         return f"MegaDex: tag {tag_filter}" if tag_filter else "MegaDex: tag vazia"
+    if settings.get("ability_pool_source") == ABILITY_POOL_SOURCE_DEX_PRESET:
+        preset = get_active_ability_preset(state)
+        return f"MegaDex: preset {preset['name']}" if preset else "MegaDex: preset de ability inválido"
     return "TXT legado"
 
 
@@ -1067,6 +1099,7 @@ def inject_helpers():
         "ABILITY_POOL_SOURCE_TXT": ABILITY_POOL_SOURCE_TXT,
         "ABILITY_POOL_SOURCE_DEX": ABILITY_POOL_SOURCE_DEX,
         "ABILITY_POOL_SOURCE_DEX_TAG": ABILITY_POOL_SOURCE_DEX_TAG,
+        "ABILITY_POOL_SOURCE_DEX_PRESET": ABILITY_POOL_SOURCE_DEX_PRESET,
     }
 
 
@@ -1224,6 +1257,80 @@ def update_ability_route():
         tag=request.form.get("return_tag", ""),
         include_banned=request.form.get("return_include_banned", "1"),
     ))
+
+
+
+
+@app.route("/ability-presets", methods=["GET"])
+def ability_presets_page() -> str:
+    selected_id = parse_optional_int(request.args.get("preset_id", ""))
+    try:
+        summary = dex_summary(DEX_DB_FILE)
+        ability_tags = list_ability_tags(db_path=DEX_DB_FILE)
+        presets = list_ability_presets(DEX_DB_FILE)
+        selected = get_ability_preset(selected_id, DEX_DB_FILE) if selected_id else (presets[0] if presets else None)
+        abilities = search_abilities_from_preset(selected, db_path=DEX_DB_FILE, limit=300) if selected else []
+        unavailable = False
+    except DexUnavailable:
+        summary = {}
+        ability_tags = []
+        presets = []
+        selected = None
+        abilities = []
+        unavailable = True
+
+    return render_template(
+        "ability_presets.html",
+        summary=summary,
+        ability_tags=ability_tags,
+        presets=presets,
+        selected=selected,
+        abilities=abilities,
+        unavailable=unavailable,
+        admin_key=ADMIN_KEY,
+    )
+
+
+@app.route("/ability-presets/save", methods=["POST"])
+def save_ability_preset_route():
+    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
+        flash("Chave admin inválida para salvar preset de ability.", "error")
+        return redirect(url_for("ability_presets_page"))
+
+    try:
+        preset_id = save_ability_preset(
+            name=request.form.get("preset_name", ""),
+            description=request.form.get("preset_description", ""),
+            required_tags=request.form.get("required_tags", ""),
+            excluded_tags=request.form.get("excluded_tags", ""),
+            required_mode=request.form.get("required_mode", "any"),
+            include_banned=request.form.get("include_banned") == "on",
+            db_path=DEX_DB_FILE,
+        )
+        flash("Preset de ability salvo com sucesso.", "success")
+        return redirect(url_for("ability_presets_page", preset_id=preset_id, key=ADMIN_KEY))
+    except (DexUnavailable, ValueError) as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("ability_presets_page", key=ADMIN_KEY))
+
+
+@app.route("/ability-presets/delete", methods=["POST"])
+def delete_ability_preset_route():
+    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
+        flash("Chave admin inválida para apagar preset de ability.", "error")
+        return redirect(url_for("ability_presets_page"))
+
+    preset_id = parse_optional_int(request.form.get("preset_id", ""))
+    if preset_id is None:
+        flash("Preset de ability inválido.", "error")
+        return redirect(url_for("ability_presets_page", key=ADMIN_KEY))
+    try:
+        deleted = delete_ability_preset(preset_id, DEX_DB_FILE)
+    except DexUnavailable as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("ability_presets_page", key=ADMIN_KEY))
+    flash("Preset de ability apagado." if deleted else "Preset de ability não encontrado.", "success" if deleted else "error")
+    return redirect(url_for("ability_presets_page", key=ADMIN_KEY))
 
 
 @app.route("/presets", methods=["GET"])
@@ -1736,10 +1843,14 @@ def admin_page():
         presets = list_presets(DEX_DB_FILE)
         active_preset = get_active_pokemon_preset(state)
         ability_tags = list_ability_tags(db_path=DEX_DB_FILE)
+        ability_presets = list_ability_presets(DEX_DB_FILE)
+        active_ability_preset = get_active_ability_preset(state)
     except DexUnavailable:
         presets = []
         active_preset = None
         ability_tags = []
+        ability_presets = []
+        active_ability_preset = None
     current_summary = pool_summary(state)
     return render_template(
         "admin.html",
@@ -1757,6 +1868,8 @@ def admin_page():
         presets=presets,
         active_preset=active_preset,
         ability_tags=ability_tags,
+        ability_presets=ability_presets,
+        active_ability_preset=active_ability_preset,
         pool_summary=current_summary,
         key=ADMIN_KEY,
         auto_refresh=False,
@@ -2148,10 +2261,12 @@ def admin_save_settings():
     settings["pokemon_preset_id"] = preset_id if pokemon_pool_source == POKEMON_POOL_SOURCE_DEX_PRESET else None
 
     ability_pool_source = request.form.get("ability_pool_source", ABILITY_POOL_SOURCE_TXT)
-    if ability_pool_source not in {ABILITY_POOL_SOURCE_TXT, ABILITY_POOL_SOURCE_DEX, ABILITY_POOL_SOURCE_DEX_TAG}:
+    if ability_pool_source not in {ABILITY_POOL_SOURCE_TXT, ABILITY_POOL_SOURCE_DEX, ABILITY_POOL_SOURCE_DEX_TAG, ABILITY_POOL_SOURCE_DEX_PRESET}:
         ability_pool_source = ABILITY_POOL_SOURCE_TXT
     settings["ability_pool_source"] = ability_pool_source
     settings["ability_tag_filter"] = request.form.get("ability_tag_filter", "").strip() or "Metronome Boa"
+    ability_preset_id = safe_int_value(request.form.get("ability_preset_id"))
+    settings["ability_preset_id"] = ability_preset_id if ability_pool_source == ABILITY_POOL_SOURCE_DEX_PRESET else None
 
     settings["lock_chosen_pokemon_globally"] = request.form.get("lock_chosen_pokemon_globally") == "on"
     settings["lock_abilities_globally"] = request.form.get("lock_abilities_globally") == "on"

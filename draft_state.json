@@ -1,7 +1,7 @@
 {
   "created_at": "2026-08-11 19:37:31",
-  "updated_at": "2026-08-11 19:51:58",
-  "version": 10,
+  "updated_at": "2026-08-11 20:08:00",
+  "version": 11,
   "used_pokemon": [
     "Hatterene",
     "Hattrem",
@@ -78,7 +78,8 @@
         "mode": "linear"
       }
     },
-    "ability_tag_filter": "Metronome Boa"
+    "ability_tag_filter": "Metronome Boa",
+    "ability_preset_id": null
   },
   "flag_editor": {
     "flag_limits": {

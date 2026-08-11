@@ -387,6 +387,15 @@ def split_tag_names(raw_tags: str | Iterable[str]) -> List[str]:
     return tags
 
 
+
+
+def normalize_tag_list(raw_tags: str | Iterable[str]) -> List[str]:
+    return split_tag_names(raw_tags)
+
+
+def tag_list_to_text(raw_tags: str | Iterable[str]) -> str:
+    return ", ".join(normalize_tag_list(raw_tags))
+
 def upsert_tag(connection: sqlite3.Connection, name: str, category: str = "ability", description: str = "") -> int:
     cleaned_name = name.strip()
     if not cleaned_name:
@@ -437,6 +446,268 @@ def update_ability_metadata(
             (1 if is_banned else 0, 1 if is_battle_relevant else 0, notes.strip(), ability_id),
         )
         connection.commit()
+
+
+def _json_tag_list(value: Any) -> List[str]:
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value or "[]")
+        except json.JSONDecodeError:
+            return []
+    else:
+        parsed = value
+    if not isinstance(parsed, list):
+        return []
+    return normalize_tag_list(parsed)
+
+
+def list_ability_presets(db_path: Path | str = DEFAULT_DB_PATH) -> List[Dict[str, Any]]:
+    with connect(db_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT id, name, slug, description, required_tags_json, excluded_tags_json,
+                   required_mode, include_banned, created_at, updated_at
+            FROM ability_presets
+            ORDER BY name COLLATE NOCASE ASC
+            """
+        ).fetchall()
+    presets = rows_to_dicts(rows)
+    for preset in presets:
+        preset["required_tags"] = _json_tag_list(preset.get("required_tags_json"))
+        preset["excluded_tags"] = _json_tag_list(preset.get("excluded_tags_json"))
+        preset["required_tags_text"] = tag_list_to_text(preset["required_tags"])
+        preset["excluded_tags_text"] = tag_list_to_text(preset["excluded_tags"])
+        preset["include_banned"] = bool(preset.get("include_banned"))
+        if str(preset.get("required_mode") or "any") not in {"any", "all"}:
+            preset["required_mode"] = "any"
+    return presets
+
+
+def get_ability_preset(preset_id: int, db_path: Path | str = DEFAULT_DB_PATH) -> Optional[Dict[str, Any]]:
+    with connect(db_path) as connection:
+        row = connection.execute(
+            """
+            SELECT id, name, slug, description, required_tags_json, excluded_tags_json,
+                   required_mode, include_banned, created_at, updated_at
+            FROM ability_presets
+            WHERE id = ?
+            """,
+            (preset_id,),
+        ).fetchone()
+    if not row:
+        return None
+    preset = dict(row)
+    preset["required_tags"] = _json_tag_list(preset.get("required_tags_json"))
+    preset["excluded_tags"] = _json_tag_list(preset.get("excluded_tags_json"))
+    preset["required_tags_text"] = tag_list_to_text(preset["required_tags"])
+    preset["excluded_tags_text"] = tag_list_to_text(preset["excluded_tags"])
+    preset["include_banned"] = bool(preset.get("include_banned"))
+    if str(preset.get("required_mode") or "any") not in {"any", "all"}:
+        preset["required_mode"] = "any"
+    return preset
+
+
+def save_ability_preset(
+    *,
+    name: str,
+    description: str,
+    required_tags: str | Iterable[str],
+    excluded_tags: str | Iterable[str],
+    required_mode: str = "any",
+    include_banned: bool = False,
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> int:
+    cleaned_name = name.strip()
+    if not cleaned_name:
+        raise ValueError("Nome do preset de ability é obrigatório.")
+    required = normalize_tag_list(required_tags)
+    excluded = normalize_tag_list(excluded_tags)
+    mode = required_mode if required_mode in {"any", "all"} else "any"
+    if not required and not excluded and include_banned:
+        raise ValueError("O preset precisa filtrar por pelo menos uma tag ou excluir banidas.")
+    if not required and not excluded and not include_banned:
+        raise ValueError("O preset precisa ter pelo menos uma tag obrigatória ou excluída.")
+
+    slug = preset_slug(cleaned_name)
+    required_json = json.dumps(required, ensure_ascii=False, sort_keys=True)
+    excluded_json = json.dumps(excluded, ensure_ascii=False, sort_keys=True)
+
+    with connect(db_path) as connection:
+        # Garante que tags digitadas no preset existam e apareçam nas telas de filtro.
+        for tag_name in required + excluded:
+            upsert_tag(connection, tag_name, category="ability")
+        connection.execute(
+            """
+            INSERT INTO ability_presets
+                (name, slug, description, required_tags_json, excluded_tags_json, required_mode, include_banned, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(slug) DO UPDATE SET
+                name = excluded.name,
+                description = excluded.description,
+                required_tags_json = excluded.required_tags_json,
+                excluded_tags_json = excluded.excluded_tags_json,
+                required_mode = excluded.required_mode,
+                include_banned = excluded.include_banned,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (cleaned_name, slug, description.strip(), required_json, excluded_json, mode, 1 if include_banned else 0),
+        )
+        row = connection.execute("SELECT id FROM ability_presets WHERE slug = ?", (slug,)).fetchone()
+        connection.commit()
+    return int(row[0])
+
+
+def delete_ability_preset(preset_id: int, db_path: Path | str = DEFAULT_DB_PATH) -> bool:
+    with connect(db_path) as connection:
+        cursor = connection.execute("DELETE FROM ability_presets WHERE id = ?", (preset_id,))
+        connection.commit()
+    return cursor.rowcount > 0
+
+
+def search_abilities_from_preset(
+    preset: Dict[str, Any],
+    *,
+    db_path: Path | str = DEFAULT_DB_PATH,
+    limit: int = 500,
+) -> List[Dict[str, Any]]:
+    required_tags = normalize_tag_list(preset.get("required_tags", []))
+    excluded_tags = normalize_tag_list(preset.get("excluded_tags", []))
+    mode = str(preset.get("required_mode") or "any")
+    include_banned = bool(preset.get("include_banned"))
+
+    conditions: List[str] = [] if include_banned else ["a.is_banned = 0"]
+    params: Dict[str, Any] = {"limit": max(1, min(limit, 10000))}
+
+    if required_tags:
+        if mode == "all":
+            for index, tag_name in enumerate(required_tags):
+                param = f"required_tag_{index}"
+                conditions.append(
+                    "EXISTS ("
+                    "SELECT 1 FROM ability_tags at_req "
+                    "JOIN tags t_req ON t_req.id = at_req.tag_id "
+                    f"WHERE at_req.ability_id = a.id AND t_req.name = :{param}"
+                    ")"
+                )
+                params[param] = tag_name
+        else:
+            placeholders = []
+            for index, tag_name in enumerate(required_tags):
+                param = f"required_tag_{index}"
+                placeholders.append(f":{param}")
+                params[param] = tag_name
+            conditions.append(
+                "EXISTS ("
+                "SELECT 1 FROM ability_tags at_req "
+                "JOIN tags t_req ON t_req.id = at_req.tag_id "
+                f"WHERE at_req.ability_id = a.id AND t_req.name IN ({', '.join(placeholders)})"
+                ")"
+            )
+
+    if excluded_tags:
+        placeholders = []
+        for index, tag_name in enumerate(excluded_tags):
+            param = f"excluded_tag_{index}"
+            placeholders.append(f":{param}")
+            params[param] = tag_name
+        conditions.append(
+            "NOT EXISTS ("
+            "SELECT 1 FROM ability_tags at_ex "
+            "JOIN tags t_ex ON t_ex.id = at_ex.tag_id "
+            f"WHERE at_ex.ability_id = a.id AND t_ex.name IN ({', '.join(placeholders)})"
+            ")"
+        )
+
+    where_sql = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    query = f"""
+        SELECT
+            a.id,
+            a.pokeapi_id,
+            a.name,
+            a.slug,
+            a.short_effect,
+            a.effect,
+            a.is_battle_relevant,
+            a.is_banned,
+            a.notes,
+            COALESCE(GROUP_CONCAT(t.name, '||'), '') AS tags_text
+        FROM abilities a
+        LEFT JOIN ability_tags at ON at.ability_id = a.id
+        LEFT JOIN tags t ON t.id = at.tag_id
+        {where_sql}
+        GROUP BY a.id
+        ORDER BY a.name COLLATE NOCASE ASC
+        LIMIT :limit
+    """
+    with connect(db_path) as connection:
+        rows = rows_to_dicts(connection.execute(query, params).fetchall())
+    for row in rows:
+        tags_text = str(row.pop("tags_text", "") or "")
+        row["tags"] = [tag_name for tag_name in tags_text.split("||") if tag_name]
+    return rows
+
+
+def get_ability_pool_from_preset(
+    preset_id: int,
+    *,
+    db_path: Path | str = DEFAULT_DB_PATH,
+    limit: int = 10000,
+) -> List[str]:
+    preset = get_ability_preset(int(preset_id), db_path)
+    if not preset:
+        return []
+    rows = search_abilities_from_preset(preset, db_path=db_path, limit=limit)
+    names: List[str] = []
+    seen = set()
+    for row in rows[: max(1, min(limit, 10000))]:
+        name = str(row.get("name") or "").strip()
+        key = normalize_slug(name)
+        if name and key not in seen:
+            names.append(name)
+            seen.add(key)
+    return names
+
+
+def seed_default_ability_presets(db_path: Path | str = DEFAULT_DB_PATH) -> None:
+    defaults = [
+        {
+            "name": "Metronome Abilities Funcionais",
+            "description": "Abilities marcadas como boas para Metronome, excluindo ruins, baníveis e inúteis em singles.",
+            "required_tags": "Metronome Boa",
+            "excluded_tags": "Metronome Ruim, Banível, Inútil em singles",
+            "required_mode": "any",
+            "include_banned": False,
+        },
+        {
+            "name": "Singles Estáveis",
+            "description": "Abilities que funcionam em singles e evitam dependências muito situacionais.",
+            "required_tags": "Funciona em singles",
+            "excluded_tags": "Depende de doubles, Precisa de golpe específico, Banível, Inútil em singles",
+            "required_mode": "any",
+            "include_banned": False,
+        },
+        {
+            "name": "Ofensivas Úteis",
+            "description": "Abilities ofensivas úteis sem as principais tags problemáticas.",
+            "required_tags": "Ofensiva",
+            "excluded_tags": "Metronome Ruim, Banível, Inútil em singles",
+            "required_mode": "any",
+            "include_banned": False,
+        },
+        {
+            "name": "Defensivas Úteis",
+            "description": "Abilities defensivas úteis sem as principais tags problemáticas.",
+            "required_tags": "Defensiva",
+            "excluded_tags": "Metronome Ruim, Banível, Inútil em singles",
+            "required_mode": "any",
+            "include_banned": False,
+        },
+    ]
+    for preset in defaults:
+        try:
+            save_ability_preset(db_path=db_path, **preset)
+        except ValueError:
+            continue
 
 
 def seed_default_presets(db_path: Path | str = DEFAULT_DB_PATH) -> None:

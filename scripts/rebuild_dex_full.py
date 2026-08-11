@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT_DIR))
 
-from services.dex_db import DEFAULT_DB_PATH, init_database, seed_default_presets
+from services.dex_db import DEFAULT_DB_PATH, init_database, seed_default_presets, seed_default_ability_presets
 from scripts.import_pokeapi import import_pokemon_list, parse_csv_ints, parse_csv_slugs, pokemon_resource_count
 from scripts.seed_dex_tags import seed_tags
 from scripts.seed_ability_tags import seed_ability_tags
@@ -68,6 +68,7 @@ def main() -> None:
     seed_tags(db_path)
     seed_ability_tags(db_path)
     seed_default_presets(db_path)
+    seed_default_ability_presets(db_path)
     print("MegaDex completo importado/atualizado.")
 
 

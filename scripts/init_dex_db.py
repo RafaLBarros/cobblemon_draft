@@ -7,7 +7,7 @@ import sys
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT_DIR))
 
-from services.dex_db import DEFAULT_DB_PATH, init_database, seed_default_presets
+from services.dex_db import DEFAULT_DB_PATH, init_database, seed_default_presets, seed_default_ability_presets
 
 
 def main() -> None:
@@ -21,6 +21,7 @@ def main() -> None:
 
     db_path = init_database(Path(args.db))
     seed_default_presets(db_path)
+    seed_default_ability_presets(db_path)
     print(f"MegaDex inicializado em: {db_path}")
     print("Presets padrão criados/atualizados.")
 

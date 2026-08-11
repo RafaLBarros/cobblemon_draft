@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Presets de Abilities{% endblock %}
+{% block content %}
+<h1>Presets de Abilities</h1>
+<p class="muted">
+    Presets de abilities salvam regras reutilizáveis para o sorteio: tags obrigatórias, tags excluídas,
+    modo de combinação e inclusão ou não de abilities banidas. Depois você pode usar o preset direto no Admin.
+</p>
+
+{% if unavailable %}
+    <div class="card">
+        <h2>Banco ainda não inicializado</h2>
+        <p>Execute:</p>
+        <div class="command-box">python scripts/init_dex_db.py</div>
+    </div>
+{% else %}
+    <div class="grid">
+        <div class="card"><strong>{{ summary.ability_count }}</strong><br><span class="muted">Abilities no MegaDex</span></div>
+        <div class="card"><strong>{{ presets|length }}</strong><br><span class="muted">Presets salvos</span></div>
+        <div class="card"><strong>{{ abilities|length }}</strong><br><span class="muted">Preview do preset selecionado</span></div>
+    </div>
+
+    <section class="card">
+        <h2>Criar ou atualizar preset</h2>
+        <form method="post" action="{{ url_for('save_ability_preset_route') }}" class="filter-form">
+            <input type="hidden" name="admin_key" value="{{ admin_key }}">
+            <div class="settings-grid">
+                <div class="setting-field">
+                    <label for="preset_name">Nome</label>
+                    <input id="preset_name" name="preset_name" placeholder="Metronome Abilities Funcionais" value="{{ selected.name if selected else '' }}">
+                </div>
+                <div class="setting-field">
+                    <label for="required_mode">Modo das tags obrigatórias</label>
+                    <select id="required_mode" name="required_mode">
+                        <option value="any" {% if not selected or selected.required_mode == 'any' %}selected{% endif %}>Qualquer uma das tags</option>
+                        <option value="all" {% if selected and selected.required_mode == 'all' %}selected{% endif %}>Todas as tags</option>
+                    </select>
+                </div>
+                <div class="setting-field">
+                    <label class="flag-check compact-check">
+                        <input type="checkbox" name="include_banned" {% if selected and selected.include_banned %}checked{% endif %}>
+                        Permitir abilities marcadas como banidas
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-grid">
+                <div class="setting-field">
+                    <label for="required_tags">Tags obrigatórias</label>
+                    <input id="required_tags" name="required_tags" value="{{ selected.required_tags_text if selected else 'Metronome Boa' }}" placeholder="Metronome Boa, Defensiva">
+                    <p class="small muted">Separe por vírgula. Com modo “qualquer”, basta ter uma delas. Com modo “todas”, precisa ter todas.</p>
+                </div>
+                <div class="setting-field">
+                    <label for="excluded_tags">Tags excluídas</label>
+                    <input id="excluded_tags" name="excluded_tags" value="{{ selected.excluded_tags_text if selected else 'Metronome Ruim, Banível, Inútil em singles' }}" placeholder="Banível, Depende de doubles">
+                    <p class="small muted">Abilities com qualquer uma dessas tags não entram no preset.</p>
+                </div>
+            </div>
+
+            <div class="setting-field">
+                <label for="preset_description">Descrição</label>
+                <textarea id="preset_description" name="preset_description" rows="2" placeholder="Explique quando usar esse preset.">{{ selected.description if selected else '' }}</textarea>
+            </div>
+
+            <div class="actions">
+                <button type="submit">Salvar preset</button>
+                <a class="button secondary" href="{{ url_for('abilities_page') }}">Editar tags das abilities</a>
+            </div>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Presets salvos</h2>
+        {% if presets %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Preset</th>
+                        <th>Regras</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for preset in presets %}
+                        <tr>
+                            <td>
+                                <strong>{{ preset.name }}</strong><br>
+                                <span class="small muted">{{ preset.description or 'Sem descrição' }}</span>
+                            </td>
+                            <td>
+                                <p class="small">
+                                    <strong>Obrigatórias:</strong> {{ preset.required_tags_text or 'nenhuma' }}<br>
+                                    <strong>Modo:</strong> {{ 'todas' if preset.required_mode == 'all' else 'qualquer' }}<br>
+                                    <strong>Excluídas:</strong> {{ preset.excluded_tags_text or 'nenhuma' }}<br>
+                                    <strong>Banidas:</strong> {{ 'permitidas' if preset.include_banned else 'excluídas' }}
+                                </p>
+                            </td>
+                            <td>
+                                <div class="actions">
+                                    <a class="button secondary" href="{{ url_for('ability_presets_page', preset_id=preset.id) }}">Preview</a>
+                                    <form method="post" action="{{ url_for('delete_ability_preset_route') }}" class="inline">
+                                        <input type="hidden" name="admin_key" value="{{ admin_key }}">
+                                        <input type="hidden" name="preset_id" value="{{ preset.id }}">
+                                        <button class="danger" type="submit">Apagar</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="muted">Nenhum preset de ability criado ainda. Rode <code>python scripts/seed_ability_presets.py</code> para criar os padrões.</p>
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2>Preview{% if selected %}: {{ selected.name }}{% endif %}</h2>
+        {% if selected %}
+            <p class="muted small">
+                Esse preview mostra até 300 abilities que entram nesse preset. No sorteio, o Admin usa a lista completa.
+            </p>
+            {% if abilities %}
+                <div class="ability-list">
+                    {% for ability in abilities %}
+                        <article class="ability-card">
+                            <div>
+                                <h3>{{ ability.name }}</h3>
+                                <p class="small muted">{{ ability.slug }}</p>
+                                {% if ability.short_effect %}<p>{{ ability.short_effect }}</p>{% endif %}
+                                <p>
+                                    {% if ability.is_banned %}<span class="badge warning">banida</span>{% endif %}
+                                    {% for tag in ability.tags %}<span class="badge">{{ tag }}</span>{% endfor %}
+                                </p>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="muted">Nenhuma ability encontrada para esse preset. Revise tags obrigatórias/excluídas.</p>
+            {% endif %}
+        {% else %}
+            <p class="muted">Selecione ou crie um preset para ver o preview.</p>
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2>Tags disponíveis</h2>
+        {% if ability_tags %}
+            <p>
+                {% for tag in ability_tags %}
+                    <a class="badge" href="{{ url_for('abilities_page', tag=tag.name) }}">{{ tag.name }}</a>
+                {% endfor %}
+            </p>
+        {% else %}
+            <p class="muted">Nenhuma tag de ability criada ainda.</p>
+        {% endif %}
+    </section>
+{% endif %}
+{% endblock %}
