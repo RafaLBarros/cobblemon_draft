@@ -16,9 +16,12 @@ from services.dex_db import (
     get_preset,
     get_pokemon_pool_from_preset,
     list_ability_names,
+    list_ability_tags,
     list_presets,
     save_preset,
+    search_abilities,
     search_pokemon_from_filters,
+    update_ability_metadata,
 )
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -41,6 +44,7 @@ POKEMON_POOL_SOURCE_TXT = "txt"
 POKEMON_POOL_SOURCE_DEX_PRESET = "dex_preset"
 ABILITY_POOL_SOURCE_TXT = "txt"
 ABILITY_POOL_SOURCE_DEX = "dex_all"
+ABILITY_POOL_SOURCE_DEX_TAG = "dex_tag"
 ADMIN_KEY = os.environ.get("DRAFT_ADMIN_KEY", "cobbleverse")
 MASTER_KEY = os.environ.get("DRAFT_MASTER_KEY", "mestre")
 
@@ -67,6 +71,7 @@ def default_state() -> Dict[str, Any]:
             "pokemon_pool_source": POKEMON_POOL_SOURCE_TXT,
             "pokemon_preset_id": None,
             "ability_pool_source": ABILITY_POOL_SOURCE_TXT,
+            "ability_tag_filter": "Metronome Boa",
             "lock_chosen_pokemon_globally": True,
             "lock_abilities_globally": False,
             "flag_karma": {
@@ -241,9 +246,15 @@ def get_current_pokemon_pool(state: Dict[str, Any]) -> List[str]:
 def get_current_ability_pool(state: Dict[str, Any]) -> List[str]:
     settings = state.setdefault("settings", {})
     source = settings.get("ability_pool_source", ABILITY_POOL_SOURCE_TXT)
-    if source == ABILITY_POOL_SOURCE_DEX:
+    if source in {ABILITY_POOL_SOURCE_DEX, ABILITY_POOL_SOURCE_DEX_TAG}:
+        tag_filter = str(settings.get("ability_tag_filter") or "").strip() if source == ABILITY_POOL_SOURCE_DEX_TAG else ""
         try:
-            pool = list_ability_names(db_path=DEX_DB_FILE, include_banned=False, limit=10000)
+            pool = list_ability_names(
+                db_path=DEX_DB_FILE,
+                include_banned=False,
+                tag=tag_filter,
+                limit=10000,
+            )
         except DexUnavailable:
             return []
         banlist = {item.lower() for item in load_lines(ABILITIES_BANLIST_FILE)}
@@ -263,6 +274,9 @@ def ability_pool_source_label(state: Dict[str, Any]) -> str:
     settings = state.setdefault("settings", {})
     if settings.get("ability_pool_source") == ABILITY_POOL_SOURCE_DEX:
         return "MegaDex: todas as abilities"
+    if settings.get("ability_pool_source") == ABILITY_POOL_SOURCE_DEX_TAG:
+        tag_filter = str(settings.get("ability_tag_filter") or "").strip()
+        return f"MegaDex: tag {tag_filter}" if tag_filter else "MegaDex: tag vazia"
     return "TXT legado"
 
 
@@ -1052,6 +1066,7 @@ def inject_helpers():
         "POKEMON_POOL_SOURCE_DEX_PRESET": POKEMON_POOL_SOURCE_DEX_PRESET,
         "ABILITY_POOL_SOURCE_TXT": ABILITY_POOL_SOURCE_TXT,
         "ABILITY_POOL_SOURCE_DEX": ABILITY_POOL_SOURCE_DEX,
+        "ABILITY_POOL_SOURCE_DEX_TAG": ABILITY_POOL_SOURCE_DEX_TAG,
     }
 
 
@@ -1136,6 +1151,79 @@ def dex() -> str:
         summary=summary,
         unavailable=unavailable,
     )
+
+
+
+
+def ability_filters_from_request() -> Dict[str, str]:
+    return {
+        "q": request.args.get("q", "").strip(),
+        "tag": request.args.get("tag", "").strip(),
+        "include_banned": "1" if request.args.get("include_banned", "1") == "1" else "0",
+    }
+
+
+@app.route("/abilities", methods=["GET"])
+def abilities_page() -> str:
+    filters = ability_filters_from_request()
+    try:
+        summary = dex_summary(DEX_DB_FILE)
+        ability_tags = list_ability_tags(db_path=DEX_DB_FILE)
+        abilities = search_abilities(
+            q=filters["q"],
+            tag=filters["tag"],
+            include_banned=filters["include_banned"] == "1",
+            db_path=DEX_DB_FILE,
+            limit=300,
+        )
+        unavailable = False
+    except DexUnavailable:
+        summary = {}
+        ability_tags = []
+        abilities = []
+        unavailable = True
+
+    return render_template(
+        "abilities.html",
+        filters=filters,
+        summary=summary,
+        ability_tags=ability_tags,
+        abilities=abilities,
+        unavailable=unavailable,
+        admin_key=ADMIN_KEY,
+    )
+
+
+@app.route("/abilities/update", methods=["POST"])
+def update_ability_route():
+    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
+        flash("Chave admin inválida para editar ability.", "error")
+        return redirect(url_for("abilities_page"))
+
+    ability_id = safe_int_value(request.form.get("ability_id"))
+    if ability_id is None:
+        flash("Ability inválida.", "error")
+        return redirect(url_for("abilities_page"))
+
+    try:
+        update_ability_metadata(
+            ability_id=ability_id,
+            tags=request.form.get("tags", ""),
+            is_banned=request.form.get("is_banned") == "on",
+            is_battle_relevant=request.form.get("is_battle_relevant") == "on",
+            notes=request.form.get("notes", ""),
+            db_path=DEX_DB_FILE,
+        )
+        flash("Ability atualizada com sucesso.", "success")
+    except (DexUnavailable, ValueError) as exc:
+        flash(str(exc), "error")
+
+    return redirect(url_for(
+        "abilities_page",
+        q=request.form.get("return_q", ""),
+        tag=request.form.get("return_tag", ""),
+        include_banned=request.form.get("return_include_banned", "1"),
+    ))
 
 
 @app.route("/presets", methods=["GET"])
@@ -1647,9 +1735,11 @@ def admin_page():
     try:
         presets = list_presets(DEX_DB_FILE)
         active_preset = get_active_pokemon_preset(state)
+        ability_tags = list_ability_tags(db_path=DEX_DB_FILE)
     except DexUnavailable:
         presets = []
         active_preset = None
+        ability_tags = []
     current_summary = pool_summary(state)
     return render_template(
         "admin.html",
@@ -1666,6 +1756,7 @@ def admin_page():
         flag_editor_payload=get_flag_editor_payload(state),
         presets=presets,
         active_preset=active_preset,
+        ability_tags=ability_tags,
         pool_summary=current_summary,
         key=ADMIN_KEY,
         auto_refresh=False,
@@ -2057,9 +2148,10 @@ def admin_save_settings():
     settings["pokemon_preset_id"] = preset_id if pokemon_pool_source == POKEMON_POOL_SOURCE_DEX_PRESET else None
 
     ability_pool_source = request.form.get("ability_pool_source", ABILITY_POOL_SOURCE_TXT)
-    if ability_pool_source not in {ABILITY_POOL_SOURCE_TXT, ABILITY_POOL_SOURCE_DEX}:
+    if ability_pool_source not in {ABILITY_POOL_SOURCE_TXT, ABILITY_POOL_SOURCE_DEX, ABILITY_POOL_SOURCE_DEX_TAG}:
         ability_pool_source = ABILITY_POOL_SOURCE_TXT
     settings["ability_pool_source"] = ability_pool_source
+    settings["ability_tag_filter"] = request.form.get("ability_tag_filter", "").strip() or "Metronome Boa"
 
     settings["lock_chosen_pokemon_globally"] = request.form.get("lock_chosen_pokemon_globally") == "on"
     settings["lock_abilities_globally"] = request.form.get("lock_abilities_globally") == "on"

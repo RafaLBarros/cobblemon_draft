@@ -271,10 +271,22 @@
             <div class="setting-field">
                 <label for="ability_pool_source">Pool de abilities</label>
                 <select id="ability_pool_source" name="ability_pool_source">
-                    <option value="{{ ABILITY_POOL_SOURCE_TXT }}" {% if state.settings.ability_pool_source != ABILITY_POOL_SOURCE_DEX %}selected{% endif %}>TXT legado — data/abilities.txt</option>
+                    <option value="{{ ABILITY_POOL_SOURCE_TXT }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_TXT or not state.settings.ability_pool_source %}selected{% endif %}>TXT legado — data/abilities.txt</option>
                     <option value="{{ ABILITY_POOL_SOURCE_DEX }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX %}selected{% endif %}>MegaDex — todas as abilities importadas</option>
+                    <option value="{{ ABILITY_POOL_SOURCE_DEX_TAG }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_TAG %}selected{% endif %}>MegaDex — abilities por tag</option>
                 </select>
-                <p class="muted small">No próximo passo vamos criar tags de abilities para sortear só as “funcionais”.</p>
+                <p class="muted small">Use tags para sortear apenas abilities funcionais, defensivas, baníveis, dependentes de contato etc.</p>
+            </div>
+
+            <div class="setting-field">
+                <label for="ability_tag_filter">Tag de ability</label>
+                <select id="ability_tag_filter" name="ability_tag_filter">
+                    <option value="">Todas / nenhuma tag</option>
+                    {% for tag in ability_tags %}
+                        <option value="{{ tag.name }}" {% if state.settings.ability_tag_filter == tag.name %}selected{% endif %}>{{ tag.name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="muted small">Ex.: <strong>Metronome Boa</strong>. Edite as tags na tela <a href="{{ url_for('abilities_page') }}">Ability Lab</a>.</p>
             </div>
         </div>
 

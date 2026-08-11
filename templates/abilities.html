@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Ability Lab{% endblock %}
+{% block content %}
+<h1>Ability Lab</h1>
+<p class="muted">
+    Aqui você classifica abilities com tags para o Mega Draft. A ideia é separar abilities boas, ruins, baníveis,
+    dependentes de doubles, dependentes de contato e outras regras que vocês forem criando.
+</p>
+
+{% if unavailable %}
+    <div class="card">
+        <h2>Banco ainda não inicializado</h2>
+        <p>Execute:</p>
+        <div class="command-box">python scripts/init_dex_db.py</div>
+    </div>
+{% else %}
+    <div class="grid">
+        <div class="card"><strong>{{ summary.ability_count }}</strong><br><span class="muted">Abilities</span></div>
+        <div class="card"><strong>{{ ability_tags|length }}</strong><br><span class="muted">Tags de ability</span></div>
+        <div class="card"><strong>{{ abilities|length }}</strong><br><span class="muted">Resultados exibidos</span></div>
+    </div>
+
+    <section class="card">
+        <h2>Filtros</h2>
+        <form method="get" action="{{ url_for('abilities_page') }}" class="filter-form">
+            <div class="settings-grid">
+                <div class="setting-field">
+                    <label for="q">Buscar</label>
+                    <input id="q" name="q" value="{{ filters.q }}" placeholder="magic guard, poison, contato...">
+                </div>
+                <div class="setting-field">
+                    <label for="tag">Tag</label>
+                    <select id="tag" name="tag">
+                        <option value="">Todas</option>
+                        {% for tag in ability_tags %}
+                            <option value="{{ tag.name }}" {% if filters.tag == tag.name %}selected{% endif %}>{{ tag.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="setting-field">
+                    <input type="hidden" name="include_banned" value="0">
+                    <label class="flag-check compact-check">
+                        <input type="checkbox" name="include_banned" value="1" {% if filters.include_banned == '1' %}checked{% endif %}>
+                        Mostrar banidas
+                    </label>
+                </div>
+            </div>
+            <div class="actions">
+                <button type="submit">Filtrar</button>
+                <a class="button secondary" href="{{ url_for('abilities_page') }}">Limpar</a>
+            </div>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Tags disponíveis</h2>
+        <p class="small muted">Use o script <code>python scripts/seed_ability_tags.py</code> para recriar as tags iniciais. Você também pode criar tags novas editando qualquer ability abaixo.</p>
+        {% if ability_tags %}
+            <p>
+                {% for tag in ability_tags %}
+                    <a class="badge" href="{{ url_for('abilities_page', tag=tag.name) }}">{{ tag.name }}</a>
+                {% endfor %}
+            </p>
+        {% else %}
+            <p class="muted">Nenhuma tag de ability criada ainda.</p>
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2>Abilities</h2>
+        {% if abilities %}
+            <div class="ability-list">
+                {% for ability in abilities %}
+                    <article class="ability-card">
+                        <div>
+                            <h3>{{ ability.name }}</h3>
+                            <p class="small muted">{{ ability.slug }}</p>
+                            {% if ability.short_effect %}<p>{{ ability.short_effect }}</p>{% endif %}
+                            <p>
+                                {% if ability.is_banned %}<span class="badge warning">banida</span>{% endif %}
+                                {% if ability.is_battle_relevant %}<span class="badge success">battle relevant</span>{% else %}<span class="badge warning">pouco relevante</span>{% endif %}
+                                {% for tag in ability.tags %}
+                                    <span class="badge">{{ tag }}</span>
+                                {% endfor %}
+                            </p>
+                            {% if ability.notes %}<p class="small"><strong>Notas:</strong> {{ ability.notes }}</p>{% endif %}
+                        </div>
+
+                        <form method="post" action="{{ url_for('update_ability_route') }}" class="ability-edit-form">
+                            <input type="hidden" name="admin_key" value="{{ admin_key }}">
+                            <input type="hidden" name="ability_id" value="{{ ability.id }}">
+                            <input type="hidden" name="return_q" value="{{ filters.q }}">
+                            <input type="hidden" name="return_tag" value="{{ filters.tag }}">
+                            <input type="hidden" name="return_include_banned" value="{{ filters.include_banned }}">
+
+                            <label for="tags-{{ ability.id }}">Tags</label>
+                            <input id="tags-{{ ability.id }}" name="tags" value="{{ ability.tags|join(', ') }}" placeholder="Metronome Boa, Defensiva...">
+                            <p class="small muted">Separe por vírgula. Tags novas são criadas automaticamente.</p>
+
+                            <label class="flag-check compact-check">
+                                <input type="checkbox" name="is_battle_relevant" {% if ability.is_battle_relevant %}checked{% endif %}>
+                                Relevante em batalha
+                            </label>
+                            <label class="flag-check compact-check">
+                                <input type="checkbox" name="is_banned" {% if ability.is_banned %}checked{% endif %}>
+                                Banida no sorteio MegaDex
+                            </label>
+
+                            <label for="notes-{{ ability.id }}">Notas</label>
+                            <textarea id="notes-{{ ability.id }}" name="notes" rows="2" placeholder="Ex.: funciona com Metronome só se o golpe for de contato.">{{ ability.notes or '' }}</textarea>
+
+                            <button type="submit">Salvar ability</button>
+                        </form>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="muted">Nenhuma ability encontrada.</p>
+        {% endif %}
+    </section>
+{% endif %}
+{% endblock %}

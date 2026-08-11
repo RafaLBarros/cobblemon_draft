@@ -82,18 +82,19 @@
         }
         .badge.success { border-color: #166534; color: #bbf7d0; }
         .badge.warning { border-color: #92400e; color: #fed7aa; }
-        input, button, .button {
+        input, select, textarea, button, .button {
             border-radius: 10px;
             border: 1px solid var(--border);
             padding: 10px 12px;
             font-size: 16px;
             max-width: 100%;
         }
-        input {
+        input, select, textarea {
             background: #111118;
             color: var(--text);
             width: min(360px, 100%);
         }
+        textarea { resize: vertical; }
         button, .button {
             display: inline-block;
             background: var(--accent);
@@ -140,6 +141,30 @@
         li { margin: 6px 0; overflow-wrap: anywhere; }
         .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         .actions form { max-width: 100%; }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            align-items: start;
+        }
+        .setting-field label { display: block; font-weight: 700; margin-bottom: 6px; }
+        .setting-field input, .setting-field select, .setting-field textarea { width: 100%; }
+        .flag-check { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+        .flag-check input { width: auto; }
+        .compact-check { font-weight: 400; }
+        .filter-form { max-width: 100%; }
+        .ability-list { display: grid; gap: 14px; }
+        .ability-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+            gap: 16px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: rgba(17, 17, 24, .72);
+        }
+        .ability-edit-form { display: grid; gap: 8px; }
+        .ability-edit-form input, .ability-edit-form textarea { width: 100%; }
         .small { font-size: 13px; }
         .hr { border-top: 1px solid var(--border); margin: 16px 0; }
         .url-box {
@@ -177,6 +202,7 @@
             button, .button { width: 100%; }
             .actions { flex-direction: column; align-items: stretch; }
             .actions form { width: 100%; }
+            .ability-card { grid-template-columns: 1fr; }
             table, thead, tbody, th, td, tr { display: block; }
             th { display: none; }
             td { border-bottom: 0; padding: 6px 0; }
@@ -193,6 +219,8 @@
                 <a href="{{ url_for('dex') }}">MegaDex</a>
                 <span class="muted">/</span>
                 <a href="{{ url_for('presets_page') }}">Presets</a>
+                <span class="muted">/</span>
+                <a href="{{ url_for('abilities_page') }}">Abilities</a>
             </div>
             {% if auto_refresh %}
                 <div class="small muted"><span class="status-dot"></span>Atualização automática</div>

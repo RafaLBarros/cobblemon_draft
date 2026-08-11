@@ -246,21 +246,197 @@ def list_ability_names(
     *,
     db_path: Path | str = DEFAULT_DB_PATH,
     include_banned: bool = False,
+    tag: str = "",
     limit: int = 5000,
 ) -> List[str]:
     """Lista abilities disponíveis no MegaDex para sorteio."""
-    conditions = [] if include_banned else ["is_banned = 0"]
+    conditions: List[str] = [] if include_banned else ["a.is_banned = 0"]
+    params: Dict[str, Any] = {"limit": max(1, min(limit, 10000))}
+
+    if tag.strip():
+        conditions.append(
+            "EXISTS ("
+            "SELECT 1 FROM ability_tags at "
+            "JOIN tags t ON t.id = at.tag_id "
+            "WHERE at.ability_id = a.id AND (t.name LIKE :tag OR t.category LIKE :tag)"
+            ")"
+        )
+        params["tag"] = f"%{tag.strip()}%"
+
     where_sql = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     query = f"""
-        SELECT name
-        FROM abilities
+        SELECT a.name
+        FROM abilities a
         {where_sql}
-        ORDER BY name COLLATE NOCASE ASC
-        LIMIT ?
+        ORDER BY a.name COLLATE NOCASE ASC
+        LIMIT :limit
     """
     with connect(db_path) as connection:
-        rows = connection.execute(query, (max(1, min(limit, 10000)),)).fetchall()
+        rows = connection.execute(query, params).fetchall()
     return [str(row["name"]) for row in rows if str(row["name"]).strip()]
+
+
+def list_tags(
+    *,
+    category: str = "",
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> List[Dict[str, Any]]:
+    conditions: List[str] = []
+    params: Dict[str, Any] = {}
+    if category.strip():
+        conditions.append("category = :category")
+        params["category"] = category.strip()
+    where_sql = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    query = f"""
+        SELECT id, name, category, description
+        FROM tags
+        {where_sql}
+        ORDER BY category COLLATE NOCASE ASC, name COLLATE NOCASE ASC
+    """
+    with connect(db_path) as connection:
+        return rows_to_dicts(connection.execute(query, params).fetchall())
+
+
+def list_ability_tags(*, db_path: Path | str = DEFAULT_DB_PATH) -> List[Dict[str, Any]]:
+    """Tags úteis para filtrar/sortear abilities."""
+    with connect(db_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT DISTINCT t.id, t.name, t.category, t.description
+            FROM tags t
+            LEFT JOIN ability_tags at ON at.tag_id = t.id
+            WHERE t.category = 'ability' OR at.ability_id IS NOT NULL
+            ORDER BY t.name COLLATE NOCASE ASC
+            """
+        ).fetchall()
+    return rows_to_dicts(rows)
+
+
+def search_abilities(
+    *,
+    q: str = "",
+    tag: str = "",
+    include_banned: bool = True,
+    db_path: Path | str = DEFAULT_DB_PATH,
+    limit: int = 300,
+) -> List[Dict[str, Any]]:
+    """Busca abilities e retorna as tags já agrupadas para a tela Ability Lab."""
+    conditions: List[str] = []
+    params: Dict[str, Any] = {"limit": max(1, min(limit, 1000))}
+
+    if q.strip():
+        conditions.append("(a.name LIKE :q OR a.slug LIKE :q OR a.short_effect LIKE :q OR a.effect LIKE :q)")
+        params["q"] = f"%{q.strip()}%"
+
+    if tag.strip():
+        conditions.append(
+            "EXISTS ("
+            "SELECT 1 FROM ability_tags at2 "
+            "JOIN tags t2 ON t2.id = at2.tag_id "
+            "WHERE at2.ability_id = a.id AND (t2.name LIKE :tag OR t2.category LIKE :tag)"
+            ")"
+        )
+        params["tag"] = f"%{tag.strip()}%"
+
+    if not include_banned:
+        conditions.append("a.is_banned = 0")
+
+    where_sql = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    query = f"""
+        SELECT
+            a.id,
+            a.pokeapi_id,
+            a.name,
+            a.slug,
+            a.short_effect,
+            a.effect,
+            a.is_battle_relevant,
+            a.is_banned,
+            a.notes,
+            COALESCE(GROUP_CONCAT(t.name, '||'), '') AS tags_text
+        FROM abilities a
+        LEFT JOIN ability_tags at ON at.ability_id = a.id
+        LEFT JOIN tags t ON t.id = at.tag_id
+        {where_sql}
+        GROUP BY a.id
+        ORDER BY a.name COLLATE NOCASE ASC
+        LIMIT :limit
+    """
+    with connect(db_path) as connection:
+        rows = rows_to_dicts(connection.execute(query, params).fetchall())
+
+    for row in rows:
+        tags_text = str(row.pop("tags_text", "") or "")
+        row["tags"] = [tag_name for tag_name in tags_text.split("||") if tag_name]
+    return rows
+
+
+def split_tag_names(raw_tags: str | Iterable[str]) -> List[str]:
+    if isinstance(raw_tags, str):
+        pieces = re.split(r"[,;\n]+", raw_tags)
+    else:
+        pieces = [str(item) for item in raw_tags]
+    tags: List[str] = []
+    seen = set()
+    for piece in pieces:
+        tag = piece.strip()
+        key = tag.lower()
+        if tag and key not in seen:
+            tags.append(tag)
+            seen.add(key)
+    return tags
+
+
+def upsert_tag(connection: sqlite3.Connection, name: str, category: str = "ability", description: str = "") -> int:
+    cleaned_name = name.strip()
+    if not cleaned_name:
+        raise ValueError("Nome da tag é obrigatório.")
+    connection.execute(
+        """
+        INSERT INTO tags (name, category, description)
+        VALUES (?, ?, ?)
+        ON CONFLICT(name) DO UPDATE SET
+            category = CASE WHEN tags.category = '' THEN excluded.category ELSE tags.category END,
+            description = CASE WHEN excluded.description != '' THEN excluded.description ELSE tags.description END
+        """,
+        (cleaned_name, category.strip() or "ability", description.strip()),
+    )
+    return int(connection.execute("SELECT id FROM tags WHERE name = ?", (cleaned_name,)).fetchone()[0])
+
+
+def update_ability_metadata(
+    *,
+    ability_id: int,
+    tags: str | Iterable[str],
+    is_banned: bool,
+    is_battle_relevant: bool,
+    notes: str = "",
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> None:
+    """Atualiza tags/flags manuais de uma ability pelo Ability Lab."""
+    tag_names = split_tag_names(tags)
+    with connect(db_path) as connection:
+        ability = connection.execute("SELECT id FROM abilities WHERE id = ?", (ability_id,)).fetchone()
+        if not ability:
+            raise ValueError("Ability não encontrada.")
+
+        connection.execute("DELETE FROM ability_tags WHERE ability_id = ?", (ability_id,))
+        for tag_name in tag_names:
+            tag_id = upsert_tag(connection, tag_name, category="ability")
+            connection.execute(
+                "INSERT OR IGNORE INTO ability_tags (ability_id, tag_id) VALUES (?, ?)",
+                (ability_id, tag_id),
+            )
+
+        connection.execute(
+            """
+            UPDATE abilities
+            SET is_banned = ?, is_battle_relevant = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (1 if is_banned else 0, 1 if is_battle_relevant else 0, notes.strip(), ability_id),
+        )
+        connection.commit()
 
 
 def seed_default_presets(db_path: Path | str = DEFAULT_DB_PATH) -> None:
