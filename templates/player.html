@@ -6,6 +6,11 @@
     <p>
         <span class="badge">Pokémon: {{ player.pokemon_picks|length }}/{{ state.settings.max_pokemon }}</span>
         <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ player_pending_label(player) }}</span>
+        {% if budget_enabled(state) %}
+            {% set budget = player_budget_summary(player, state) %}
+            <span class="badge {% if budget.over_budget %}warning{% else %}success{% endif %}">Orçamento: {{ budget.spent }}/{{ budget.total }} pts</span>
+            <span class="badge">Restante: {{ budget.remaining }} pts</span>
+        {% endif %}
     </p>
     <p class="small muted">Seu link privado: <span class="url-box">{{ request.url }}</span></p>
     <p class="small muted">Este apelido deve ser exatamente o seu nick do Minecraft, pois ele será usado nos comandos gerados.</p>
@@ -18,7 +23,13 @@
             <ol>
                 {% for pick in player.pokemon_picks %}
                     <li>
+                        {% set pick_round_label = pokemon_round_label_for_pick(pick, loop.index0) %}
+                        {% if pick_round_label %}<span class="badge">{{ pick_round_label }}</span><br>{% endif %}
                         <strong>{{ pick.name }}</strong>
+                        {% if budget_enabled(state) %}
+                            {% set pick_cost = budget_cost_for_pick(pick, state) %}
+                            <span class="badge">{{ pick_cost.cost }} pts</span>
+                        {% endif %}
                         {% if pick.ability %}
                             — {{ pick.ability }}
                             <div class="command-box">
@@ -38,12 +49,19 @@
     <div class="card">
         {% if player.pending.type == "pokemon" %}
             <h2>Escolha 1 Pokémon</h2>
+            {% if player.pending.round_name %}<p><span class="badge">{{ player.pending.round_name }}</span></p>{% endif %}
             <p class="muted">O escolhido entra no seu time e sai da pool global. Os recusados voltam para o sorteio.</p>
             {% for option in player.pending.pokemon_options %}
                 <form method="post" action="{{ url_for('choose_pokemon') }}">
                     <input type="hidden" name="player_id" value="{{ player.player_id }}">
                     <input type="hidden" name="pokemon" value="{{ option }}">
-                    <button class="option-button" type="submit">{{ option }}</button>
+                    {% set option_cost = budget_cost_payload(option, state) %}
+                    <button class="option-button" type="submit">
+                        {{ option }}
+                        {% if budget_enabled(state) %}
+                            <span class="muted">— {{ option_cost.cost }} pts{% if option_cost.bst %} · BST {{ option_cost.bst }}{% endif %}</span>
+                        {% endif %}
+                    </button>
                 </form>
             {% endfor %}
         {% elif player.pending.type == "ability" %}

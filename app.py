@@ -12,20 +12,32 @@ from flask import Flask, Response, flash, redirect, render_template, request, ur
 from services.dex_db import (
     DexUnavailable,
     delete_ability_preset,
+    delete_draft_ruleset,
     delete_preset,
     dex_summary,
     get_ability_pool_from_preset,
     get_ability_preset,
+    get_draft_ruleset,
+    get_evolution_line_for_pokemon_name,
+    get_evolution_lines_by_chain_ids,
+    get_pokemon_records_in_evolution_line,
     get_preset,
     get_pokemon_pool_from_preset,
+    get_pokemon_record_by_name,
+    get_pokemon_records_by_names,
+    get_pokemon_records_by_species_for_pokemon_name,
+    get_species_summaries_by_species_slugs,
     list_ability_names,
     list_ability_presets,
     list_ability_tags,
+    list_draft_rulesets,
     list_presets,
     save_ability_preset,
+    save_draft_ruleset,
     save_preset,
     search_abilities,
     search_abilities_from_preset,
+    search_evolution_lines,
     search_pokemon_from_filters,
     update_ability_metadata,
 )
@@ -52,6 +64,32 @@ ABILITY_POOL_SOURCE_TXT = "txt"
 ABILITY_POOL_SOURCE_DEX = "dex_all"
 ABILITY_POOL_SOURCE_DEX_TAG = "dex_tag"
 ABILITY_POOL_SOURCE_DEX_PRESET = "dex_preset"
+ROUND_POKEMON_POOL_SOURCE_GLOBAL = "global"
+POKEMON_LOCK_SCOPE_EXACT = "exact"
+POKEMON_LOCK_SCOPE_SPECIES = "species"
+POKEMON_LOCK_SCOPE_EVOLUTION_LINE = "evolution_line"
+POKEMON_LOCK_SCOPE_LEGACY_GROUP = "legacy_group"
+DEFAULT_POKEMON_LOCK_SCOPE = POKEMON_LOCK_SCOPE_EVOLUTION_LINE
+POKEMON_LOCK_SCOPE_LABELS = {
+    POKEMON_LOCK_SCOPE_EXACT: "Somente forma sorteada",
+    POKEMON_LOCK_SCOPE_SPECIES: "Formas da mesma espécie",
+    POKEMON_LOCK_SCOPE_EVOLUTION_LINE: "Linha evolutiva inteira",
+    POKEMON_LOCK_SCOPE_LEGACY_GROUP: "Grupos TXT legados",
+}
+BUDGET_COST_MODE_POKEMON_BST = "pokemon_bst"
+BUDGET_COST_MODE_SPECIES_MAX_BST = "species_max_bst"
+BUDGET_COST_MODE_LINE_MAX_BST = "line_max_bst"
+DEFAULT_BUDGET_COST_MODE = BUDGET_COST_MODE_POKEMON_BST
+DEFAULT_BUDGET_POINTS_PER_PLAYER = 3000
+DEFAULT_UNKNOWN_POKEMON_COST = 450
+DEFAULT_BUDGET_FLAG_COSTS = {
+    "Lendario": 300,
+    "Mitico": 300,
+    "Ultra Beast": 150,
+    "Paradox": 120,
+    "Pseudo": 100,
+    "Inicial": 50,
+}
 ADMIN_KEY = os.environ.get("DRAFT_ADMIN_KEY", "cobbleverse")
 MASTER_KEY = os.environ.get("DRAFT_MASTER_KEY", "mestre")
 
@@ -80,7 +118,15 @@ def default_state() -> Dict[str, Any]:
             "ability_pool_source": ABILITY_POOL_SOURCE_TXT,
             "ability_tag_filter": "Metronome Boa",
             "ability_preset_id": None,
+            "rounds_enabled": False,
+            "draft_rounds": [],
+            "budget_enabled": False,
+            "budget_cost_mode": DEFAULT_BUDGET_COST_MODE,
+            "budget_points_per_player": DEFAULT_BUDGET_POINTS_PER_PLAYER,
+            "budget_unknown_pokemon_cost": DEFAULT_UNKNOWN_POKEMON_COST,
+            "budget_flag_costs": dict(DEFAULT_BUDGET_FLAG_COSTS),
             "lock_chosen_pokemon_globally": True,
+            "pokemon_lock_scope": DEFAULT_POKEMON_LOCK_SCOPE,
             "lock_abilities_globally": False,
             "flag_karma": {
                 "Lendario": {
@@ -100,6 +146,8 @@ def empty_pending() -> Dict[str, Any]:
         "ability_for_index": None,
         "ability_options": [],
         "choice_id": None,
+        "round_index": None,
+        "round_name": None,
     }
 
 
@@ -223,6 +271,40 @@ def safe_int_value(value: Any) -> Optional[int]:
         return None
 
 
+def clamp_int(value: Any, default: int, min_value: int, max_value: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(min_value, min(max_value, parsed))
+
+
+def normalize_pokemon_lock_scope(value: Any) -> str:
+    scope = str(value or DEFAULT_POKEMON_LOCK_SCOPE).strip()
+    if scope not in POKEMON_LOCK_SCOPE_LABELS:
+        return DEFAULT_POKEMON_LOCK_SCOPE
+    return scope
+
+
+def pokemon_lock_scope(state: Dict[str, Any]) -> str:
+    settings = state.setdefault("settings", {})
+    scope = normalize_pokemon_lock_scope(settings.get("pokemon_lock_scope"))
+    settings["pokemon_lock_scope"] = scope
+    return scope
+
+
+def pokemon_lock_scope_label(state_or_scope: Any) -> str:
+    if isinstance(state_or_scope, dict):
+        scope = pokemon_lock_scope(state_or_scope)
+    else:
+        scope = normalize_pokemon_lock_scope(state_or_scope)
+    return POKEMON_LOCK_SCOPE_LABELS.get(scope, POKEMON_LOCK_SCOPE_LABELS[DEFAULT_POKEMON_LOCK_SCOPE])
+
+
+def pokemon_lock_scope_options() -> List[Dict[str, str]]:
+    return [{"value": value, "label": label} for value, label in POKEMON_LOCK_SCOPE_LABELS.items()]
+
+
 def get_active_pokemon_preset(state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     settings = state.setdefault("settings", {})
     preset_id = safe_int_value(settings.get("pokemon_preset_id"))
@@ -245,21 +327,28 @@ def get_active_ability_preset(state: Dict[str, Any]) -> Optional[Dict[str, Any]]
         return None
 
 
-def get_current_pokemon_pool(state: Dict[str, Any]) -> List[str]:
-    """Retorna a pool ativa de Pokémon, podendo vir do TXT legado ou de preset do MegaDex."""
-    settings = state.setdefault("settings", {})
-    source = settings.get("pokemon_pool_source", POKEMON_POOL_SOURCE_TXT)
+def get_pokemon_pool_from_source(source: str, preset_id: Any = None) -> List[str]:
+    """Retorna uma pool de Pokémon a partir de uma fonte específica."""
     if source == POKEMON_POOL_SOURCE_DEX_PRESET:
-        preset_id = safe_int_value(settings.get("pokemon_preset_id"))
-        if preset_id is None:
+        parsed_preset_id = safe_int_value(preset_id)
+        if parsed_preset_id is None:
             return []
         try:
-            pool = get_pokemon_pool_from_preset(preset_id, db_path=DEX_DB_FILE, limit=10000)
+            pool = get_pokemon_pool_from_preset(parsed_preset_id, db_path=DEX_DB_FILE, limit=10000)
         except DexUnavailable:
             return []
         banlist = {item.lower() for item in load_lines(POKEMON_BANLIST_FILE)}
         return [item for item in pool if item.lower() not in banlist]
     return load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+
+
+def get_current_pokemon_pool(state: Dict[str, Any]) -> List[str]:
+    """Retorna a pool global ativa de Pokémon, podendo vir do TXT legado ou de preset do MegaDex."""
+    settings = state.setdefault("settings", {})
+    return get_pokemon_pool_from_source(
+        str(settings.get("pokemon_pool_source", POKEMON_POOL_SOURCE_TXT)),
+        settings.get("pokemon_preset_id"),
+    )
 
 
 def get_current_ability_pool(state: Dict[str, Any]) -> List[str]:
@@ -321,6 +410,192 @@ def pool_summary(state: Dict[str, Any]) -> Dict[str, Any]:
         "pokemon_source": pokemon_pool_source_label(state),
         "ability_source": ability_pool_source_label(state),
     }
+
+
+
+def normalize_round_pokemon_source(value: Any) -> str:
+    source = str(value or ROUND_POKEMON_POOL_SOURCE_GLOBAL).strip()
+    if source not in {ROUND_POKEMON_POOL_SOURCE_GLOBAL, POKEMON_POOL_SOURCE_TXT, POKEMON_POOL_SOURCE_DEX_PRESET}:
+        return ROUND_POKEMON_POOL_SOURCE_GLOBAL
+    return source
+
+
+def normalize_draft_rounds(raw_rounds: Any, max_slots: int = MAX_POKEMON) -> List[Dict[str, Any]]:
+    if not isinstance(raw_rounds, list):
+        raw_rounds = []
+
+    rounds: List[Dict[str, Any]] = []
+    for index in range(max(1, min(max_slots, 30))):
+        raw = raw_rounds[index] if index < len(raw_rounds) and isinstance(raw_rounds[index], dict) else {}
+        source = normalize_round_pokemon_source(raw.get("pokemon_pool_source"))
+        options_raw = safe_int_value(raw.get("pokemon_options_per_draw"))
+        rounds.append({
+            "index": index,
+            "slot": index + 1,
+            "name": str(raw.get("name") or f"Rodada {index + 1}").strip() or f"Rodada {index + 1}",
+            "pokemon_pool_source": source,
+            "pokemon_preset_id": safe_int_value(raw.get("pokemon_preset_id")) if source == POKEMON_POOL_SOURCE_DEX_PRESET else None,
+            "pokemon_options_per_draw": options_raw if options_raw is not None else None,
+        })
+    return rounds
+
+
+def draft_rounds_enabled(state: Dict[str, Any]) -> bool:
+    return bool(state.setdefault("settings", {}).get("rounds_enabled"))
+
+
+def get_configured_draft_rounds(state: Dict[str, Any]) -> List[Dict[str, Any]]:
+    settings = state.setdefault("settings", {})
+    max_slots = setting_int(state, "max_pokemon", MAX_POKEMON, 1, 30)
+    rounds = normalize_draft_rounds(settings.get("draft_rounds", []), max_slots=max_slots)
+    settings["draft_rounds"] = rounds
+    return rounds
+
+
+def get_next_pokemon_round(player: Dict[str, Any], state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    if not draft_rounds_enabled(state):
+        return None
+    index = len(player.get("pokemon_picks", []))
+    rounds = get_configured_draft_rounds(state)
+    if 0 <= index < len(rounds):
+        return rounds[index]
+    return None
+
+
+def pokemon_round_label(round_config: Optional[Dict[str, Any]], fallback_index: Optional[int] = None) -> str:
+    if round_config:
+        name = str(round_config.get("name") or "").strip()
+        if name:
+            return name
+        slot = round_config.get("slot")
+        if slot:
+            return f"Rodada {slot}"
+    if isinstance(fallback_index, int):
+        return f"Rodada {fallback_index + 1}"
+    return "Rodada global"
+
+
+def pokemon_round_label_for_pick(pick: Dict[str, Any], index: int) -> str:
+    name = str(pick.get("round_name") or "").strip() if isinstance(pick, dict) else ""
+    return name
+
+
+def get_pokemon_pool_for_round(state: Dict[str, Any], round_config: Optional[Dict[str, Any]]) -> List[str]:
+    if not round_config or round_config.get("pokemon_pool_source") == ROUND_POKEMON_POOL_SOURCE_GLOBAL:
+        return get_current_pokemon_pool(state)
+    return get_pokemon_pool_from_source(
+        str(round_config.get("pokemon_pool_source") or POKEMON_POOL_SOURCE_TXT),
+        round_config.get("pokemon_preset_id"),
+    )
+
+
+def get_pokemon_options_per_draw_for_round(state: Dict[str, Any], round_config: Optional[Dict[str, Any]]) -> int:
+    if round_config and round_config.get("pokemon_options_per_draw") is not None:
+        return max(1, min(20, int(round_config.get("pokemon_options_per_draw"))))
+    return get_pokemon_options_per_draw(state)
+
+
+def next_pokemon_options_per_draw(player: Dict[str, Any], state: Dict[str, Any]) -> int:
+    return get_pokemon_options_per_draw_for_round(state, get_next_pokemon_round(player, state))
+
+
+def next_pokemon_round_summary(player: Dict[str, Any], state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    round_config = get_next_pokemon_round(player, state)
+    if not round_config:
+        return None
+    pool = get_pokemon_pool_for_round(state, round_config)
+    source = round_config.get("pokemon_pool_source")
+    if source == POKEMON_POOL_SOURCE_DEX_PRESET:
+        preset = None
+        preset_id = safe_int_value(round_config.get("pokemon_preset_id"))
+        if preset_id is not None:
+            try:
+                preset = get_preset(preset_id, DEX_DB_FILE)
+            except DexUnavailable:
+                preset = None
+        source_label = f"MegaDex: {preset['name']}" if preset else "MegaDex: preset inválido"
+    elif source == POKEMON_POOL_SOURCE_TXT:
+        source_label = "TXT legado"
+    else:
+        source_label = pokemon_pool_source_label(state)
+    return {
+        "index": round_config.get("index"),
+        "slot": round_config.get("slot"),
+        "name": pokemon_round_label(round_config),
+        "source": source_label,
+        "pokemon_count": len(pool),
+        "options_per_draw": get_pokemon_options_per_draw_for_round(state, round_config),
+    }
+
+
+def draft_rounds_preview(state: Dict[str, Any]) -> List[Dict[str, Any]]:
+    previews: List[Dict[str, Any]] = []
+    for round_config in get_configured_draft_rounds(state):
+        pool = get_pokemon_pool_for_round(state, round_config)
+        previews.append({
+            **round_config,
+            "label": pokemon_round_label(round_config),
+            "pokemon_count": len(pool),
+            "options_effective": get_pokemon_options_per_draw_for_round(state, round_config),
+        })
+    return previews
+
+
+def get_lockable_pokemon_pool(state: Optional[Dict[str, Any]]) -> List[str]:
+    """União da pool global com as pools de rodadas para travar famílias/evoluções corretamente."""
+    if state is None:
+        return load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+    names: List[str] = []
+    seen = set()
+    for pool in [get_current_pokemon_pool(state)] + [get_pokemon_pool_for_round(state, round_config) for round_config in get_configured_draft_rounds(state)]:
+        for name in pool:
+            key = normalize_name_key(name)
+            if key and key not in seen:
+                seen.add(key)
+                names.append(name)
+    return names
+
+
+def state_with_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
+    state = default_state()
+    state["settings"].update(settings)
+    return state
+
+
+def ruleset_pool_summary(settings: Dict[str, Any]) -> Dict[str, Any]:
+    return pool_summary(state_with_settings(settings))
+
+
+def settings_from_ruleset_form(form: Any) -> Dict[str, Any]:
+    """Lê do formulário as configurações que compõem um ruleset."""
+    return {
+        "max_pokemon": clamp_int(form.get("max_pokemon"), MAX_POKEMON, 1, 30),
+        "pokemon_options_per_draw": clamp_int(form.get("pokemon_options_per_draw"), POKEMON_OPTIONS_PER_DRAW, 1, 20),
+        "ability_options_per_draw": clamp_int(form.get("ability_options_per_draw"), ABILITY_OPTIONS_PER_DRAW, 1, 20),
+        "pokemon_pool_source": form.get("pokemon_pool_source", POKEMON_POOL_SOURCE_TXT),
+        "pokemon_preset_id": safe_int_value(form.get("pokemon_preset_id")),
+        "ability_pool_source": form.get("ability_pool_source", ABILITY_POOL_SOURCE_TXT),
+        "ability_tag_filter": form.get("ability_tag_filter", "").strip(),
+        "ability_preset_id": safe_int_value(form.get("ability_preset_id")),
+        "lock_chosen_pokemon_globally": form.get("lock_chosen_pokemon_globally") == "on",
+        "pokemon_lock_scope": normalize_pokemon_lock_scope(form.get("pokemon_lock_scope")),
+        "lock_abilities_globally": form.get("lock_abilities_globally") == "on",
+        "budget_enabled": form.get("budget_enabled") == "on",
+        "budget_cost_mode": normalize_budget_cost_mode(form.get("budget_cost_mode")),
+        "budget_points_per_player": clamp_int(form.get("budget_points_per_player"), DEFAULT_BUDGET_POINTS_PER_PLAYER, 1, 20000),
+        "budget_unknown_pokemon_cost": clamp_int(form.get("budget_unknown_pokemon_cost"), DEFAULT_UNKNOWN_POKEMON_COST, 0, 20000),
+        "budget_flag_costs": parse_budget_flag_costs_text(form.get("budget_flag_costs", "")) or dict(DEFAULT_BUDGET_FLAG_COSTS),
+        "flag_karma": parse_flag_karma_text(form.get("flag_karma", "")),
+    }
+
+
+def apply_ruleset_settings_to_state(state: Dict[str, Any], settings: Dict[str, Any]) -> None:
+    """Aplica um ruleset no draft atual sem mexer em jogadores/escolhas existentes."""
+    current = state.setdefault("settings", {})
+    for key, value in settings.items():
+        current[key] = value
+    # Compatibilidade com partes antigas do estado que ainda liam options_per_draw.
+    current["options_per_draw"] = current.get("pokemon_options_per_draw", POKEMON_OPTIONS_PER_DRAW)
 
 
 def used_abilities_for_state(state: Dict[str, Any]) -> List[str]:
@@ -491,6 +766,327 @@ def available_flags(config: Dict[str, Any]) -> List[str]:
     return flags
 
 
+def parse_budget_flag_costs_text(text: str) -> Dict[str, int]:
+    costs: Dict[str, int] = {}
+    for raw_line in str(text or "").replace("\r\n", "\n").split("\n"):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" in line:
+            flag, value = line.split("=", 1)
+        elif ":" in line:
+            flag, value = line.split(":", 1)
+        else:
+            continue
+        flag = flag.strip()
+        if not flag:
+            continue
+        try:
+            costs[flag] = int(value.strip())
+        except ValueError:
+            continue
+    return costs
+
+
+def normalize_budget_flag_costs(raw: Any) -> Dict[str, int]:
+    if not isinstance(raw, dict):
+        return dict(DEFAULT_BUDGET_FLAG_COSTS)
+    normalized: Dict[str, int] = {}
+    for raw_flag, raw_cost in raw.items():
+        flag = str(raw_flag).strip()
+        if not flag:
+            continue
+        try:
+            normalized[flag] = int(raw_cost)
+        except (TypeError, ValueError):
+            continue
+    return normalized or dict(DEFAULT_BUDGET_FLAG_COSTS)
+
+
+def budget_flag_costs_text(settings: Dict[str, Any]) -> str:
+    costs = normalize_budget_flag_costs(settings.get("budget_flag_costs"))
+    return "\n".join(f"{flag}={cost}" for flag, cost in costs.items())
+
+
+def budget_enabled(state: Dict[str, Any]) -> bool:
+    return bool(state.setdefault("settings", {}).get("budget_enabled", False))
+
+
+def budget_total_points(state: Dict[str, Any]) -> int:
+    return setting_int(state, "budget_points_per_player", DEFAULT_BUDGET_POINTS_PER_PLAYER, 1, 20000)
+
+
+def budget_unknown_pokemon_cost(state: Dict[str, Any]) -> int:
+    return setting_int(state, "budget_unknown_pokemon_cost", DEFAULT_UNKNOWN_POKEMON_COST, 0, 20000)
+
+
+def normalize_budget_cost_mode(value: Any) -> str:
+    value = str(value or "").strip()
+    if value in {
+        BUDGET_COST_MODE_POKEMON_BST,
+        BUDGET_COST_MODE_SPECIES_MAX_BST,
+        BUDGET_COST_MODE_LINE_MAX_BST,
+    }:
+        return value
+    return DEFAULT_BUDGET_COST_MODE
+
+
+def budget_cost_mode(state: Dict[str, Any]) -> str:
+    settings = state.setdefault("settings", {})
+    mode = normalize_budget_cost_mode(settings.get("budget_cost_mode"))
+    settings["budget_cost_mode"] = mode
+    return mode
+
+
+def budget_cost_mode_label(mode: str) -> str:
+    labels = {
+        BUDGET_COST_MODE_POKEMON_BST: "BST da forma sorteada",
+        BUDGET_COST_MODE_SPECIES_MAX_BST: "Maior BST da species/formas",
+        BUDGET_COST_MODE_LINE_MAX_BST: "Maior BST da linha evolutiva",
+    }
+    return labels.get(normalize_budget_cost_mode(mode), labels[BUDGET_COST_MODE_POKEMON_BST])
+
+
+def intrinsic_budget_flags(record: Optional[Dict[str, Any]]) -> List[str]:
+    if not record:
+        return []
+    flags: List[str] = []
+    if int(record.get("is_legendary") or 0):
+        flags.append("Lendario")
+    if int(record.get("is_mythical") or 0):
+        flags.append("Mitico")
+    if int(record.get("is_ultra_beast") or 0):
+        flags.append("Ultra Beast")
+    if int(record.get("is_paradox") or 0):
+        flags.append("Paradox")
+    if int(record.get("is_pseudo") or 0):
+        flags.append("Pseudo")
+    if int(record.get("is_starter") or 0):
+        flags.append("Inicial")
+    return flags
+
+
+def budget_flags_for_pokemon(pokemon_name: str, record: Optional[Dict[str, Any]] = None) -> List[str]:
+    flags: List[str] = []
+    seen = set()
+    for flag in intrinsic_budget_flags(record) + flags_for_pokemon(pokemon_name):
+        key = str(flag).strip().lower()
+        if key and key not in seen:
+            flags.append(str(flag).strip())
+            seen.add(key)
+    return flags
+
+
+def budget_cost_payload(
+    pokemon_name: str,
+    state: Dict[str, Any],
+    record: Optional[Dict[str, Any]] = None,
+    evolution_line: Optional[Dict[str, Any]] = None,
+    species_summary: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    if record is None:
+        try:
+            record = get_pokemon_record_by_name(pokemon_name, db_path=DEX_DB_FILE)
+        except DexUnavailable:
+            record = None
+
+    unknown = record is None
+    mode = budget_cost_mode(state)
+    line_slug = None
+    representative_name = None
+    line_member_count = 0
+    species_slug = None
+    species_representative_name = None
+    species_member_count = 0
+
+    if record and mode == BUDGET_COST_MODE_SPECIES_MAX_BST:
+        species_slug = str(record.get("species_slug") or "").strip() or None
+        if species_summary is None and species_slug:
+            try:
+                species_summary = get_species_summaries_by_species_slugs([species_slug], db_path=DEX_DB_FILE).get(species_slug)
+            except DexUnavailable:
+                species_summary = None
+        if species_summary:
+            base_cost = int(species_summary.get("max_bst") or record.get("bst") or 0)
+            species_slug = species_summary.get("species_slug") or species_slug
+            species_representative_name = species_summary.get("representative_pokemon_name")
+            species_member_count = int(species_summary.get("form_count") or 0)
+        else:
+            base_cost = int(record.get("bst") or 0)
+    elif record and mode == BUDGET_COST_MODE_LINE_MAX_BST:
+        if evolution_line is None:
+            try:
+                evolution_line = get_evolution_line_for_pokemon_name(str(record.get("slug") or pokemon_name), db_path=DEX_DB_FILE)
+            except DexUnavailable:
+                evolution_line = None
+        if evolution_line:
+            base_cost = int(evolution_line.get("max_bst") or record.get("bst") or 0)
+            line_slug = evolution_line.get("line_slug")
+            representative_name = evolution_line.get("representative_pokemon_name")
+            line_member_count = len(evolution_line.get("pokemon_slugs") or [])
+        else:
+            base_cost = int(record.get("bst") or 0)
+    else:
+        base_cost = int(record.get("bst") or 0) if record else budget_unknown_pokemon_cost(state)
+
+    flags = budget_flags_for_pokemon(pokemon_name, record)
+    flag_costs = normalize_budget_flag_costs(state.setdefault("settings", {}).get("budget_flag_costs"))
+    flag_cost_lookup = {flag.lower(): cost for flag, cost in flag_costs.items()}
+    bonus = sum(int(flag_cost_lookup.get(flag.lower(), 0)) for flag in flags)
+    cost = max(0, base_cost + bonus)
+    return {
+        "name": pokemon_name,
+        "cost": cost,
+        "base_cost": base_cost,
+        "bonus_cost": bonus,
+        "bst": int(record.get("bst") or 0) if record else None,
+        "flags": flags,
+        "unknown": unknown,
+        "cost_mode": mode,
+        "cost_mode_label": budget_cost_mode_label(mode),
+        "line_slug": line_slug,
+        "representative_name": representative_name,
+        "line_member_count": line_member_count,
+        "species_slug": species_slug,
+        "species_representative_name": species_representative_name,
+        "species_member_count": species_member_count,
+    }
+
+
+def budget_costs_for_pokemon_names(names: List[str], state: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    try:
+        records = get_pokemon_records_by_names(names, db_path=DEX_DB_FILE)
+    except DexUnavailable:
+        records = {}
+
+    mode = budget_cost_mode(state)
+    lines_by_chain: Dict[int, Dict[str, Any]] = {}
+    species_summaries: Dict[str, Dict[str, Any]] = {}
+    if mode == BUDGET_COST_MODE_LINE_MAX_BST:
+        chain_ids = [
+            int(record.get("evolution_chain_id"))
+            for record in records.values()
+            if record.get("evolution_chain_id") is not None
+        ]
+        try:
+            lines_by_chain = get_evolution_lines_by_chain_ids(chain_ids, db_path=DEX_DB_FILE)
+        except DexUnavailable:
+            lines_by_chain = {}
+    elif mode == BUDGET_COST_MODE_SPECIES_MAX_BST:
+        species_slugs = [
+            str(record.get("species_slug") or "").strip()
+            for record in records.values()
+            if str(record.get("species_slug") or "").strip()
+        ]
+        try:
+            species_summaries = get_species_summaries_by_species_slugs(species_slugs, db_path=DEX_DB_FILE)
+        except DexUnavailable:
+            species_summaries = {}
+
+    payloads: Dict[str, Dict[str, Any]] = {}
+    for name in names:
+        record = records.get(command_token(name)) or records.get(str(name).strip().lower())
+        # command_token é permissivo demais para formas, então a chave correta é o slug da PokéAPI.
+        if record is None:
+            try:
+                from services.dex_db import normalize_slug as _dex_normalize_slug
+                record = records.get(_dex_normalize_slug(name))
+            except Exception:
+                record = None
+
+        line = None
+        if record and record.get("evolution_chain_id") is not None:
+            try:
+                line = lines_by_chain.get(int(record.get("evolution_chain_id")))
+            except (TypeError, ValueError):
+                line = None
+        species_summary = None
+        if record:
+            species_summary = species_summaries.get(str(record.get("species_slug") or "").strip())
+        payloads[name] = budget_cost_payload(name, state, record, line, species_summary)
+    return payloads
+
+def budget_cost_for_pick(pick: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
+    name = str(pick.get("name") or "").strip()
+    stored_cost = safe_int_value(pick.get("budget_cost"))
+    if stored_cost is not None:
+        return {
+            "name": name,
+            "cost": stored_cost,
+            "base_cost": safe_int_value(pick.get("budget_base_cost")),
+            "bonus_cost": safe_int_value(pick.get("budget_bonus_cost")) or 0,
+            "bst": safe_int_value(pick.get("budget_bst")),
+            "flags": pick.get("budget_flags", []) if isinstance(pick.get("budget_flags"), list) else [],
+            "unknown": bool(pick.get("budget_unknown", False)),
+            "cost_mode": pick.get("budget_cost_mode") or budget_cost_mode(state),
+            "cost_mode_label": budget_cost_mode_label(str(pick.get("budget_cost_mode") or budget_cost_mode(state))),
+            "line_slug": pick.get("budget_line_slug"),
+            "representative_name": pick.get("budget_representative_name"),
+            "line_member_count": safe_int_value(pick.get("budget_line_member_count")) or 0,
+            "species_slug": pick.get("budget_species_slug"),
+            "species_representative_name": pick.get("budget_species_representative_name"),
+            "species_member_count": safe_int_value(pick.get("budget_species_member_count")) or 0,
+        }
+    return budget_cost_payload(name, state)
+
+
+def player_budget_spent(player: Dict[str, Any], state: Dict[str, Any]) -> int:
+    return sum(budget_cost_for_pick(pick, state)["cost"] for pick in player.get("pokemon_picks", []) if isinstance(pick, dict))
+
+
+def player_budget_summary(player: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
+    total = budget_total_points(state)
+    spent = player_budget_spent(player, state)
+    remaining = total - spent
+    pick_costs = []
+    for pick in player.get("pokemon_picks", []):
+        if isinstance(pick, dict):
+            pick_costs.append({"pick": pick, "cost": budget_cost_for_pick(pick, state)})
+    return {
+        "enabled": budget_enabled(state),
+        "total": total,
+        "spent": spent,
+        "remaining": remaining,
+        "over_budget": remaining < 0,
+        "pick_costs": pick_costs,
+    }
+
+
+def excluded_by_budget_limits(player: Dict[str, Any], pokemon_pool: List[str], state: Dict[str, Any]) -> List[str]:
+    if not budget_enabled(state):
+        return []
+    remaining = player_budget_summary(player, state)["remaining"]
+    costs = budget_costs_for_pokemon_names(pokemon_pool, state)
+    return [name for name in pokemon_pool if costs.get(name, {}).get("cost", 0) > remaining]
+
+
+def stamp_budget_on_pick(pick: Dict[str, Any], pokemon_name: str, state: Dict[str, Any]) -> Dict[str, Any]:
+    payload = budget_cost_payload(pokemon_name, state)
+    pick["budget_cost"] = payload["cost"]
+    pick["budget_base_cost"] = payload["base_cost"]
+    pick["budget_bonus_cost"] = payload["bonus_cost"]
+    pick["budget_bst"] = payload["bst"]
+    pick["budget_flags"] = payload["flags"]
+    pick["budget_unknown"] = payload["unknown"]
+    pick["budget_cost_mode"] = payload.get("cost_mode")
+    pick["budget_line_slug"] = payload.get("line_slug")
+    pick["budget_representative_name"] = payload.get("representative_name")
+    pick["budget_line_member_count"] = payload.get("line_member_count")
+    pick["budget_species_slug"] = payload.get("species_slug")
+    pick["budget_species_representative_name"] = payload.get("species_representative_name")
+    pick["budget_species_member_count"] = payload.get("species_member_count")
+    return pick
+
+
+def reprice_all_picks(state: Dict[str, Any]) -> None:
+    for player in state.get("players", {}).values():
+        if not isinstance(player, dict):
+            continue
+        for pick in player.get("pokemon_picks", []):
+            if isinstance(pick, dict):
+                stamp_budget_on_pick(pick, str(pick.get("name") or ""), state)
+
+
 def normalize_name_key(value: str) -> str:
     return str(value).strip().lower()
 
@@ -547,6 +1143,60 @@ def group_lookup_map(groups: Optional[List[List[str]]] = None) -> Dict[str, List
     return mapping
 
 
+def related_pokemon_for_dex_species(pokemon_name: str, pokemon_pool: Optional[List[str]] = None) -> List[str]:
+    try:
+        records = get_pokemon_records_by_species_for_pokemon_name(pokemon_name, db_path=DEX_DB_FILE)
+    except DexUnavailable:
+        return []
+    if not records:
+        return []
+
+    if pokemon_pool is not None:
+        pool_by_slug = {}
+        try:
+            from services.dex_db import normalize_slug as _dex_normalize_slug
+            for name in pokemon_pool:
+                pool_by_slug[_dex_normalize_slug(name)] = name
+        except Exception:
+            pool_by_slug = {normalize_name_key(name).replace(" ", "-"): name for name in pokemon_pool}
+        related = [pool_by_slug[str(record.get("slug") or "").strip().lower()] for record in records if str(record.get("slug") or "").strip().lower() in pool_by_slug]
+        if related:
+            return sorted(related, key=lambda item: str(item).lower())
+
+    return [str(record.get("name")) for record in records if str(record.get("name") or "").strip()]
+
+
+def related_pokemon_for_dex_line(pokemon_name: str, pokemon_pool: Optional[List[str]] = None) -> List[str]:
+    try:
+        line = get_evolution_line_for_pokemon_name(pokemon_name, db_path=DEX_DB_FILE)
+    except DexUnavailable:
+        return []
+    if not line:
+        return []
+
+    line_slugs = {str(slug).strip().lower() for slug in line.get("pokemon_slugs", []) if str(slug).strip()}
+    if not line_slugs:
+        return []
+
+    if pokemon_pool is not None:
+        pool_by_slug = {}
+        try:
+            from services.dex_db import normalize_slug as _dex_normalize_slug
+            for name in pokemon_pool:
+                pool_by_slug[_dex_normalize_slug(name)] = name
+        except Exception:
+            pool_by_slug = {normalize_name_key(name).replace(" ", "-"): name for name in pokemon_pool}
+        related = [pool_by_slug[slug] for slug in line_slugs if slug in pool_by_slug]
+        if related:
+            return sorted(related, key=lambda item: str(item).lower())
+
+    try:
+        records = get_pokemon_records_in_evolution_line(line, db_path=DEX_DB_FILE)
+    except DexUnavailable:
+        records = []
+    return [str(record.get("name")) for record in records if str(record.get("name") or "").strip()]
+
+
 def locked_pokemon_for_choice(
     pokemon_name: str,
     *,
@@ -555,15 +1205,26 @@ def locked_pokemon_for_choice(
 ) -> List[str]:
     """Lista de Pokémon que devem sair da pool quando pokemon_name for escolhido."""
     if pokemon_pool is None:
-        pokemon_pool = get_current_pokemon_pool(state) if state is not None else load_pool(POKEMON_FILE, POKEMON_BANLIST_FILE)
+        pokemon_pool = get_lockable_pokemon_pool(state)
     pool_keys = {normalize_name_key(name): name for name in pokemon_pool}
-    related = related_pokemon_for(pokemon_name)
+    scope = pokemon_lock_scope(state or {"settings": {}})
+
+    if scope == POKEMON_LOCK_SCOPE_EXACT:
+        related = [pokemon_name]
+    elif scope == POKEMON_LOCK_SCOPE_SPECIES:
+        related = related_pokemon_for_dex_species(pokemon_name, pokemon_pool) or [pokemon_name]
+    elif scope == POKEMON_LOCK_SCOPE_LEGACY_GROUP:
+        related = related_pokemon_for(pokemon_name)
+    else:
+        # Linha evolutiva inteira é o padrão. Para nomes que não existem no MegaDex,
+        # o TXT legado continua funcionando como fallback.
+        related = related_pokemon_for_dex_line(pokemon_name, pokemon_pool) or related_pokemon_for(pokemon_name)
 
     # Mantém só nomes que existem na pool ativa, mas sempre inclui o escolhido.
     locked: List[str] = []
     for name in related:
         key = normalize_name_key(name)
-        if key in pool_keys:
+        if key in pool_keys and key not in {normalize_name_key(item) for item in locked}:
             locked.append(pool_keys[key])
     if normalize_name_key(pokemon_name) not in {normalize_name_key(name) for name in locked}:
         locked.append(pokemon_name)
@@ -602,6 +1263,8 @@ def normalize_player(player_id: str, player: Dict[str, Any]) -> Dict[str, Any]:
     pending.setdefault("ability_for_index", None)
     pending.setdefault("ability_options", [])
     pending.setdefault("choice_id", None)
+    pending.setdefault("round_index", None)
+    pending.setdefault("round_name", None)
 
     fixed_picks = []
     for pick in player["pokemon_picks"]:
@@ -610,6 +1273,8 @@ def normalize_player(player_id: str, player: Dict[str, Any]) -> Dict[str, Any]:
         else:
             pick.setdefault("name", "Pokémon")
             pick.setdefault("ability", None)
+            pick.setdefault("round_index", None)
+            pick.setdefault("round_name", None)
             fixed_picks.append(pick)
     player["pokemon_picks"] = fixed_picks
     player.setdefault("choice_history", [])
@@ -636,6 +1301,9 @@ def migrate_state_shape(state: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:
         settings["pokemon_options_per_draw"] = settings.get("options_per_draw", POKEMON_OPTIONS_PER_DRAW)
         changed = True
     settings["flag_karma"] = normalize_flag_karma(settings.get("flag_karma", default_settings.get("flag_karma", {})))
+    settings["pokemon_lock_scope"] = normalize_pokemon_lock_scope(settings.get("pokemon_lock_scope"))
+    settings["rounds_enabled"] = bool(settings.get("rounds_enabled", False))
+    settings["draft_rounds"] = normalize_draft_rounds(settings.get("draft_rounds", []), max_slots=setting_int({"settings": settings}, "max_pokemon", MAX_POKEMON, 1, 30))
     state.setdefault("version", 0)
 
     players = state.get("players", {})
@@ -918,16 +1586,28 @@ def choose_karma_flag_for_draw(player: Dict[str, Any], state: Dict[str, Any], po
 
 
 def draw_pokemon_options_for_player(player: Dict[str, Any], state: Dict[str, Any]) -> Tuple[List[str], Optional[str], Optional[Dict[str, Any]]]:
-    pokemon_pool = get_current_pokemon_pool(state)
+    round_config = get_next_pokemon_round(player, state)
+    pokemon_pool = get_pokemon_pool_for_round(state, round_config)
     flag_config = load_flag_config()
-    amount = get_pokemon_options_per_draw(state)
+    amount = get_pokemon_options_per_draw_for_round(state, round_config)
     already_in_team = [pick["name"] for pick in player.get("pokemon_picks", [])]
     globally_used = state.get("used_pokemon", []) if state.setdefault("settings", {}).get("lock_chosen_pokemon_globally", True) else []
     flag_blocked = excluded_by_flag_limits(player, pokemon_pool, flag_config)
-    excluded = already_in_team + globally_used + flag_blocked
+    budget_blocked = excluded_by_budget_limits(player, pokemon_pool, state)
+    excluded = already_in_team + globally_used + flag_blocked + budget_blocked
+    budget_summary = player_budget_summary(player, state)
 
     forced_flag = choose_karma_flag_for_draw(player, state, pokemon_pool, excluded, flag_config)
-    metadata: Dict[str, Any] = {"forced_flag": forced_flag, "karma_applied": False}
+    metadata: Dict[str, Any] = {
+        "forced_flag": forced_flag,
+        "karma_applied": False,
+        "round_index": round_config.get("index") if round_config else None,
+        "round_name": pokemon_round_label(round_config) if round_config else None,
+        "round_source": round_config.get("pokemon_pool_source") if round_config else None,
+        "budget_enabled": budget_enabled(state),
+        "budget_remaining": budget_summary.get("remaining"),
+        "budget_blocked_count": len(budget_blocked),
+    }
 
     if forced_flag:
         excluded_lower = {item.lower() for item in excluded}
@@ -944,9 +1624,12 @@ def draw_pokemon_options_for_player(player: Dict[str, Any], state: Dict[str, Any
             options = [forced] + remaining
             random.shuffle(options)
             metadata["karma_applied"] = True
+            metadata["option_costs"] = budget_costs_for_pokemon_names(options, state) if budget_enabled(state) else {}
             return options, None, metadata
 
     options, error = draw_options(pokemon_pool, amount, excluded)
+    if options and not error:
+        metadata["option_costs"] = budget_costs_for_pokemon_names(options, state) if budget_enabled(state) else {}
     return options, error, metadata
 
 
@@ -1036,7 +1719,8 @@ def slot_label(index: int) -> str:
 def master_pending_label(player: Dict[str, Any]) -> str:
     pending_type = player["pending"].get("type")
     if pending_type == "pokemon":
-        return "Aguardando escolha de Pokémon"
+        round_name = str(player["pending"].get("round_name") or "").strip()
+        return f"Aguardando escolha de Pokémon ({round_name})" if round_name else "Aguardando escolha de Pokémon"
     if pending_type == "ability":
         index = player["pending"].get("ability_for_index")
         if isinstance(index, int):
@@ -1047,7 +1731,8 @@ def master_pending_label(player: Dict[str, Any]) -> str:
 def player_pending_label(player: Dict[str, Any]) -> str:
     pending_type = player["pending"].get("type")
     if pending_type == "pokemon":
-        return "Aguardando escolha de Pokémon"
+        round_name = str(player["pending"].get("round_name") or "").strip()
+        return f"Aguardando escolha de Pokémon ({round_name})" if round_name else "Aguardando escolha de Pokémon"
     if pending_type == "ability":
         index = player["pending"].get("ability_for_index")
         picks = player.get("pokemon_picks", [])
@@ -1089,13 +1774,37 @@ def inject_helpers():
         "player_can_draw_ability": player_can_draw_ability,
         "get_pokemon_options_per_draw": get_pokemon_options_per_draw,
         "get_ability_options_per_draw": get_ability_options_per_draw,
+        "next_pokemon_options_per_draw": next_pokemon_options_per_draw,
+        "next_pokemon_round_summary": next_pokemon_round_summary,
+        "pokemon_round_label_for_pick": pokemon_round_label_for_pick,
+        "draft_rounds_enabled": draft_rounds_enabled,
+        "budget_enabled": budget_enabled,
+        "budget_total_points": budget_total_points,
+        "budget_unknown_pokemon_cost": budget_unknown_pokemon_cost,
+        "budget_cost_mode": budget_cost_mode,
+        "budget_cost_mode_label": budget_cost_mode_label,
+        "budget_flag_costs_text": budget_flag_costs_text,
+        "budget_cost_payload": budget_cost_payload,
+        "budget_cost_for_pick": budget_cost_for_pick,
+        "player_budget_summary": player_budget_summary,
         "flag_karma_text": flag_karma_text,
+        "pokemon_lock_scope": pokemon_lock_scope,
+        "pokemon_lock_scope_label": pokemon_lock_scope_label,
+        "pokemon_lock_scope_options": pokemon_lock_scope_options,
         "pokemon_pool_source_label": pokemon_pool_source_label,
         "ability_pool_source_label": ability_pool_source_label,
         "master_key": MASTER_KEY,
         "admin_key": ADMIN_KEY,
         "POKEMON_POOL_SOURCE_TXT": POKEMON_POOL_SOURCE_TXT,
         "POKEMON_POOL_SOURCE_DEX_PRESET": POKEMON_POOL_SOURCE_DEX_PRESET,
+        "ROUND_POKEMON_POOL_SOURCE_GLOBAL": ROUND_POKEMON_POOL_SOURCE_GLOBAL,
+        "POKEMON_LOCK_SCOPE_EXACT": POKEMON_LOCK_SCOPE_EXACT,
+        "POKEMON_LOCK_SCOPE_SPECIES": POKEMON_LOCK_SCOPE_SPECIES,
+        "POKEMON_LOCK_SCOPE_EVOLUTION_LINE": POKEMON_LOCK_SCOPE_EVOLUTION_LINE,
+        "POKEMON_LOCK_SCOPE_LEGACY_GROUP": POKEMON_LOCK_SCOPE_LEGACY_GROUP,
+        "BUDGET_COST_MODE_POKEMON_BST": BUDGET_COST_MODE_POKEMON_BST,
+        "BUDGET_COST_MODE_SPECIES_MAX_BST": BUDGET_COST_MODE_SPECIES_MAX_BST,
+        "BUDGET_COST_MODE_LINE_MAX_BST": BUDGET_COST_MODE_LINE_MAX_BST,
         "ABILITY_POOL_SOURCE_TXT": ABILITY_POOL_SOURCE_TXT,
         "ABILITY_POOL_SOURCE_DEX": ABILITY_POOL_SOURCE_DEX,
         "ABILITY_POOL_SOURCE_DEX_TAG": ABILITY_POOL_SOURCE_DEX_TAG,
@@ -1333,6 +2042,270 @@ def delete_ability_preset_route():
     return redirect(url_for("ability_presets_page", key=ADMIN_KEY))
 
 
+@app.route("/rulesets", methods=["GET"])
+def rulesets_page() -> str:
+    selected_id = parse_optional_int(request.args.get("ruleset_id", ""))
+    state = load_state()
+    try:
+        summary = dex_summary(DEX_DB_FILE)
+        pokemon_presets = list_presets(DEX_DB_FILE)
+        ability_tags = list_ability_tags(db_path=DEX_DB_FILE)
+        ability_presets = list_ability_presets(DEX_DB_FILE)
+        rulesets = list_draft_rulesets(DEX_DB_FILE)
+        selected = get_draft_ruleset(selected_id, DEX_DB_FILE) if selected_id else (rulesets[0] if rulesets else None)
+        selected_summary = ruleset_pool_summary(selected.get("settings", {})) if selected else None
+        unavailable = False
+    except DexUnavailable:
+        summary = {}
+        pokemon_presets = []
+        ability_tags = []
+        ability_presets = []
+        rulesets = []
+        selected = None
+        selected_summary = None
+        unavailable = True
+
+    return render_template(
+        "rulesets.html",
+        summary=summary,
+        state=state,
+        pokemon_presets=pokemon_presets,
+        ability_tags=ability_tags,
+        ability_presets=ability_presets,
+        rulesets=rulesets,
+        selected=selected,
+        selected_summary=selected_summary,
+        unavailable=unavailable,
+        admin_key=ADMIN_KEY,
+        key=ADMIN_KEY,
+    )
+
+
+@app.route("/rulesets/save", methods=["POST"])
+def save_ruleset_route():
+    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
+        flash("Chave admin inválida para salvar ruleset.", "error")
+        return redirect(url_for("rulesets_page"))
+
+    try:
+        ruleset_id = save_draft_ruleset(
+            name=request.form.get("ruleset_name", ""),
+            description=request.form.get("ruleset_description", ""),
+            settings=settings_from_ruleset_form(request.form),
+            db_path=DEX_DB_FILE,
+        )
+        flash("Ruleset salvo com sucesso.", "success")
+        return redirect(url_for("rulesets_page", ruleset_id=ruleset_id, key=ADMIN_KEY))
+    except (DexUnavailable, ValueError) as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+
+
+@app.route("/rulesets/delete", methods=["POST"])
+def delete_ruleset_route():
+    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
+        flash("Chave admin inválida para apagar ruleset.", "error")
+        return redirect(url_for("rulesets_page"))
+
+    ruleset_id = parse_optional_int(request.form.get("ruleset_id", ""))
+    if ruleset_id is None:
+        flash("Ruleset inválido.", "error")
+        return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+    try:
+        deleted = delete_draft_ruleset(ruleset_id, DEX_DB_FILE)
+    except DexUnavailable as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+    flash("Ruleset apagado." if deleted else "Ruleset não encontrado.", "success" if deleted else "error")
+    return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+
+
+@app.route("/rulesets/apply", methods=["POST"])
+def apply_ruleset_route():
+    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
+        flash("Chave admin inválida para aplicar ruleset.", "error")
+        return redirect(url_for("rulesets_page"))
+
+    ruleset_id = parse_optional_int(request.form.get("ruleset_id", ""))
+    if ruleset_id is None:
+        flash("Selecione um ruleset para aplicar.", "error")
+        return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+    try:
+        ruleset = get_draft_ruleset(ruleset_id, DEX_DB_FILE)
+    except DexUnavailable as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+    if not ruleset:
+        flash("Ruleset não encontrado.", "error")
+        return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+
+    state = load_state()
+    apply_ruleset_settings_to_state(state, ruleset.get("settings", {}))
+    recompute_used_pokemon(state)
+    save_state(state)
+    flash(f"Ruleset aplicado no draft atual: {ruleset['name']}", "success")
+    return redirect(url_for("admin_page", key=ADMIN_KEY))
+
+
+@app.route("/rounds", methods=["GET"])
+def rounds_page() -> str:
+    locked = require_admin()
+    if locked:
+        return locked
+
+    state = load_state()
+    try:
+        presets = list_presets(DEX_DB_FILE)
+        summary = dex_summary(DEX_DB_FILE)
+        unavailable = False
+    except DexUnavailable:
+        presets = []
+        summary = {}
+        unavailable = True
+
+    rounds = draft_rounds_preview(state)
+    return render_template(
+        "rounds.html",
+        state=state,
+        rounds=rounds,
+        presets=presets,
+        summary=summary,
+        unavailable=unavailable,
+        key=ADMIN_KEY,
+    )
+
+
+@app.route("/rounds/save", methods=["POST"])
+def save_rounds_route():
+    locked = require_admin()
+    if locked:
+        return locked
+
+    state = load_state()
+    settings = state.setdefault("settings", {})
+    max_slots = setting_int(state, "max_pokemon", MAX_POKEMON, 1, 30)
+
+    rounds: List[Dict[str, Any]] = []
+    for index in range(max_slots):
+        source = normalize_round_pokemon_source(request.form.get(f"round_source_{index}", ROUND_POKEMON_POOL_SOURCE_GLOBAL))
+        preset_id = safe_int_value(request.form.get(f"round_preset_id_{index}")) if source == POKEMON_POOL_SOURCE_DEX_PRESET else None
+        options = safe_int_value(request.form.get(f"round_options_{index}"))
+        if options is not None:
+            options = max(1, min(20, options))
+        rounds.append({
+            "index": index,
+            "slot": index + 1,
+            "name": request.form.get(f"round_name_{index}", f"Rodada {index + 1}").strip() or f"Rodada {index + 1}",
+            "pokemon_pool_source": source,
+            "pokemon_preset_id": preset_id,
+            "pokemon_options_per_draw": options,
+        })
+
+    settings["rounds_enabled"] = request.form.get("rounds_enabled") == "on"
+    settings["draft_rounds"] = normalize_draft_rounds(rounds, max_slots=max_slots)
+    recompute_used_pokemon(state)
+    save_state(state)
+    flash("Rodadas de draft salvas. Os próximos sorteios de Pokémon já usam essas regras.", "success")
+    return redirect(url_for("rounds_page", key=ADMIN_KEY))
+
+
+@app.route("/rounds/disable", methods=["POST"])
+def disable_rounds_route():
+    locked = require_admin()
+    if locked:
+        return locked
+    state = load_state()
+    state.setdefault("settings", {})["rounds_enabled"] = False
+    save_state(state)
+    flash("Rodadas desativadas. O sorteio voltou a usar a configuração global.", "success")
+    return redirect(url_for("rounds_page", key=ADMIN_KEY))
+
+
+@app.route("/evolution-lines", methods=["GET"])
+def evolution_lines_page() -> str:
+    q = request.args.get("q", "").strip()
+    try:
+        lines = search_evolution_lines(q=q, db_path=DEX_DB_FILE, limit=400)
+        error = None
+    except DexUnavailable as exc:
+        lines = []
+        error = str(exc)
+    return render_template(
+        "evolution_lines.html",
+        lines=lines,
+        q=q,
+        error=error,
+        key=ADMIN_KEY,
+    )
+
+
+@app.route("/budget", methods=["GET"])
+def budget_page() -> str:
+    locked = require_admin()
+    if locked:
+        return locked
+
+    state = load_state()
+    players = sorted_players(state)
+    player_summaries = {
+        player_id: player_budget_summary(player, state)
+        for player_id, player in players.items()
+    }
+    return render_template(
+        "budget.html",
+        state=state,
+        players=players,
+        player_summaries=player_summaries,
+        key=ADMIN_KEY,
+    )
+
+
+@app.route("/budget/save", methods=["POST"])
+def save_budget_route():
+    locked = require_admin()
+    if locked:
+        return locked
+
+    state = load_state()
+    settings = state.setdefault("settings", {})
+    settings["budget_enabled"] = request.form.get("budget_enabled") == "on"
+    settings["budget_cost_mode"] = normalize_budget_cost_mode(request.form.get("budget_cost_mode"))
+    settings["budget_points_per_player"] = clamp_int(
+        request.form.get("budget_points_per_player"),
+        DEFAULT_BUDGET_POINTS_PER_PLAYER,
+        1,
+        20000,
+    )
+    settings["budget_unknown_pokemon_cost"] = clamp_int(
+        request.form.get("budget_unknown_pokemon_cost"),
+        DEFAULT_UNKNOWN_POKEMON_COST,
+        0,
+        20000,
+    )
+    settings["budget_flag_costs"] = parse_budget_flag_costs_text(request.form.get("budget_flag_costs", "")) or dict(DEFAULT_BUDGET_FLAG_COSTS)
+    save_state(state)
+    flash("Orçamento do draft salvo. Os próximos sorteios de Pokémon já respeitam o saldo dos jogadores.", "success")
+    return redirect(url_for("budget_page", key=ADMIN_KEY))
+
+
+@app.route("/budget/reprice", methods=["POST"])
+def reprice_budget_route():
+    locked = require_admin()
+    if locked:
+        return locked
+
+    confirm = request.form.get("confirm", "").strip()
+    if confirm != "RECALCULAR":
+        flash('Digite exatamente "RECALCULAR" para recalcular custos já escolhidos.', "error")
+        return redirect(url_for("budget_page", key=ADMIN_KEY))
+
+    state = load_state()
+    reprice_all_picks(state)
+    save_state(state)
+    flash("Custos dos Pokémon já escolhidos foram recalculados com as regras atuais.", "success")
+    return redirect(url_for("budget_page", key=ADMIN_KEY))
+
+
 @app.route("/presets", methods=["GET"])
 def presets_page() -> str:
     selected_id = parse_optional_int(request.args.get("preset_id", ""))
@@ -1454,8 +2427,23 @@ def choose_pokemon():
         flash("Esse Pokémon já foi travado por outro jogador. Peça para o mestre sortear novamente.", "error")
         return redirect(url_for("player_page", player_id=player_id))
 
+    budget_payload = budget_cost_payload(chosen, state)
+    if budget_enabled(state) and budget_payload["cost"] > player_budget_summary(player, state)["remaining"]:
+        flash(
+            f"{chosen} custa {budget_payload['cost']} pts e ultrapassa seu orçamento restante. Peça novo sorteio ao mestre.",
+            "error",
+        )
+        return redirect(url_for("player_page", player_id=player_id))
+
     mark_choice_history(player, pending.get("choice_id"), chosen)
-    player["pokemon_picks"].append({"name": chosen, "ability": None})
+    pick = {
+        "name": chosen,
+        "ability": None,
+        "round_index": pending.get("round_index"),
+        "round_name": pending.get("round_name"),
+    }
+    stamp_budget_on_pick(pick, chosen, state)
+    player["pokemon_picks"].append(pick)
     player["pending"] = empty_pending()
 
     if state["settings"].get("lock_chosen_pokemon_globally", True):
@@ -1561,7 +2549,13 @@ def master_draw_pokemon():
         counts = player_flag_counts(player, flag_config)
         limits = flag_config.get("flag_limits", {})
         flag_status = ", ".join(f"{flag}: {counts.get(flag, 0)}/{limit}" for flag, limit in limits.items())
-        flash(error + (f" Limites de flags: {flag_status}." if flag_status else ""), "error")
+        extra_parts = []
+        if flag_status:
+            extra_parts.append(f"Limites de flags: {flag_status}.")
+        if budget_enabled(state):
+            summary = player_budget_summary(player, state)
+            extra_parts.append(f"Orçamento restante de {nickname}: {summary['remaining']}/{summary['total']} pts.")
+        flash(error + (" " + " ".join(extra_parts) if extra_parts else ""), "error")
         return redirect(url_for("master_page", key=MASTER_KEY))
 
     choice_id = register_choice_history(player, "pokemon", options)
@@ -1573,6 +2567,8 @@ def master_draw_pokemon():
         "ability_for_index": None,
         "ability_options": [],
         "choice_id": choice_id,
+        "round_index": draw_meta.get("round_index") if draw_meta else None,
+        "round_name": draw_meta.get("round_name") if draw_meta else None,
     }
     save_state(state)
 
@@ -1845,12 +2841,14 @@ def admin_page():
         ability_tags = list_ability_tags(db_path=DEX_DB_FILE)
         ability_presets = list_ability_presets(DEX_DB_FILE)
         active_ability_preset = get_active_ability_preset(state)
+        draft_rulesets = list_draft_rulesets(DEX_DB_FILE)
     except DexUnavailable:
         presets = []
         active_preset = None
         ability_tags = []
         ability_presets = []
         active_ability_preset = None
+        draft_rulesets = []
     current_summary = pool_summary(state)
     return render_template(
         "admin.html",
@@ -1870,6 +2868,7 @@ def admin_page():
         ability_tags=ability_tags,
         ability_presets=ability_presets,
         active_ability_preset=active_ability_preset,
+        draft_rulesets=draft_rulesets,
         pool_summary=current_summary,
         key=ADMIN_KEY,
         auto_refresh=False,
@@ -2269,6 +3268,7 @@ def admin_save_settings():
     settings["ability_preset_id"] = ability_preset_id if ability_pool_source == ABILITY_POOL_SOURCE_DEX_PRESET else None
 
     settings["lock_chosen_pokemon_globally"] = request.form.get("lock_chosen_pokemon_globally") == "on"
+    settings["pokemon_lock_scope"] = normalize_pokemon_lock_scope(request.form.get("pokemon_lock_scope"))
     settings["lock_abilities_globally"] = request.form.get("lock_abilities_globally") == "on"
     settings["flag_karma"] = parse_flag_karma_text(request.form.get("flag_karma", ""))
 

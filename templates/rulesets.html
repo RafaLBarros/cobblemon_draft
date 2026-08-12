@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}Rulesets do Mega Draft{% endblock %}
+{% block content %}
+<h1>Rulesets do Mega Draft</h1>
+<p class="muted">
+    Ruleset é um pacote completo de regras do draft: preset de Pokémon, preset/tag de abilities, quantidade de opções, travas, orçamento e karma.
+    Aplique um ruleset para trocar o formato do campeonato sem configurar campo por campo no Admin.
+</p>
+
+{% if unavailable %}
+    <div class="card">
+        <h2>Banco ainda não inicializado</h2>
+        <p>Execute:</p>
+        <div class="command-box">python scripts/init_dex_db.py</div>
+    </div>
+{% else %}
+    <div class="grid">
+        <div class="card"><strong>{{ summary.pokemon_count }}</strong><br><span class="muted">Pokémon/forms</span></div>
+        <div class="card"><strong>{{ summary.ability_count }}</strong><br><span class="muted">Abilities</span></div>
+        <div class="card"><strong>{{ rulesets|length }}</strong><br><span class="muted">Rulesets</span></div>
+    </div>
+
+    <div class="grid">
+        <section class="card">
+            <h2>Rulesets salvos</h2>
+            {% if rulesets %}
+                {% for ruleset in rulesets %}
+                    <div class="card">
+                        <h3>{{ ruleset.name }}</h3>
+                        {% if ruleset.description %}<p class="muted">{{ ruleset.description }}</p>{% endif %}
+                        <p>
+                            <span class="badge">Pokémon: {{ ruleset.labels.pokemon_source }}</span>
+                            <span class="badge">Ability: {{ ruleset.labels.ability_source }}</span>
+                            <span class="badge">{{ ruleset.labels.max_pokemon }} por jogador</span>
+                            <span class="badge">Trava: {{ ruleset.labels.locks }}</span>
+                            <span class="badge">Orçamento: {{ ruleset.labels.budget }}</span>
+                        </p>
+                        <div class="actions">
+                            <a class="button secondary" href="{{ url_for('rulesets_page', ruleset_id=ruleset.id, key=admin_key) }}">Ver</a>
+                            <form class="inline" method="post" action="{{ url_for('apply_ruleset_route') }}">
+                                <input type="hidden" name="admin_key" value="{{ admin_key }}">
+                                <input type="hidden" name="ruleset_id" value="{{ ruleset.id }}">
+                                <button type="submit">Aplicar no draft</button>
+                            </form>
+                            <form class="inline" method="post" action="{{ url_for('delete_ruleset_route') }}" onsubmit="return confirm('Apagar este ruleset?');">
+                                <input type="hidden" name="admin_key" value="{{ admin_key }}">
+                                <input type="hidden" name="ruleset_id" value="{{ ruleset.id }}">
+                                <button class="danger" type="submit">Apagar</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="muted">Nenhum ruleset salvo ainda.</p>
+                <p class="muted small">Rode <code>python scripts/seed_draft_rulesets.py</code> para criar sugestões iniciais.</p>
+            {% endif %}
+        </section>
+
+        <section class="card">
+            <h2>{% if selected %}Prévia: {{ selected.name }}{% else %}Prévia{% endif %}</h2>
+            {% if selected %}
+                <p>
+                    <span class="badge">Pokémon na pool: {{ selected_summary.pokemon_count }}</span>
+                    <span class="badge">Abilities na pool: {{ selected_summary.ability_count }}</span>
+                </p>
+                <table>
+                    <tbody>
+                        <tr><th>Pokémon por jogador</th><td>{{ selected.settings.max_pokemon }}</td></tr>
+                        <tr><th>Opções de Pokémon</th><td>{{ selected.settings.pokemon_options_per_draw }}</td></tr>
+                        <tr><th>Opções de ability</th><td>{{ selected.settings.ability_options_per_draw }}</td></tr>
+                        <tr><th>Orçamento</th><td>{% if selected.settings.budget_enabled %}{{ selected.settings.budget_points_per_player }} pts por jogador{% else %}Desativado{% endif %}</td></tr>
+                        <tr><th>Modo de custo</th><td>{{ budget_cost_mode_label(selected.settings.budget_cost_mode) }}</td></tr>
+                        <tr><th>Custo desconhecido</th><td>{{ selected.settings.budget_unknown_pokemon_cost }} pts</td></tr>
+                        <tr><th>Fonte Pokémon</th><td>{{ selected.labels.pokemon_source }}</td></tr>
+                        <tr><th>Fonte abilities</th><td>{{ selected.labels.ability_source }}</td></tr>
+                        <tr><th>Tag de ability</th><td>{{ selected.settings.ability_tag_filter or '—' }}</td></tr>
+                        <tr><th>Trava Pokémon global</th><td>{{ 'Sim' if selected.settings.lock_chosen_pokemon_globally else 'Não' }}</td></tr>
+                        <tr><th>Trava abilities global</th><td>{{ 'Sim' if selected.settings.lock_abilities_globally else 'Não' }}</td></tr>
+                    </tbody>
+                </table>
+                {% if selected.settings.flag_karma %}
+                    <p class="muted small">Karma configurado no ruleset.</p>
+                {% endif %}
+            {% else %}
+                <p class="muted">Selecione um ruleset para ver a prévia.</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <section class="card">
+        <h2>Criar ou atualizar ruleset</h2>
+        <p class="muted small">Se usar o mesmo nome de um ruleset existente, ele será atualizado.</p>
+        <form method="post" action="{{ url_for('save_ruleset_route') }}">
+            <input type="hidden" name="admin_key" value="{{ admin_key }}">
+
+            <div class="settings-grid">
+                <div class="setting-field">
+                    <label for="ruleset_name">Nome</label>
+                    <input id="ruleset_name" name="ruleset_name" type="text" value="{{ selected.name if selected else '' }}" placeholder="Ex.: Metronome Cup Completo" required>
+                </div>
+                <div class="setting-field">
+                    <label for="ruleset_description">Descrição</label>
+                    <input id="ruleset_description" name="ruleset_description" type="text" value="{{ selected.description if selected else '' }}" placeholder="Resumo do formato">
+                </div>
+                <div class="setting-field">
+                    <label for="max_pokemon">Pokémon por pessoa</label>
+                    <input id="max_pokemon" name="max_pokemon" type="number" min="1" max="30" value="{{ selected.settings.max_pokemon if selected else state.settings.max_pokemon }}">
+                </div>
+                <div class="setting-field">
+                    <label for="pokemon_options_per_draw">Opções por sorteio de Pokémon</label>
+                    <input id="pokemon_options_per_draw" name="pokemon_options_per_draw" type="number" min="1" max="20" value="{{ selected.settings.pokemon_options_per_draw if selected else get_pokemon_options_per_draw(state) }}">
+                </div>
+                <div class="setting-field">
+                    <label for="ability_options_per_draw">Opções por sorteio de ability</label>
+                    <input id="ability_options_per_draw" name="ability_options_per_draw" type="number" min="1" max="20" value="{{ selected.settings.ability_options_per_draw if selected else get_ability_options_per_draw(state) }}">
+                </div>
+            </div>
+
+            <div class="hr"></div>
+
+            {% set current_settings = selected.settings if selected else state.settings %}
+            <div class="settings-grid">
+                <div class="setting-field">
+                    <label for="pokemon_pool_source">Pool de Pokémon</label>
+                    <select id="pokemon_pool_source" name="pokemon_pool_source">
+                        <option value="{{ POKEMON_POOL_SOURCE_TXT }}" {% if current_settings.pokemon_pool_source != POKEMON_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>TXT legado</option>
+                        <option value="{{ POKEMON_POOL_SOURCE_DEX_PRESET }}" {% if current_settings.pokemon_pool_source == POKEMON_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>MegaDex — preset de Pokémon</option>
+                    </select>
+                </div>
+
+                <div class="setting-field">
+                    <label for="pokemon_preset_id">Preset de Pokémon</label>
+                    <select id="pokemon_preset_id" name="pokemon_preset_id">
+                        <option value="">Selecione</option>
+                        {% for preset in pokemon_presets %}
+                            <option value="{{ preset.id }}" {% if current_settings.pokemon_preset_id|string == preset.id|string %}selected{% endif %}>{{ preset.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="setting-field">
+                    <label for="ability_pool_source">Pool de abilities</label>
+                    <select id="ability_pool_source" name="ability_pool_source">
+                        <option value="{{ ABILITY_POOL_SOURCE_TXT }}" {% if current_settings.ability_pool_source == ABILITY_POOL_SOURCE_TXT or not current_settings.ability_pool_source %}selected{% endif %}>TXT legado</option>
+                        <option value="{{ ABILITY_POOL_SOURCE_DEX }}" {% if current_settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX %}selected{% endif %}>MegaDex — todas</option>
+                        <option value="{{ ABILITY_POOL_SOURCE_DEX_TAG }}" {% if current_settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_TAG %}selected{% endif %}>MegaDex — por tag</option>
+                        <option value="{{ ABILITY_POOL_SOURCE_DEX_PRESET }}" {% if current_settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>MegaDex — preset</option>
+                    </select>
+                </div>
+
+                <div class="setting-field">
+                    <label for="ability_preset_id">Preset de abilities</label>
+                    <select id="ability_preset_id" name="ability_preset_id">
+                        <option value="">Selecione</option>
+                        {% for preset in ability_presets %}
+                            <option value="{{ preset.id }}" {% if current_settings.ability_preset_id|string == preset.id|string %}selected{% endif %}>{{ preset.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="setting-field">
+                    <label for="ability_tag_filter">Tag de ability</label>
+                    <select id="ability_tag_filter" name="ability_tag_filter">
+                        <option value="">Todas / nenhuma</option>
+                        {% for tag in ability_tags %}
+                            <option value="{{ tag.name }}" {% if current_settings.ability_tag_filter == tag.name %}selected{% endif %}>{{ tag.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="hr"></div>
+
+            <h3>Orçamento</h3>
+            <label class="flag-check">
+                <input type="checkbox" name="budget_enabled" {% if current_settings.budget_enabled %}checked{% endif %}>
+                Ativar orçamento neste ruleset
+            </label>
+            <div class="settings-grid">
+                <div class="setting-field">
+                    <label for="budget_cost_mode">Modo de custo</label>
+                    <select id="budget_cost_mode" name="budget_cost_mode">
+                        <option value="{{ BUDGET_COST_MODE_POKEMON_BST }}" {% if current_settings.budget_cost_mode == BUDGET_COST_MODE_POKEMON_BST or not current_settings.budget_cost_mode %}selected{% endif %}>BST da forma sorteada</option>
+                        <option value="{{ BUDGET_COST_MODE_SPECIES_MAX_BST }}" {% if current_settings.budget_cost_mode == BUDGET_COST_MODE_SPECIES_MAX_BST %}selected{% endif %}>Maior BST da species/formas</option>
+                        <option value="{{ BUDGET_COST_MODE_LINE_MAX_BST }}" {% if current_settings.budget_cost_mode == BUDGET_COST_MODE_LINE_MAX_BST %}selected{% endif %}>Maior BST da linha evolutiva</option>
+                    </select>
+                </div>
+                <div class="setting-field">
+                    <label for="budget_points_per_player">Pontos por jogador</label>
+                    <input id="budget_points_per_player" name="budget_points_per_player" type="number" min="1" max="20000" value="{{ current_settings.budget_points_per_player or budget_total_points(state) }}">
+                </div>
+                <div class="setting-field">
+                    <label for="budget_unknown_pokemon_cost">Custo desconhecido</label>
+                    <input id="budget_unknown_pokemon_cost" name="budget_unknown_pokemon_cost" type="number" min="0" max="20000" value="{{ current_settings.budget_unknown_pokemon_cost or budget_unknown_pokemon_cost(state) }}">
+                </div>
+                <div class="setting-field">
+                    <label for="budget_flag_costs">Bônus por flag</label>
+                    <textarea id="budget_flag_costs" name="budget_flag_costs" rows="5" placeholder="Lendario=300&#10;Paradox=120">{{ budget_flag_costs_text(current_settings) }}</textarea>
+                </div>
+            </div>
+
+            <div class="hr"></div>
+
+            <label class="flag-check">
+                <input type="checkbox" name="lock_chosen_pokemon_globally" {% if current_settings.lock_chosen_pokemon_globally %}checked{% endif %}>
+                Travar Pokémon/grupo escolhido globalmente
+            </label>
+            <div class="setting-field flag-config-box">
+                <label for="pokemon_lock_scope">Escopo da trava de Pokémon</label>
+                <select id="pokemon_lock_scope" name="pokemon_lock_scope">
+                    {% for option in pokemon_lock_scope_options() %}
+                        <option value="{{ option.value }}" {% if (current_settings.pokemon_lock_scope or POKEMON_LOCK_SCOPE_EVOLUTION_LINE) == option.value %}selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+                <p class="muted small">Controle se uma escolha bloqueia apenas a forma, formas da mesma species, a linha evolutiva inteira ou os grupos TXT legados.</p>
+            </div>
+            <label class="flag-check">
+                <input type="checkbox" name="lock_abilities_globally" {% if current_settings.lock_abilities_globally %}checked{% endif %}>
+                Travar ability escolhida globalmente
+            </label>
+
+            <div class="setting-field flag-config-box">
+                <label for="flag_karma">Karma por flag</label>
+                <textarea id="flag_karma" name="flag_karma" placeholder="Lendario=6&#10;Paradox=6">{{ flag_karma_text(current_settings) }}</textarea>
+                <p class="muted small">Mesmo formato do Admin: <code>Flag=rodada_obrigatória</code>.</p>
+            </div>
+
+            <div class="actions">
+                <button type="submit">Salvar ruleset</button>
+                <a class="button secondary" href="{{ url_for('admin_page', key=admin_key) }}">Voltar ao Admin</a>
+            </div>
+        </form>
+    </section>
+{% endif %}
+{% endblock %}

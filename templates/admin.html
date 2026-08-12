@@ -206,14 +206,49 @@
         <span class="badge">Abilities na pool: {{ ability_count }}</span>
         <span class="badge">Fonte ability: {{ pool_summary.ability_source }}</span>
         <span class="badge">Pokémon travados: {{ state.used_pokemon|length }}</span>
+        {% if state.settings.lock_chosen_pokemon_globally %}<span class="badge">Trava: {{ pokemon_lock_scope_label(state) }}</span>{% endif %}
+        {% if draft_rounds_enabled(state) %}<span class="badge success">Rodadas ativas</span>{% endif %}
+        {% if budget_enabled(state) %}<span class="badge success">Orçamento: {{ budget_total_points(state) }} pts</span>{% endif %}
     </p>
     <div class="export-actions">
         <a class="button" href="{{ url_for('export_json', key=key) }}">Exportar estado completo JSON</a>
         <a class="button secondary" href="{{ url_for('export_history_json', key=key) }}">Exportar escolhas JSON</a>
         <a class="button secondary" href="{{ url_for('export_history_txt', key=key) }}">Exportar escolhas TXT</a>
+        <a class="button secondary" href="{{ url_for('budget_page', key=key) }}">Configurar orçamento</a>
     </div>
     <p class="muted small">O export de escolhas registra as 3 opções que cada jogador recebeu e qual opção foi selecionada. Isso é ótimo para analisar o draft depois do campeonato.</p>
     <p style="display:none">
+    </p>
+</section>
+
+<section class="card">
+    <h2>Rulesets rápidos</h2>
+    <p class="muted">Aplique um pacote completo de regras salvo: pool de Pokémon, pool de abilities, quantidades, travas e karma.</p>
+    {% if draft_rulesets %}
+        <form method="post" action="{{ url_for('apply_ruleset_route') }}">
+            <input type="hidden" name="admin_key" value="{{ key }}">
+            <div class="settings-grid">
+                <div class="setting-field">
+                    <label for="admin_ruleset_id">Ruleset</label>
+                    <select id="admin_ruleset_id" name="ruleset_id">
+                        {% for ruleset in draft_rulesets %}
+                            <option value="{{ ruleset.id }}">{{ ruleset.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="setting-field">
+                    <label>&nbsp;</label>
+                    <button type="submit">Aplicar ruleset</button>
+                </div>
+            </div>
+        </form>
+    {% else %}
+        <p class="muted">Nenhum ruleset salvo ainda. Crie em <a href="{{ url_for('rulesets_page', key=key) }}">Rulesets</a> ou rode <code>python scripts/seed_draft_rulesets.py</code>.</p>
+    {% endif %}
+    <p class="small muted">
+        <a href="{{ url_for('rulesets_page', key=key) }}">Abrir gerenciador de rulesets</a>
+        ·
+        <a href="{{ url_for('rounds_page', key=key) }}">Configurar rodadas por slot</a>
     </p>
 </section>
 
@@ -312,6 +347,21 @@
             Travar Pokémon/grupo escolhido globalmente
         </label>
 
+        <div class="setting-field flag-config-box">
+            <label for="pokemon_lock_scope">Escopo da trava de Pokémon</label>
+            <select id="pokemon_lock_scope" name="pokemon_lock_scope">
+                {% for option in pokemon_lock_scope_options() %}
+                    <option value="{{ option.value }}" {% if pokemon_lock_scope(state) == option.value %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+            </select>
+            <p class="muted small">
+                <strong>Linha evolutiva inteira</strong> trava evoluções e formas relacionadas pelo MegaDex.
+                <strong>Formas da mesma espécie</strong> trava só variações como Toxtricity Amped/Low Key.
+                <strong>Somente forma sorteada</strong> permite outras formas/evoluções aparecerem.
+                <strong>Grupos TXT</strong> usa apenas <code>data/pokemon_groups.txt</code>.
+            </p>
+        </div>
+
         <label class="flag-check">
             <input type="checkbox" name="lock_abilities_globally" {% if state.settings.lock_abilities_globally %}checked{% endif %}>
             Travar ability escolhida globalmente
@@ -341,12 +391,24 @@
                     <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ player_pending_label(player) }}</span>
                     <span class="badge">ID: {{ player_id }}</span>
                     <span class="badge">Escolhas registradas: {{ player.choice_history|length }}</span>
+                    {% if budget_enabled(state) %}
+                        {% set budget = player_budget_summary(player, state) %}
+                        <span class="badge {% if budget.over_budget %}warning{% else %}success{% endif %}">{{ budget.spent }}/{{ budget.total }} pts</span>
+                        <span class="badge">Restante: {{ budget.remaining }} pts</span>
+                    {% endif %}
                 </p>
                 <p class="small muted">Link do jogador: <span class="url-box">{{ request.host_url.rstrip('/') }}{{ url_for('player_page', player_id=player_id) }}</span></p>
 
                 <ol>
                     {% for pick in player.pokemon_picks %}
-                        <li><strong>{{ pick.name }}</strong> — {{ pick.ability if pick.ability else "ability pendente" }}</li>
+                        <li>
+                            <strong>{{ pick.name }}</strong>
+                            {% if budget_enabled(state) %}
+                                {% set pick_cost = budget_cost_for_pick(pick, state) %}
+                                <span class="badge">{{ pick_cost.cost }} pts</span>
+                            {% endif %}
+                            — {{ pick.ability if pick.ability else "ability pendente" }}
+                        </li>
                     {% endfor %}
                 </ol>
 

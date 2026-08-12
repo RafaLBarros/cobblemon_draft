@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Orçamento do Draft{% endblock %}
+{% block content %}
+<h1>Orçamento do Draft</h1>
+<p class="muted">
+    O orçamento limita quanto cada jogador pode gastar no time. O custo pode usar o <strong>BST da forma sorteada</strong>,
+    o <strong>maior BST da mesma species/formas</strong> ou o <strong>maior BST da linha evolutiva</strong>,
+    somado a bônus por flags especiais como Lendario, Paradox, Pseudo ou Inicial.
+</p>
+
+<section class="card">
+    <h2>Configuração do orçamento</h2>
+    <form method="post" action="{{ url_for('save_budget_route') }}">
+        <input type="hidden" name="key" value="{{ key }}">
+        <label class="flag-check">
+            <input type="checkbox" name="budget_enabled" {% if state.settings.budget_enabled %}checked{% endif %}>
+            Ativar orçamento nos sorteios de Pokémon
+        </label>
+
+        <div class="settings-grid">
+            <div class="setting-field">
+                <label for="budget_cost_mode">Modo de custo</label>
+                <select id="budget_cost_mode" name="budget_cost_mode">
+                    <option value="{{ BUDGET_COST_MODE_POKEMON_BST }}" {% if budget_cost_mode(state) == BUDGET_COST_MODE_POKEMON_BST %}selected{% endif %}>BST da forma sorteada</option>
+                    <option value="{{ BUDGET_COST_MODE_SPECIES_MAX_BST }}" {% if budget_cost_mode(state) == BUDGET_COST_MODE_SPECIES_MAX_BST %}selected{% endif %}>Maior BST da species/formas</option>
+                    <option value="{{ BUDGET_COST_MODE_LINE_MAX_BST }}" {% if budget_cost_mode(state) == BUDGET_COST_MODE_LINE_MAX_BST %}selected{% endif %}>Maior BST da linha evolutiva</option>
+                </select>
+                <p class="muted small">Species trava formas alternativas; linha evolutiva faz Toxel custar como a melhor forma de Toxtricity, por exemplo.</p>
+            </div>
+            <div class="setting-field">
+                <label for="budget_points_per_player">Pontos por jogador</label>
+                <input id="budget_points_per_player" name="budget_points_per_player" type="number" min="1" max="20000" value="{{ budget_total_points(state) }}">
+                <p class="muted small">Ex.: 3000 para um time de 6 com média de 500 BST.</p>
+            </div>
+            <div class="setting-field">
+                <label for="budget_unknown_pokemon_cost">Custo de Pokémon sem registro no MegaDex</label>
+                <input id="budget_unknown_pokemon_cost" name="budget_unknown_pokemon_cost" type="number" min="0" max="20000" value="{{ budget_unknown_pokemon_cost(state) }}">
+                <p class="muted small">Usado apenas se o nome vier do TXT legado e não existir no banco.</p>
+            </div>
+            <div class="setting-field">
+                <label for="budget_flag_costs">Bônus por flag</label>
+                <textarea id="budget_flag_costs" name="budget_flag_costs" rows="8" spellcheck="false" placeholder="Lendario=300&#10;Paradox=120&#10;Pseudo=100">{{ budget_flag_costs_text(state.settings) }}</textarea>
+                <p class="muted small">Formato: <code>Flag=custo_extra</code>. O custo final é <code>BST + bônus</code>.</p>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit">Salvar orçamento</button>
+            <a class="button secondary" href="{{ url_for('admin_page', key=key) }}">Voltar ao Admin</a>
+        </div>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Status dos jogadores</h2>
+    {% if not players %}
+        <p class="muted">Nenhum jogador cadastrado ainda.</p>
+    {% else %}
+        <div class="grid">
+            {% for player_id, player in players.items() %}
+                {% set summary = player_summaries[player_id] %}
+                <div class="card">
+                    <h3>{{ player.nickname }}</h3>
+                    <p>
+                        <span class="badge {% if summary.over_budget %}warning{% else %}success{% endif %}">
+                            {{ summary.spent }}/{{ summary.total }} pts
+                        </span>
+                        <span class="badge">Restante: {{ summary.remaining }} pts</span>
+                        <span class="badge">{{ player.pokemon_picks|length }}/{{ state.settings.max_pokemon }} Pokémon</span>
+                    </p>
+                    {% if summary.pick_costs %}
+                        <ol class="small">
+                            {% for row in summary.pick_costs %}
+                                <li>
+                                    <strong>{{ row.pick.name }}</strong> — {{ row.cost.cost }} pts
+                                    {% if row.cost.bst %}<span class="muted">BST próprio {{ row.cost.bst }}</span>{% endif %}
+                                    <br><span class="muted">Cálculo: {{ row.cost.cost_mode_label }}</span>
+                                    {% if row.cost.species_representative_name %}<br><span class="muted">Referência da species: {{ row.cost.species_representative_name }}</span>{% endif %}
+                                    {% if row.cost.representative_name %}<br><span class="muted">Referência da linha: {{ row.cost.representative_name }}</span>{% endif %}
+                                    {% if row.cost.flags %}<br><span class="muted">Flags: {{ row.cost.flags|join(', ') }}</span>{% endif %}
+                                    {% if row.cost.unknown %}<br><span class="badge warning">sem registro no MegaDex</span>{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ol>
+                    {% else %}
+                        <p class="muted small">Nenhum Pokémon escolhido.</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h2>Recalcular custos já escolhidos</h2>
+    <p class="muted">
+        Normalmente, o custo fica registrado no momento da escolha. Use isso se você alterou os bônus por flag, trocou o modo
+        de custo ou gerou/atualizou as linhas evolutivas.
+    </p>
+    <form method="post" action="{{ url_for('reprice_budget_route') }}">
+        <input type="hidden" name="key" value="{{ key }}">
+        <div class="settings-grid">
+            <div class="setting-field">
+                <label for="confirm">Confirmação</label>
+                <input id="confirm" name="confirm" type="text" placeholder="RECALCULAR">
+            </div>
+            <div class="setting-field">
+                <label>&nbsp;</label>
+                <button class="secondary" type="submit">Recalcular custos</button>
+            </div>
+        </div>
+    </form>
+</section>
+{% endblock %}

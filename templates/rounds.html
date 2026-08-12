@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Rodadas de Draft{% endblock %}
+{% block content %}
+<section class="card">
+    <h1>Rodadas de draft</h1>
+    <p class="muted">Configure uma pool diferente para cada slot do time. Exemplo: Rodada 1 só iniciais, Rodada 2 só Pokémon bulky, Rodada 3 só quem aprende Metronome.</p>
+    <p>
+        <span class="badge {% if state.settings.rounds_enabled %}success{% else %}warning{% endif %}">
+            {{ "Rodadas ativas" if state.settings.rounds_enabled else "Rodadas desativadas" }}
+        </span>
+        <span class="badge">Slots: {{ state.settings.max_pokemon }}</span>
+        {% if summary %}
+            <span class="badge">Pokémon no MegaDex: {{ summary.pokemon_count }}</span>
+            <span class="badge">Presets: {{ presets|length }}</span>
+        {% endif %}
+    </p>
+    <div class="actions">
+        <a class="button secondary" href="{{ url_for('admin_page', key=key) }}">Voltar ao Admin</a>
+        <a class="button secondary" href="{{ url_for('presets_page', key=key) }}">Gerenciar presets de Pokémon</a>
+    </div>
+</section>
+
+{% if unavailable %}
+<section class="card">
+    <h2>MegaDex indisponível</h2>
+    <p class="muted">O banco do MegaDex ainda não foi inicializado. Rode <code>python scripts/init_dex_db.py</code> e importe a PokéAPI antes de usar presets.</p>
+</section>
+{% endif %}
+
+<section class="card">
+    <h2>Configurar rodadas</h2>
+    <form method="post" action="{{ url_for('save_rounds_route') }}">
+        <input type="hidden" name="key" value="{{ key }}">
+
+        <label class="flag-check">
+            <input type="checkbox" name="rounds_enabled" {% if state.settings.rounds_enabled %}checked{% endif %}>
+            Usar regras por rodada nos próximos sorteios de Pokémon
+        </label>
+
+        <p class="muted small">
+            A fonte <strong>Global</strong> usa a configuração atual do Admin. A fonte <strong>TXT</strong> usa <code>data/pokemon.txt</code>. A fonte <strong>MegaDex</strong> usa o preset escolhido na linha.
+        </p>
+
+        <div class="hr"></div>
+
+        {% for round in rounds %}
+            <div class="card">
+                <h3>Slot {{ round.slot }}</h3>
+                <p>
+                    <span class="badge">Pool efetiva: {{ round.pokemon_count }} Pokémon</span>
+                    <span class="badge">Opções efetivas: {{ round.options_effective }}</span>
+                </p>
+
+                <div class="settings-grid">
+                    <div class="setting-field">
+                        <label for="round_name_{{ round.index }}">Nome da rodada</label>
+                        <input id="round_name_{{ round.index }}" name="round_name_{{ round.index }}" value="{{ round.name }}" placeholder="Rodada {{ round.slot }}">
+                        <p class="muted small">Ex.: Inicial, Bulky, Metronome, Lendário controlado.</p>
+                    </div>
+
+                    <div class="setting-field">
+                        <label for="round_source_{{ round.index }}">Fonte da pool</label>
+                        <select id="round_source_{{ round.index }}" name="round_source_{{ round.index }}">
+                            <option value="{{ ROUND_POKEMON_POOL_SOURCE_GLOBAL }}" {% if round.pokemon_pool_source == ROUND_POKEMON_POOL_SOURCE_GLOBAL %}selected{% endif %}>Global — usar configuração do Admin</option>
+                            <option value="{{ POKEMON_POOL_SOURCE_TXT }}" {% if round.pokemon_pool_source == POKEMON_POOL_SOURCE_TXT %}selected{% endif %}>TXT legado</option>
+                            <option value="{{ POKEMON_POOL_SOURCE_DEX_PRESET }}" {% if round.pokemon_pool_source == POKEMON_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>MegaDex — preset</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-field">
+                        <label for="round_preset_id_{{ round.index }}">Preset de Pokémon</label>
+                        <select id="round_preset_id_{{ round.index }}" name="round_preset_id_{{ round.index }}">
+                            <option value="">Selecione um preset</option>
+                            {% for preset in presets %}
+                                <option value="{{ preset.id }}" {% if round.pokemon_preset_id|string == preset.id|string %}selected{% endif %}>{{ preset.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="setting-field">
+                        <label for="round_options_{{ round.index }}">Opções nesta rodada</label>
+                        <input id="round_options_{{ round.index }}" name="round_options_{{ round.index }}" type="number" min="1" max="20" value="{{ round.pokemon_options_per_draw or '' }}" placeholder="Global">
+                        <p class="muted small">Deixe vazio para usar o número global.</p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+
+        <div class="actions">
+            <button type="submit">Salvar rodadas</button>
+        </div>
+    </form>
+
+    <form method="post" action="{{ url_for('disable_rounds_route') }}" style="margin-top: 12px;">
+        <input type="hidden" name="key" value="{{ key }}">
+        <button class="secondary" type="submit">Desativar rodadas</button>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Exemplos de uso</h2>
+    <ul>
+        <li><strong>Slot 1:</strong> Preset “Inicial Draft”.</li>
+        <li><strong>Slot 2:</strong> Preset “Bulky 400+”.</li>
+        <li><strong>Slot 3:</strong> Preset “Metronome Cup”.</li>
+        <li><strong>Slots restantes:</strong> Global, para continuar usando o ruleset ativo.</li>
+    </ul>
+    <p class="muted small">As rodadas só afetam sorteios novos. Pokémon já escolhidos continuam como estão.</p>
+</section>
+{% endblock %}

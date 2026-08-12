@@ -33,12 +33,37 @@ def connect(db_path: Path | str = DEFAULT_DB_PATH) -> sqlite3.Connection:
     return connection
 
 
+def _table_columns(connection: sqlite3.Connection, table_name: str) -> set[str]:
+    return {str(row[1]) for row in connection.execute(f"PRAGMA table_info({table_name})").fetchall()}
+
+
+def _ensure_column(connection: sqlite3.Connection, table_name: str, column_name: str, definition: str) -> None:
+    if column_name not in _table_columns(connection, table_name):
+        connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}")
+
+
+def ensure_schema_upgrades(connection: sqlite3.Connection) -> None:
+    """Aplica migrações pequenas que o CREATE TABLE IF NOT EXISTS não cobre.
+
+    Isso mantém bancos locais antigos compatíveis quando novos campos são
+    adicionados ao MegaDex sem exigir rebuild completo.
+    """
+    _ensure_column(connection, "pokemon", "evolution_chain_id", "INTEGER")
+    _ensure_column(connection, "pokemon", "evolution_line_slug", "TEXT")
+    _ensure_column(connection, "pokemon", "evolution_stage", "INTEGER NOT NULL DEFAULT 0")
+    _ensure_column(connection, "pokemon", "is_final_evolution", "INTEGER NOT NULL DEFAULT 0")
+
+    connection.execute("CREATE INDEX IF NOT EXISTS idx_pokemon_species ON pokemon(species_slug)")
+    connection.execute("CREATE INDEX IF NOT EXISTS idx_pokemon_evolution_line ON pokemon(evolution_chain_id, evolution_line_slug)")
+
+
 def init_database(db_path: Path | str = DEFAULT_DB_PATH) -> Path:
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(db_path) as connection:
         connection.execute("PRAGMA foreign_keys = ON")
         connection.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+        ensure_schema_upgrades(connection)
     return db_path
 
 
@@ -73,12 +98,14 @@ def dex_summary(db_path: Path | str = DEFAULT_DB_PATH) -> Dict[str, int]:
         move_count = connection.execute("SELECT COUNT(*) FROM moves").fetchone()[0]
         pokemon_move_count = connection.execute("SELECT COUNT(*) FROM pokemon_moves").fetchone()[0]
         tag_count = connection.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
+        evolution_line_count = connection.execute("SELECT COUNT(*) FROM evolution_lines").fetchone()[0]
     return {
         "pokemon_count": pokemon_count,
         "ability_count": ability_count,
         "move_count": move_count,
         "pokemon_move_count": pokemon_move_count,
         "tag_count": tag_count,
+        "evolution_line_count": evolution_line_count,
     }
 
 
@@ -240,6 +267,268 @@ def get_pokemon_pool_from_preset(
             names.append(name)
             seen.add(key)
     return names
+
+
+def get_pokemon_records_by_names(
+    names: Iterable[str],
+    *,
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> Dict[str, Dict[str, Any]]:
+    """Retorna dados básicos de custo/orçamento para uma lista de nomes de Pokémon/forms."""
+    wanted_slugs = []
+    seen = set()
+    for name in names:
+        slug = normalize_slug(str(name or ""))
+        if slug and slug not in seen:
+            wanted_slugs.append(slug)
+            seen.add(slug)
+    if not wanted_slugs:
+        return {}
+
+    result: Dict[str, Dict[str, Any]] = {}
+    # Evita queries gigantescas se o usuário importar milhares de forms.
+    with connect(db_path) as connection:
+        for start in range(0, len(wanted_slugs), 800):
+            chunk = wanted_slugs[start:start + 800]
+            placeholders = ",".join("?" for _ in chunk)
+            rows = connection.execute(
+                f"""
+                SELECT
+                    id, pokeapi_id, name, slug, species_slug, evolution_chain_id, evolution_line_slug,
+                    evolution_stage, is_final_evolution, generation, type1, type2,
+                    hp, attack, defense, sp_attack, sp_defense, speed, bst,
+                    is_legendary, is_mythical, is_pseudo, is_ultra_beast, is_paradox, is_starter
+                FROM pokemon
+                WHERE slug IN ({placeholders})
+                """,
+                chunk,
+            ).fetchall()
+            for row in rows:
+                data = dict(row)
+                result[str(data.get("slug") or "")] = data
+    return result
+
+
+def get_pokemon_record_by_name(
+    name: str,
+    *,
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> Optional[Dict[str, Any]]:
+    records = get_pokemon_records_by_names([name], db_path=db_path)
+    return records.get(normalize_slug(name))
+
+
+def get_pokemon_records_by_species_for_pokemon_name(
+    name: str,
+    *,
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> List[Dict[str, Any]]:
+    """Retorna todas as formas/Pokémon que compartilham a species do Pokémon informado."""
+    record = get_pokemon_record_by_name(name, db_path=db_path)
+    if not record:
+        return []
+    species_slug = str(record.get("species_slug") or "").strip()
+    if not species_slug:
+        return [record]
+    with connect(db_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT
+                id, pokeapi_id, name, slug, species_slug, evolution_chain_id, evolution_line_slug,
+                evolution_stage, is_final_evolution, generation, type1, type2,
+                hp, attack, defense, sp_attack, sp_defense, speed, bst,
+                is_legendary, is_mythical, is_pseudo, is_ultra_beast, is_paradox, is_starter
+            FROM pokemon
+            WHERE species_slug = ?
+            ORDER BY is_default DESC, name COLLATE NOCASE ASC
+            """,
+            (species_slug,),
+        ).fetchall()
+    return rows_to_dicts(rows)
+
+
+def get_species_summaries_by_species_slugs(
+    species_slugs: Iterable[str],
+    *,
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> Dict[str, Dict[str, Any]]:
+    """Retorna o maior BST e o representante de cada species/forma agrupada."""
+    cleaned: List[str] = []
+    seen = set()
+    for value in species_slugs:
+        slug = str(value or "").strip()
+        if slug and slug not in seen:
+            cleaned.append(slug)
+            seen.add(slug)
+    if not cleaned:
+        return {}
+
+    result: Dict[str, Dict[str, Any]] = {}
+    with connect(db_path) as connection:
+        for start in range(0, len(cleaned), 800):
+            chunk = cleaned[start:start + 800]
+            placeholders = ",".join("?" for _ in chunk)
+            rows = connection.execute(
+                f"""
+                SELECT species_slug, name, slug, bst, is_default
+                FROM pokemon
+                WHERE species_slug IN ({placeholders})
+                ORDER BY species_slug COLLATE NOCASE ASC, bst DESC, is_default DESC, name COLLATE NOCASE ASC
+                """,
+                chunk,
+            ).fetchall()
+            for row in rows:
+                data = dict(row)
+                species_slug = str(data.get("species_slug") or "").strip()
+                if not species_slug:
+                    continue
+                current = result.setdefault(
+                    species_slug,
+                    {
+                        "species_slug": species_slug,
+                        "max_bst": 0,
+                        "representative_pokemon_name": "",
+                        "representative_pokemon_slug": "",
+                        "form_count": 0,
+                    },
+                )
+                current["form_count"] = int(current.get("form_count") or 0) + 1
+                bst = int(data.get("bst") or 0)
+                if bst > int(current.get("max_bst") or 0):
+                    current["max_bst"] = bst
+                    current["representative_pokemon_name"] = data.get("name") or ""
+                    current["representative_pokemon_slug"] = data.get("slug") or ""
+    return result
+
+
+def _safe_json_list(value: Any) -> List[str]:
+    if isinstance(value, list):
+        return [str(item) for item in value if str(item).strip()]
+    try:
+        parsed = json.loads(value or "[]")
+    except (TypeError, json.JSONDecodeError):
+        parsed = []
+    if not isinstance(parsed, list):
+        return []
+    return [str(item) for item in parsed if str(item).strip()]
+
+
+def _parse_evolution_line(row: sqlite3.Row | Dict[str, Any]) -> Dict[str, Any]:
+    data = dict(row)
+    data["species_slugs"] = _safe_json_list(data.get("species_slugs_json"))
+    data["final_species_slugs"] = _safe_json_list(data.get("final_species_slugs_json"))
+    data["pokemon_slugs"] = _safe_json_list(data.get("pokemon_slugs_json"))
+    return data
+
+
+def get_evolution_line_for_pokemon_name(
+    name: str,
+    *,
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> Optional[Dict[str, Any]]:
+    slug = normalize_slug(name)
+    if not slug:
+        return None
+    with connect(db_path) as connection:
+        row = connection.execute(
+            """
+            SELECT el.*
+            FROM pokemon p
+            JOIN evolution_lines el ON el.pokeapi_chain_id = p.evolution_chain_id
+            WHERE p.slug = ?
+            LIMIT 1
+            """,
+            (slug,),
+        ).fetchone()
+    return _parse_evolution_line(row) if row else None
+
+
+def get_evolution_lines_by_chain_ids(
+    chain_ids: Iterable[int],
+    *,
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> Dict[int, Dict[str, Any]]:
+    cleaned: List[int] = []
+    seen = set()
+    for value in chain_ids:
+        try:
+            chain_id = int(value)
+        except (TypeError, ValueError):
+            continue
+        if chain_id not in seen:
+            cleaned.append(chain_id)
+            seen.add(chain_id)
+    if not cleaned:
+        return {}
+
+    result: Dict[int, Dict[str, Any]] = {}
+    with connect(db_path) as connection:
+        for start in range(0, len(cleaned), 800):
+            chunk = cleaned[start:start + 800]
+            placeholders = ",".join("?" for _ in chunk)
+            rows = connection.execute(
+                f"SELECT * FROM evolution_lines WHERE pokeapi_chain_id IN ({placeholders})",
+                chunk,
+            ).fetchall()
+            for row in rows:
+                data = _parse_evolution_line(row)
+                result[int(data["pokeapi_chain_id"])] = data
+    return result
+
+
+def get_pokemon_records_in_evolution_line(
+    line: Dict[str, Any],
+    *,
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> List[Dict[str, Any]]:
+    chain_id = line.get("pokeapi_chain_id")
+    try:
+        chain_id_int = int(chain_id)
+    except (TypeError, ValueError):
+        return []
+    with connect(db_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT id, pokeapi_id, name, slug, species_slug, evolution_chain_id, evolution_line_slug,
+                   evolution_stage, is_final_evolution, generation, type1, type2,
+                   hp, attack, defense, sp_attack, sp_defense, speed, bst,
+                   is_legendary, is_mythical, is_pseudo, is_ultra_beast, is_paradox, is_starter
+            FROM pokemon
+            WHERE evolution_chain_id = ?
+            ORDER BY evolution_stage ASC, is_default DESC, species_slug ASC, name COLLATE NOCASE ASC
+            """,
+            (chain_id_int,),
+        ).fetchall()
+    return rows_to_dicts(rows)
+
+
+def search_evolution_lines(
+    *,
+    q: str = "",
+    db_path: Path | str = DEFAULT_DB_PATH,
+    limit: int = 300,
+) -> List[Dict[str, Any]]:
+    conditions: List[str] = []
+    params: Dict[str, Any] = {"limit": max(1, min(limit, 1000))}
+    if q.strip():
+        conditions.append(
+            "(line_slug LIKE :q OR root_species_slug LIKE :q OR species_slugs_json LIKE :q OR pokemon_slugs_json LIKE :q "
+            "OR representative_pokemon_name LIKE :q OR representative_pokemon_slug LIKE :q)"
+        )
+        params["q"] = f"%{normalize_slug(q) or q.strip()}%"
+    where_sql = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    with connect(db_path) as connection:
+        rows = connection.execute(
+            f"""
+            SELECT *
+            FROM evolution_lines
+            {where_sql}
+            ORDER BY root_species_slug COLLATE NOCASE ASC
+            LIMIT :limit
+            """,
+            params,
+        ).fetchall()
+    return [_parse_evolution_line(row) for row in rows]
 
 
 def list_ability_names(
@@ -667,6 +956,273 @@ def get_ability_pool_from_preset(
             seen.add(key)
     return names
 
+
+
+
+RULESET_POKEMON_POOL_SOURCES = {"txt", "dex_preset"}
+RULESET_ABILITY_POOL_SOURCES = {"txt", "dex_all", "dex_tag", "dex_preset"}
+RULESET_POKEMON_LOCK_SCOPES = {"exact", "species", "evolution_line", "legacy_group"}
+
+
+def parse_bool_setting(value: Any, *, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return str(value).strip().lower() in {"1", "true", "sim", "yes", "on", "checked"}
+
+
+def clamp_int_setting(value: Any, *, default: int, minimum: int = 1, maximum: int = 100) -> int:
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        number = default
+    return max(minimum, min(maximum, number))
+
+
+def normalize_ruleset_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
+    """Normaliza as configurações que um ruleset pode aplicar no draft."""
+    pokemon_source = str(settings.get("pokemon_pool_source") or "txt").strip()
+    if pokemon_source not in RULESET_POKEMON_POOL_SOURCES:
+        pokemon_source = "txt"
+
+    ability_source = str(settings.get("ability_pool_source") or "txt").strip()
+    if ability_source not in RULESET_ABILITY_POOL_SOURCES:
+        ability_source = "txt"
+
+    def optional_int(value: Any) -> Optional[int]:
+        if value is None or str(value).strip() == "":
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    raw_karma = settings.get("flag_karma") if isinstance(settings.get("flag_karma"), dict) else {}
+    lock_scope = str(settings.get("pokemon_lock_scope") or "evolution_line").strip()
+    if lock_scope not in RULESET_POKEMON_LOCK_SCOPES:
+        lock_scope = "evolution_line"
+
+    return {
+        "max_pokemon": clamp_int_setting(settings.get("max_pokemon"), default=6, minimum=1, maximum=30),
+        "pokemon_options_per_draw": clamp_int_setting(settings.get("pokemon_options_per_draw"), default=3, minimum=1, maximum=20),
+        "ability_options_per_draw": clamp_int_setting(settings.get("ability_options_per_draw"), default=3, minimum=1, maximum=20),
+        "pokemon_pool_source": pokemon_source,
+        "pokemon_preset_id": optional_int(settings.get("pokemon_preset_id")),
+        "ability_pool_source": ability_source,
+        "ability_tag_filter": str(settings.get("ability_tag_filter") or "").strip(),
+        "ability_preset_id": optional_int(settings.get("ability_preset_id")),
+        "lock_chosen_pokemon_globally": parse_bool_setting(settings.get("lock_chosen_pokemon_globally"), default=True),
+        "pokemon_lock_scope": lock_scope,
+        "lock_abilities_globally": parse_bool_setting(settings.get("lock_abilities_globally"), default=False),
+        "budget_enabled": parse_bool_setting(settings.get("budget_enabled"), default=False),
+        "budget_points_per_player": clamp_int_setting(settings.get("budget_points_per_player"), default=3000, minimum=1, maximum=20000),
+        "budget_unknown_pokemon_cost": clamp_int_setting(settings.get("budget_unknown_pokemon_cost"), default=450, minimum=0, maximum=20000),
+        "budget_cost_mode": settings.get("budget_cost_mode") if settings.get("budget_cost_mode") in {"pokemon_bst", "species_max_bst", "line_max_bst"} else "pokemon_bst",
+        "budget_flag_costs": settings.get("budget_flag_costs") if isinstance(settings.get("budget_flag_costs"), dict) else {},
+        "flag_karma": raw_karma,
+    }
+
+
+def ruleset_settings_to_labels(settings: Dict[str, Any]) -> Dict[str, str]:
+    normalized = normalize_ruleset_settings(settings)
+    pokemon_source = "MegaDex/preset" if normalized["pokemon_pool_source"] == "dex_preset" else "TXT legado"
+    ability_source_map = {
+        "txt": "TXT legado",
+        "dex_all": "MegaDex/todas",
+        "dex_tag": "MegaDex/tag",
+        "dex_preset": "MegaDex/preset",
+    }
+    budget_mode_map = {
+        "pokemon_bst": "forma sorteada",
+        "species_max_bst": "species/formas",
+        "line_max_bst": "linha evolutiva",
+    }
+    budget_mode_label = budget_mode_map.get(normalized.get("budget_cost_mode"), "forma sorteada")
+    lock_scope_map = {
+        "exact": "forma sorteada",
+        "species": "formas da species",
+        "evolution_line": "linha evolutiva",
+        "legacy_group": "grupos TXT",
+    }
+    if normalized.get("lock_chosen_pokemon_globally"):
+        lock_label = "Pokémon global: " + lock_scope_map.get(normalized.get("pokemon_lock_scope"), "linha evolutiva")
+    else:
+        lock_label = "Pokémon não trava globalmente"
+    if normalized["lock_abilities_globally"]:
+        lock_label += " + abilities globais"
+    return {
+        "pokemon_source": pokemon_source,
+        "ability_source": ability_source_map.get(normalized["ability_pool_source"], normalized["ability_pool_source"]),
+        "max_pokemon": str(normalized["max_pokemon"]),
+        "pokemon_options_per_draw": str(normalized["pokemon_options_per_draw"]),
+        "ability_options_per_draw": str(normalized["ability_options_per_draw"]),
+        "budget": f"{normalized['budget_points_per_player']} pts · {budget_mode_label}" if normalized.get("budget_enabled") else "desativado",
+        "locks": lock_label,
+    }
+
+
+def _decode_ruleset(row: sqlite3.Row | Dict[str, Any]) -> Dict[str, Any]:
+    ruleset = dict(row)
+    try:
+        settings = json.loads(ruleset.get("settings_json") or "{}")
+    except json.JSONDecodeError:
+        settings = {}
+    ruleset["settings"] = normalize_ruleset_settings(settings if isinstance(settings, dict) else {})
+    ruleset["labels"] = ruleset_settings_to_labels(ruleset["settings"])
+    return ruleset
+
+
+def list_draft_rulesets(db_path: Path | str = DEFAULT_DB_PATH) -> List[Dict[str, Any]]:
+    with connect(db_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT id, name, slug, description, settings_json, created_at, updated_at
+            FROM draft_rulesets
+            ORDER BY name COLLATE NOCASE ASC
+            """
+        ).fetchall()
+    return [_decode_ruleset(row) for row in rows]
+
+
+def get_draft_ruleset(ruleset_id: int, db_path: Path | str = DEFAULT_DB_PATH) -> Optional[Dict[str, Any]]:
+    with connect(db_path) as connection:
+        row = connection.execute(
+            """
+            SELECT id, name, slug, description, settings_json, created_at, updated_at
+            FROM draft_rulesets
+            WHERE id = ?
+            """,
+            (ruleset_id,),
+        ).fetchone()
+    return _decode_ruleset(row) if row else None
+
+
+def save_draft_ruleset(
+    *,
+    name: str,
+    description: str,
+    settings: Dict[str, Any],
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> int:
+    cleaned_name = name.strip()
+    if not cleaned_name:
+        raise ValueError("Nome do ruleset é obrigatório.")
+    normalized = normalize_ruleset_settings(settings)
+    if normalized["pokemon_pool_source"] == "dex_preset" and not normalized.get("pokemon_preset_id"):
+        raise ValueError("Ruleset usando MegaDex para Pokémon precisa de um preset de Pokémon.")
+    if normalized["ability_pool_source"] == "dex_tag" and not normalized.get("ability_tag_filter"):
+        raise ValueError("Ruleset usando abilities por tag precisa de uma tag de ability.")
+    if normalized["ability_pool_source"] == "dex_preset" and not normalized.get("ability_preset_id"):
+        raise ValueError("Ruleset usando preset de abilities precisa de um preset de ability.")
+
+    slug = preset_slug(cleaned_name)
+    settings_json = json.dumps(normalized, ensure_ascii=False, sort_keys=True)
+    with connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO draft_rulesets (name, slug, description, settings_json, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(slug) DO UPDATE SET
+                name = excluded.name,
+                description = excluded.description,
+                settings_json = excluded.settings_json,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (cleaned_name, slug, description.strip(), settings_json),
+        )
+        row = connection.execute("SELECT id FROM draft_rulesets WHERE slug = ?", (slug,)).fetchone()
+        connection.commit()
+    return int(row[0])
+
+
+def delete_draft_ruleset(ruleset_id: int, db_path: Path | str = DEFAULT_DB_PATH) -> bool:
+    with connect(db_path) as connection:
+        cursor = connection.execute("DELETE FROM draft_rulesets WHERE id = ?", (ruleset_id,))
+        connection.commit()
+    return cursor.rowcount > 0
+
+
+def find_preset_id_by_slug_or_name(
+    *,
+    slug: str,
+    name: str = "",
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> Optional[int]:
+    with connect(db_path) as connection:
+        row = connection.execute(
+            "SELECT id FROM draft_presets WHERE slug = ? OR name = ?",
+            (slug, name.strip() or slug),
+        ).fetchone()
+    return int(row[0]) if row else None
+
+
+def find_ability_preset_id_by_slug_or_name(
+    *,
+    slug: str,
+    name: str = "",
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> Optional[int]:
+    with connect(db_path) as connection:
+        row = connection.execute(
+            "SELECT id FROM ability_presets WHERE slug = ? OR name = ?",
+            (slug, name.strip() or slug),
+        ).fetchone()
+    return int(row[0]) if row else None
+
+
+def seed_default_draft_rulesets(db_path: Path | str = DEFAULT_DB_PATH) -> None:
+    """Cria rulesets prontos combinando presets de Pokémon e abilities quando eles existirem."""
+    metronome_preset_id = find_preset_id_by_slug_or_name(slug="metronome-cup", name="Metronome Cup", db_path=db_path)
+    metronome_ability_preset_id = find_ability_preset_id_by_slug_or_name(slug="metronome-abilities-funcionais", name="Metronome Abilities Funcionais", db_path=db_path)
+    bulky_preset_id = find_preset_id_by_slug_or_name(slug="bulky-400", name="Bulky 400+", db_path=db_path)
+    singles_ability_preset_id = find_ability_preset_id_by_slug_or_name(slug="singles-estaveis", name="Singles Estáveis", db_path=db_path)
+
+    defaults: List[Dict[str, Any]] = []
+    if metronome_preset_id:
+        defaults.append({
+            "name": "Metronome Cup Completo",
+            "description": "Ruleset pronto: Pokémon que aprendem Metronome, abilities funcionais e 6 escolhas por jogador.",
+            "settings": {
+                "max_pokemon": 6,
+                "pokemon_options_per_draw": 3,
+                "ability_options_per_draw": 3,
+                "pokemon_pool_source": "dex_preset",
+                "pokemon_preset_id": metronome_preset_id,
+                "ability_pool_source": "dex_preset" if metronome_ability_preset_id else "dex_tag",
+                "ability_preset_id": metronome_ability_preset_id,
+                "ability_tag_filter": "Metronome Boa" if not metronome_ability_preset_id else "",
+                "lock_chosen_pokemon_globally": True,
+                "lock_abilities_globally": False,
+                "flag_karma": {},
+            },
+        })
+    if bulky_preset_id:
+        defaults.append({
+            "name": "Bulky Random Ability",
+            "description": "Pokémon bulky do MegaDex com abilities estáveis de singles.",
+            "settings": {
+                "max_pokemon": 6,
+                "pokemon_options_per_draw": 3,
+                "ability_options_per_draw": 3,
+                "pokemon_pool_source": "dex_preset",
+                "pokemon_preset_id": bulky_preset_id,
+                "ability_pool_source": "dex_preset" if singles_ability_preset_id else "dex_all",
+                "ability_preset_id": singles_ability_preset_id,
+                "ability_tag_filter": "",
+                "lock_chosen_pokemon_globally": True,
+                "lock_abilities_globally": False,
+                "flag_karma": {},
+            },
+        })
+
+    for ruleset in defaults:
+        try:
+            save_draft_ruleset(db_path=db_path, **ruleset)
+        except ValueError:
+            continue
 
 def seed_default_ability_presets(db_path: Path | str = DEFAULT_DB_PATH) -> None:
     defaults = [

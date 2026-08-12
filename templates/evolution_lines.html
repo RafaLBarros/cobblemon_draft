@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Linhas Evolutivas{% endblock %}
+{% block content %}
+<h1>Linhas Evolutivas</h1>
+<p class="muted">
+    Esta tela mostra as linhas evolutivas montadas a partir da PokéAPI. Elas são usadas para travar evoluções/formas no draft
+    e para o orçamento por linha evolutiva.
+</p>
+
+<section class="card">
+    <h2>Buscar</h2>
+    <form class="filter-form" method="get" action="{{ url_for('evolution_lines_page') }}">
+        <div class="settings-grid">
+            <div class="setting-field">
+                <label for="q">Nome, species ou forma</label>
+                <input id="q" name="q" value="{{ q }}" placeholder="toxtricity, toxel, eevee...">
+            </div>
+            <div class="setting-field">
+                <label>&nbsp;</label>
+                <button type="submit">Pesquisar</button>
+            </div>
+        </div>
+    </form>
+</section>
+
+{% if error %}
+    <section class="card">
+        <p class="flash error">{{ error }}</p>
+    </section>
+{% else %}
+    <section class="card">
+        <h2>{{ lines|length }} linha(s)</h2>
+        {% if not lines %}
+            <p class="muted">Nenhuma linha evolutiva encontrada. Rode <code>python scripts/build_evolution_lines.py</code>.</p>
+        {% else %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Linha</th>
+                        <th>Species</th>
+                        <th>Forms/Pokémon importados</th>
+                        <th>Custo por linha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in lines %}
+                        <tr>
+                            <td>
+                                <strong>{{ line.root_species_slug }}</strong><br>
+                                <span class="muted small">Chain #{{ line.pokeapi_chain_id }}</span>
+                            </td>
+                            <td>
+                                {% for species in line.species_slugs %}
+                                    <span class="badge">{{ species }}</span>
+                                {% endfor %}
+                                {% if line.final_species_slugs %}
+                                    <br><span class="muted small">Finais: {{ line.final_species_slugs|join(', ') }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for slug in line.pokemon_slugs[:18] %}
+                                    <span class="badge">{{ slug }}</span>
+                                {% endfor %}
+                                {% if line.pokemon_slugs|length > 18 %}
+                                    <span class="badge">+{{ line.pokemon_slugs|length - 18 }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ line.max_bst }} pts</strong><br>
+                                <span class="muted small">Referência: {{ line.representative_pokemon_name or line.representative_pokemon_slug }}</span><br>
+                                <span class="muted small">Default max: {{ line.default_max_bst }}</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </section>
+{% endif %}
+{% endblock %}

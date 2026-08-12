@@ -9,9 +9,12 @@
         <span class="badge">Pokémon usados: {{ state.used_pokemon|length }}</span>
         <span class="badge">Pool Pokémon: {{ pool_summary.pokemon_source }} ({{ pool_summary.pokemon_count }})</span>
         <span class="badge">Pool ability: {{ pool_summary.ability_source }} ({{ pool_summary.ability_count }})</span>
+        {% if state.settings.lock_chosen_pokemon_globally %}<span class="badge">Trava: {{ pokemon_lock_scope_label(state) }}</span>{% endif %}
         <span class="badge">Máximo por jogador: {{ state.settings.max_pokemon }}</span>
         <span class="badge">Opções Pokémon: {{ get_pokemon_options_per_draw(state) }}</span>
         <span class="badge">Opções ability: {{ get_ability_options_per_draw(state) }}</span>
+        {% if draft_rounds_enabled(state) %}<span class="badge success">Rodadas ativas</span>{% endif %}
+        {% if budget_enabled(state) %}<span class="badge success">Orçamento: {{ budget_total_points(state) }} pts</span>{% endif %}
     </p>
 </section>
 
@@ -29,6 +32,11 @@
         <p>
             <span class="badge">{{ player.pokemon_picks|length }}/{{ state.settings.max_pokemon }} Pokémon</span>
             <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ master_pending_label(player) }}</span>
+            {% if budget_enabled(state) %}
+                {% set budget = player_budget_summary(player, state) %}
+                <span class="badge {% if budget.over_budget %}warning{% else %}success{% endif %}">{{ budget.spent }}/{{ budget.total }} pts</span>
+                <span class="badge">Restante: {{ budget.remaining }} pts</span>
+            {% endif %}
         </p>
 
         {% if player.pokemon_picks %}
@@ -36,6 +44,10 @@
                 {% for pick in player.pokemon_picks %}
                     <li>
                         <strong>{{ slot_label(loop.index0) }}</strong>
+                        {% if budget_enabled(state) %}
+                            {% set pick_cost = budget_cost_for_pick(pick, state) %}
+                            <span class="badge">{{ pick_cost.cost }} pts</span>
+                        {% endif %}
                         {% if pick.ability %}
                             — ability escolhida
                         {% else %}
@@ -50,11 +62,19 @@
 
         <div class="hr"></div>
 
+        {% set round_info = next_pokemon_round_summary(player, state) %}
+        {% if round_info %}
+            <p class="small muted">
+                Próxima rodada: <strong>{{ round_info.name }}</strong><br>
+                Pool: {{ round_info.source }} · {{ round_info.pokemon_count }} Pokémon · {{ round_info.options_per_draw }} opções
+            </p>
+        {% endif %}
+
         <div class="actions">
             <form method="post" action="{{ url_for('master_draw_pokemon') }}">
                 <input type="hidden" name="key" value="{{ key }}">
                 <input type="hidden" name="player_id" value="{{ player_id }}">
-                <button type="submit" {% if not player_can_draw_pokemon(player, state) %}disabled{% endif %}>Sortear {{ get_pokemon_options_per_draw(state) }} Pokémon</button>
+                <button type="submit" {% if not player_can_draw_pokemon(player, state) %}disabled{% endif %}>Sortear {{ next_pokemon_options_per_draw(player, state) }} Pokémon</button>
             </form>
         </div>
 

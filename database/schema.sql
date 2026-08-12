@@ -6,6 +6,10 @@ CREATE TABLE IF NOT EXISTS pokemon (
     name TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
     species_slug TEXT,
+    evolution_chain_id INTEGER,
+    evolution_line_slug TEXT,
+    evolution_stage INTEGER NOT NULL DEFAULT 0,
+    is_final_evolution INTEGER NOT NULL DEFAULT 0,
     form_name TEXT,
     generation TEXT,
     type1 TEXT,
@@ -34,9 +38,29 @@ CREATE TABLE IF NOT EXISTS pokemon (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pokemon_name ON pokemon(name);
+CREATE INDEX IF NOT EXISTS idx_pokemon_species ON pokemon(species_slug);
 CREATE INDEX IF NOT EXISTS idx_pokemon_types ON pokemon(type1, type2);
 CREATE INDEX IF NOT EXISTS idx_pokemon_bst ON pokemon(bst);
 CREATE INDEX IF NOT EXISTS idx_pokemon_stats ON pokemon(hp, attack, defense, sp_attack, sp_defense, speed);
+
+CREATE TABLE IF NOT EXISTS evolution_lines (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pokeapi_chain_id INTEGER UNIQUE,
+    line_slug TEXT NOT NULL UNIQUE,
+    root_species_slug TEXT NOT NULL,
+    species_slugs_json TEXT NOT NULL DEFAULT '[]',
+    final_species_slugs_json TEXT NOT NULL DEFAULT '[]',
+    pokemon_slugs_json TEXT NOT NULL DEFAULT '[]',
+    representative_pokemon_slug TEXT,
+    representative_pokemon_name TEXT,
+    max_bst INTEGER NOT NULL DEFAULT 0,
+    default_max_bst INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_evolution_lines_root ON evolution_lines(root_species_slug);
+CREATE INDEX IF NOT EXISTS idx_evolution_lines_max_bst ON evolution_lines(max_bst);
 
 CREATE TABLE IF NOT EXISTS abilities (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -156,3 +180,15 @@ CREATE TABLE IF NOT EXISTS ability_presets (
 );
 
 CREATE INDEX IF NOT EXISTS idx_ability_presets_name ON ability_presets(name);
+
+CREATE TABLE IF NOT EXISTS draft_rulesets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    description TEXT,
+    settings_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_draft_rulesets_name ON draft_rulesets(name);
