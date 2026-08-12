@@ -1,8 +1,29 @@
 {% extends "base.html" %}
-{% block title %}Acesso bloqueado{% endblock %}
+{% block title %}Acesso restrito{% endblock %}
 {% block content %}
-<section class="card">
+<section class="hero">
+    <div class="hero-kicker">Área protegida</div>
     <h1>{{ title }} bloqueado</h1>
-    <p class="muted">Esse endereço não está disponível ou precisa da chave correta.</p>
+    <p>
+        Essa página é restrita. Entre com a chave/senha de acesso para continuar.
+        Jogadores continuam usando apenas a página inicial e seus links individuais de escolha.
+    </p>
+</section>
+
+<section class="card" style="max-width: 560px; margin-left: auto; margin-right: auto;">
+    <h2>Entrar</h2>
+    <form method="post" action="{{ url_for('login') }}">
+        <input type="hidden" name="next" value="{{ next_url or request.path }}">
+        <input type="hidden" name="role" value="{{ required_role or 'admin' }}">
+        <label for="access_key">Chave / senha</label>
+        <input id="access_key" name="access_key" type="password" placeholder="Digite a chave" autofocus required>
+        <div class="actions" style="margin-top: 12px;">
+            <button type="submit">Liberar acesso</button>
+            <a class="button secondary" href="{{ url_for('index') }}">Voltar para jogador</a>
+        </div>
+    </form>
+    <p class="small muted" style="margin-top: 12px;">
+        Também continua funcionando entrar diretamente com <code>?key=...</code> quando você quiser liberar uma sessão rapidamente.
+    </p>
 </section>
 {% endblock %}

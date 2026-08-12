@@ -15,8 +15,8 @@
         {% endif %}
     </p>
     <div class="actions">
-        <a class="button secondary" href="{{ url_for('admin_page', key=key) }}">Voltar ao Admin</a>
-        <a class="button secondary" href="{{ url_for('presets_page', key=key) }}">Gerenciar presets de Pokémon</a>
+        <a class="button secondary" href="{{ url_for('admin_page') }}">Voltar ao Admin</a>
+        <a class="button secondary" href="{{ url_for('presets_page') }}">Gerenciar presets de Pokémon</a>
     </div>
 </section>
 
@@ -38,7 +38,7 @@
         </label>
 
         <p class="muted small">
-            A fonte <strong>Global</strong> usa a configuração atual do Admin. A fonte <strong>TXT</strong> usa <code>data/pokemon.txt</code>. A fonte <strong>MegaDex</strong> usa o preset escolhido na linha.
+            A fonte <strong>Global</strong> usa a configuração atual do Admin. Para rodadas específicas, use sempre presets do MegaDex.
         </p>
 
         <div class="hr"></div>
@@ -62,7 +62,6 @@
                         <label for="round_source_{{ round.index }}">Fonte da pool</label>
                         <select id="round_source_{{ round.index }}" name="round_source_{{ round.index }}">
                             <option value="{{ ROUND_POKEMON_POOL_SOURCE_GLOBAL }}" {% if round.pokemon_pool_source == ROUND_POKEMON_POOL_SOURCE_GLOBAL %}selected{% endif %}>Global — usar configuração do Admin</option>
-                            <option value="{{ POKEMON_POOL_SOURCE_TXT }}" {% if round.pokemon_pool_source == POKEMON_POOL_SOURCE_TXT %}selected{% endif %}>TXT legado</option>
                             <option value="{{ POKEMON_POOL_SOURCE_DEX_PRESET }}" {% if round.pokemon_pool_source == POKEMON_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>MegaDex — preset</option>
                         </select>
                     </div>

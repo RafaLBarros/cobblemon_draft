@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from flask import Flask, Response, flash, redirect, render_template, request, url_for
+from flask import Flask, Response, flash, redirect, render_template, request, session, url_for
 
 from services.dex_db import (
     DexUnavailable,
@@ -113,9 +113,9 @@ def default_state() -> Dict[str, Any]:
             "pokemon_options_per_draw": POKEMON_OPTIONS_PER_DRAW,
             "ability_options_per_draw": ABILITY_OPTIONS_PER_DRAW,
             "options_per_draw": POKEMON_OPTIONS_PER_DRAW,  # compatibilidade com versões antigas
-            "pokemon_pool_source": POKEMON_POOL_SOURCE_TXT,
+            "pokemon_pool_source": POKEMON_POOL_SOURCE_DEX_PRESET,
             "pokemon_preset_id": None,
-            "ability_pool_source": ABILITY_POOL_SOURCE_TXT,
+            "ability_pool_source": ABILITY_POOL_SOURCE_DEX_PRESET,
             "ability_tag_filter": "Metronome Boa",
             "ability_preset_id": None,
             "rounds_enabled": False,
@@ -302,7 +302,16 @@ def pokemon_lock_scope_label(state_or_scope: Any) -> str:
 
 
 def pokemon_lock_scope_options() -> List[Dict[str, str]]:
-    return [{"value": value, "label": label} for value, label in POKEMON_LOCK_SCOPE_LABELS.items()]
+    """Opções visíveis no fluxo novo do MegaDraft.
+
+    O modo de grupos TXT continua reconhecido para compatibilidade de estados antigos,
+    mas deixa de aparecer na UI principal.
+    """
+    return [
+        {"value": value, "label": label}
+        for value, label in POKEMON_LOCK_SCOPE_LABELS.items()
+        if value != POKEMON_LOCK_SCOPE_LEGACY_GROUP
+    ]
 
 
 def get_active_pokemon_preset(state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -343,17 +352,21 @@ def get_pokemon_pool_from_source(source: str, preset_id: Any = None) -> List[str
 
 
 def get_current_pokemon_pool(state: Dict[str, Any]) -> List[str]:
-    """Retorna a pool global ativa de Pokémon, podendo vir do TXT legado ou de preset do MegaDex."""
+    """Retorna a pool global ativa de Pokémon a partir do MegaDex.
+
+    Os TXT antigos continuam existindo só como compatibilidade interna para estados
+    antigos/importados, mas a interface nova trabalha exclusivamente com presets.
+    """
     settings = state.setdefault("settings", {})
     return get_pokemon_pool_from_source(
-        str(settings.get("pokemon_pool_source", POKEMON_POOL_SOURCE_TXT)),
+        str(settings.get("pokemon_pool_source", POKEMON_POOL_SOURCE_DEX_PRESET)),
         settings.get("pokemon_preset_id"),
     )
 
 
 def get_current_ability_pool(state: Dict[str, Any]) -> List[str]:
     settings = state.setdefault("settings", {})
-    source = settings.get("ability_pool_source", ABILITY_POOL_SOURCE_TXT)
+    source = settings.get("ability_pool_source", ABILITY_POOL_SOURCE_DEX_PRESET)
     if source == ABILITY_POOL_SOURCE_DEX_PRESET:
         preset_id = safe_int_value(settings.get("ability_preset_id"))
         if preset_id is None:
@@ -385,7 +398,7 @@ def pokemon_pool_source_label(state: Dict[str, Any]) -> str:
     if settings.get("pokemon_pool_source") == POKEMON_POOL_SOURCE_DEX_PRESET:
         preset = get_active_pokemon_preset(state)
         return f"MegaDex: {preset['name']}" if preset else "MegaDex: preset inválido"
-    return "TXT legado"
+    return "Compatibilidade TXT"
 
 
 def ability_pool_source_label(state: Dict[str, Any]) -> str:
@@ -398,7 +411,7 @@ def ability_pool_source_label(state: Dict[str, Any]) -> str:
     if settings.get("ability_pool_source") == ABILITY_POOL_SOURCE_DEX_PRESET:
         preset = get_active_ability_preset(state)
         return f"MegaDex: preset {preset['name']}" if preset else "MegaDex: preset de ability inválido"
-    return "TXT legado"
+    return "Compatibilidade TXT"
 
 
 def pool_summary(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -415,7 +428,9 @@ def pool_summary(state: Dict[str, Any]) -> Dict[str, Any]:
 
 def normalize_round_pokemon_source(value: Any) -> str:
     source = str(value or ROUND_POKEMON_POOL_SOURCE_GLOBAL).strip()
-    if source not in {ROUND_POKEMON_POOL_SOURCE_GLOBAL, POKEMON_POOL_SOURCE_TXT, POKEMON_POOL_SOURCE_DEX_PRESET}:
+    if source == POKEMON_POOL_SOURCE_TXT:
+        return ROUND_POKEMON_POOL_SOURCE_GLOBAL
+    if source not in {ROUND_POKEMON_POOL_SOURCE_GLOBAL, POKEMON_POOL_SOURCE_DEX_PRESET}:
         return ROUND_POKEMON_POOL_SOURCE_GLOBAL
     return source
 
@@ -514,8 +529,6 @@ def next_pokemon_round_summary(player: Dict[str, Any], state: Dict[str, Any]) ->
             except DexUnavailable:
                 preset = None
         source_label = f"MegaDex: {preset['name']}" if preset else "MegaDex: preset inválido"
-    elif source == POKEMON_POOL_SOURCE_TXT:
-        source_label = "TXT legado"
     else:
         source_label = pokemon_pool_source_label(state)
     return {
@@ -572,9 +585,9 @@ def settings_from_ruleset_form(form: Any) -> Dict[str, Any]:
         "max_pokemon": clamp_int(form.get("max_pokemon"), MAX_POKEMON, 1, 30),
         "pokemon_options_per_draw": clamp_int(form.get("pokemon_options_per_draw"), POKEMON_OPTIONS_PER_DRAW, 1, 20),
         "ability_options_per_draw": clamp_int(form.get("ability_options_per_draw"), ABILITY_OPTIONS_PER_DRAW, 1, 20),
-        "pokemon_pool_source": form.get("pokemon_pool_source", POKEMON_POOL_SOURCE_TXT),
+        "pokemon_pool_source": POKEMON_POOL_SOURCE_DEX_PRESET,
         "pokemon_preset_id": safe_int_value(form.get("pokemon_preset_id")),
-        "ability_pool_source": form.get("ability_pool_source", ABILITY_POOL_SOURCE_TXT),
+        "ability_pool_source": form.get("ability_pool_source", ABILITY_POOL_SOURCE_DEX_PRESET),
         "ability_tag_filter": form.get("ability_tag_filter", "").strip(),
         "ability_preset_id": safe_int_value(form.get("ability_preset_id")),
         "lock_chosen_pokemon_globally": form.get("lock_chosen_pokemon_globally") == "on",
@@ -1398,28 +1411,143 @@ def create_player(state: Dict[str, Any], nickname: str) -> Dict[str, Any]:
     return player
 
 
-def require_master() -> Optional[Any]:
-    key = request.args.get("key") or request.form.get("key")
-    if key != MASTER_KEY:
-        return render_template("locked.html", title="Mestre"), 403
-    return None
+AUTH_SESSION_KEY = "mega_draft_auth_role"
+AUTH_ROLE_ADMIN = "admin"
+AUTH_ROLE_MASTER = "master"
+
+PUBLIC_ENDPOINTS = {
+    "index",
+    "join",
+    "player_page",
+    "choose_pokemon",
+    "choose_ability",
+    "state_version",
+    "login",
+    "logout",
+    "static",
+}
+
+MASTER_ENDPOINTS = {
+    "master_page",
+    "master_draw_pokemon",
+    "master_draw_ability",
+}
 
 
 def request_key() -> Optional[str]:
     key = request.args.get("key") or request.form.get("key")
     if key:
-        return key
+        return str(key).strip()
     if request.is_json:
         data = request.get_json(silent=True) or {}
-        return data.get("key")
+        value = data.get("key")
+        return str(value).strip() if value else None
+    return None
+
+
+def current_auth_role() -> Optional[str]:
+    role = session.get(AUTH_SESSION_KEY)
+    if role in {AUTH_ROLE_ADMIN, AUTH_ROLE_MASTER}:
+        return str(role)
+    return None
+
+
+def authenticate_from_key() -> Optional[str]:
+    key = request_key()
+    if key == ADMIN_KEY:
+        session[AUTH_SESSION_KEY] = AUTH_ROLE_ADMIN
+        return AUTH_ROLE_ADMIN
+    if key == MASTER_KEY:
+        session[AUTH_SESSION_KEY] = AUTH_ROLE_MASTER
+        return AUTH_ROLE_MASTER
+    return None
+
+
+def is_admin_authenticated() -> bool:
+    return current_auth_role() == AUTH_ROLE_ADMIN or authenticate_from_key() == AUTH_ROLE_ADMIN
+
+
+def is_master_authenticated() -> bool:
+    role = current_auth_role() or authenticate_from_key()
+    return role in {AUTH_ROLE_ADMIN, AUTH_ROLE_MASTER}
+
+
+
+
+def safe_next_url(value: Any, fallback_endpoint: str = "admin_page") -> str:
+    text = str(value or "").strip()
+    if not text or not text.startswith("/") or text.startswith("//"):
+        return url_for(fallback_endpoint)
+    return text
+
+def locked_response(title: str, required_role: str) -> Any:
+    requested_url = request.full_path if request.query_string else request.path
+    fallback = "master_page" if required_role == AUTH_ROLE_MASTER else "admin_page"
+    return render_template(
+        "locked.html",
+        title=title,
+        required_role=required_role,
+        next_url=safe_next_url(requested_url, fallback),
+    ), 403
+
+
+def require_master() -> Optional[Any]:
+    if not is_master_authenticated():
+        return locked_response("Mestre", AUTH_ROLE_MASTER)
     return None
 
 
 def require_admin() -> Optional[Any]:
-    key = request_key()
-    if key != ADMIN_KEY:
-        return render_template("locked.html", title="Admin"), 403
+    if not is_admin_authenticated():
+        return locked_response("Admin", AUTH_ROLE_ADMIN)
     return None
+
+
+@app.before_request
+def protect_private_routes():
+    endpoint = request.endpoint
+    if endpoint in PUBLIC_ENDPOINTS or endpoint is None:
+        return None
+    if endpoint in MASTER_ENDPOINTS:
+        return require_master()
+    return require_admin()
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    role_hint = request.values.get("role") or AUTH_ROLE_ADMIN
+    fallback = "master_page" if role_hint == AUTH_ROLE_MASTER else "admin_page"
+    next_url = safe_next_url(request.values.get("next"), fallback)
+
+    if request.method == "POST":
+        access_key = request.form.get("access_key", "").strip()
+        if access_key == ADMIN_KEY:
+            session[AUTH_SESSION_KEY] = AUTH_ROLE_ADMIN
+            flash("Acesso admin liberado.", "success")
+            return redirect(next_url or url_for("admin_page"))
+        if access_key == MASTER_KEY:
+            session[AUTH_SESSION_KEY] = AUTH_ROLE_MASTER
+            flash("Acesso do mestre liberado.", "success")
+            target = next_url or url_for("master_page")
+            # A chave de mestre não abre áreas administrativas.
+            if not target.startswith("/master"):
+                target = url_for("master_page")
+            return redirect(target)
+        flash("Senha/chave inválida.", "error")
+
+    return render_template(
+        "locked.html",
+        title="Acesso restrito",
+        required_role=role_hint,
+        next_url=next_url,
+    )
+
+
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    session.pop(AUTH_SESSION_KEY, None)
+    flash("Sessão encerrada.", "success")
+    return redirect(url_for("index"))
 
 
 def draw_options(pool: List[str], amount: int, excluded: List[str]) -> Tuple[List[str], Optional[str]]:
@@ -1793,8 +1921,11 @@ def inject_helpers():
         "pokemon_lock_scope_options": pokemon_lock_scope_options,
         "pokemon_pool_source_label": pokemon_pool_source_label,
         "ability_pool_source_label": ability_pool_source_label,
-        "master_key": MASTER_KEY,
-        "admin_key": ADMIN_KEY,
+        "auth_role": current_auth_role(),
+        "is_admin_authenticated": is_admin_authenticated(),
+        "is_master_authenticated": is_master_authenticated(),
+        "master_key": "",
+        "admin_key": "",
         "POKEMON_POOL_SOURCE_TXT": POKEMON_POOL_SOURCE_TXT,
         "POKEMON_POOL_SOURCE_DEX_PRESET": POKEMON_POOL_SOURCE_DEX_PRESET,
         "ROUND_POKEMON_POOL_SOURCE_GLOBAL": ROUND_POKEMON_POOL_SOURCE_GLOBAL,
@@ -1932,15 +2063,15 @@ def abilities_page() -> str:
         ability_tags=ability_tags,
         abilities=abilities,
         unavailable=unavailable,
-        admin_key=ADMIN_KEY,
+        admin_key="",
     )
 
 
 @app.route("/abilities/update", methods=["POST"])
 def update_ability_route():
-    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
-        flash("Chave admin inválida para editar ability.", "error")
-        return redirect(url_for("abilities_page"))
+    locked = require_admin()
+    if locked:
+        return locked
 
     ability_id = safe_int_value(request.form.get("ability_id"))
     if ability_id is None:
@@ -1996,15 +2127,15 @@ def ability_presets_page() -> str:
         selected=selected,
         abilities=abilities,
         unavailable=unavailable,
-        admin_key=ADMIN_KEY,
+        admin_key="",
     )
 
 
 @app.route("/ability-presets/save", methods=["POST"])
 def save_ability_preset_route():
-    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
-        flash("Chave admin inválida para salvar preset de ability.", "error")
-        return redirect(url_for("ability_presets_page"))
+    locked = require_admin()
+    if locked:
+        return locked
 
     try:
         preset_id = save_ability_preset(
@@ -2017,29 +2148,29 @@ def save_ability_preset_route():
             db_path=DEX_DB_FILE,
         )
         flash("Preset de ability salvo com sucesso.", "success")
-        return redirect(url_for("ability_presets_page", preset_id=preset_id, key=ADMIN_KEY))
+        return redirect(url_for("ability_presets_page", preset_id=preset_id))
     except (DexUnavailable, ValueError) as exc:
         flash(str(exc), "error")
-        return redirect(url_for("ability_presets_page", key=ADMIN_KEY))
+        return redirect(url_for("ability_presets_page"))
 
 
 @app.route("/ability-presets/delete", methods=["POST"])
 def delete_ability_preset_route():
-    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
-        flash("Chave admin inválida para apagar preset de ability.", "error")
-        return redirect(url_for("ability_presets_page"))
+    locked = require_admin()
+    if locked:
+        return locked
 
     preset_id = parse_optional_int(request.form.get("preset_id", ""))
     if preset_id is None:
         flash("Preset de ability inválido.", "error")
-        return redirect(url_for("ability_presets_page", key=ADMIN_KEY))
+        return redirect(url_for("ability_presets_page"))
     try:
         deleted = delete_ability_preset(preset_id, DEX_DB_FILE)
     except DexUnavailable as exc:
         flash(str(exc), "error")
-        return redirect(url_for("ability_presets_page", key=ADMIN_KEY))
+        return redirect(url_for("ability_presets_page"))
     flash("Preset de ability apagado." if deleted else "Preset de ability não encontrado.", "success" if deleted else "error")
-    return redirect(url_for("ability_presets_page", key=ADMIN_KEY))
+    return redirect(url_for("ability_presets_page"))
 
 
 @app.route("/rulesets", methods=["GET"])
@@ -2076,16 +2207,16 @@ def rulesets_page() -> str:
         selected=selected,
         selected_summary=selected_summary,
         unavailable=unavailable,
-        admin_key=ADMIN_KEY,
-        key=ADMIN_KEY,
+        admin_key="",
+        key="",
     )
 
 
 @app.route("/rulesets/save", methods=["POST"])
 def save_ruleset_route():
-    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
-        flash("Chave admin inválida para salvar ruleset.", "error")
-        return redirect(url_for("rulesets_page"))
+    locked = require_admin()
+    if locked:
+        return locked
 
     try:
         ruleset_id = save_draft_ruleset(
@@ -2095,56 +2226,56 @@ def save_ruleset_route():
             db_path=DEX_DB_FILE,
         )
         flash("Ruleset salvo com sucesso.", "success")
-        return redirect(url_for("rulesets_page", ruleset_id=ruleset_id, key=ADMIN_KEY))
+        return redirect(url_for("rulesets_page", ruleset_id=ruleset_id))
     except (DexUnavailable, ValueError) as exc:
         flash(str(exc), "error")
-        return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+        return redirect(url_for("rulesets_page"))
 
 
 @app.route("/rulesets/delete", methods=["POST"])
 def delete_ruleset_route():
-    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
-        flash("Chave admin inválida para apagar ruleset.", "error")
-        return redirect(url_for("rulesets_page"))
+    locked = require_admin()
+    if locked:
+        return locked
 
     ruleset_id = parse_optional_int(request.form.get("ruleset_id", ""))
     if ruleset_id is None:
         flash("Ruleset inválido.", "error")
-        return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+        return redirect(url_for("rulesets_page"))
     try:
         deleted = delete_draft_ruleset(ruleset_id, DEX_DB_FILE)
     except DexUnavailable as exc:
         flash(str(exc), "error")
-        return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+        return redirect(url_for("rulesets_page"))
     flash("Ruleset apagado." if deleted else "Ruleset não encontrado.", "success" if deleted else "error")
-    return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+    return redirect(url_for("rulesets_page"))
 
 
 @app.route("/rulesets/apply", methods=["POST"])
 def apply_ruleset_route():
-    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
-        flash("Chave admin inválida para aplicar ruleset.", "error")
-        return redirect(url_for("rulesets_page"))
+    locked = require_admin()
+    if locked:
+        return locked
 
     ruleset_id = parse_optional_int(request.form.get("ruleset_id", ""))
     if ruleset_id is None:
         flash("Selecione um ruleset para aplicar.", "error")
-        return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+        return redirect(url_for("rulesets_page"))
     try:
         ruleset = get_draft_ruleset(ruleset_id, DEX_DB_FILE)
     except DexUnavailable as exc:
         flash(str(exc), "error")
-        return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+        return redirect(url_for("rulesets_page"))
     if not ruleset:
         flash("Ruleset não encontrado.", "error")
-        return redirect(url_for("rulesets_page", key=ADMIN_KEY))
+        return redirect(url_for("rulesets_page"))
 
     state = load_state()
     apply_ruleset_settings_to_state(state, ruleset.get("settings", {}))
     recompute_used_pokemon(state)
     save_state(state)
     flash(f"Ruleset aplicado no draft atual: {ruleset['name']}", "success")
-    return redirect(url_for("admin_page", key=ADMIN_KEY))
+    return redirect(url_for("admin_page"))
 
 
 @app.route("/rounds", methods=["GET"])
@@ -2171,7 +2302,7 @@ def rounds_page() -> str:
         presets=presets,
         summary=summary,
         unavailable=unavailable,
-        key=ADMIN_KEY,
+        key="",
     )
 
 
@@ -2206,7 +2337,7 @@ def save_rounds_route():
     recompute_used_pokemon(state)
     save_state(state)
     flash("Rodadas de draft salvas. Os próximos sorteios de Pokémon já usam essas regras.", "success")
-    return redirect(url_for("rounds_page", key=ADMIN_KEY))
+    return redirect(url_for("rounds_page"))
 
 
 @app.route("/rounds/disable", methods=["POST"])
@@ -2218,7 +2349,7 @@ def disable_rounds_route():
     state.setdefault("settings", {})["rounds_enabled"] = False
     save_state(state)
     flash("Rodadas desativadas. O sorteio voltou a usar a configuração global.", "success")
-    return redirect(url_for("rounds_page", key=ADMIN_KEY))
+    return redirect(url_for("rounds_page"))
 
 
 @app.route("/evolution-lines", methods=["GET"])
@@ -2235,7 +2366,7 @@ def evolution_lines_page() -> str:
         lines=lines,
         q=q,
         error=error,
-        key=ADMIN_KEY,
+        key="",
     )
 
 
@@ -2256,7 +2387,7 @@ def budget_page() -> str:
         state=state,
         players=players,
         player_summaries=player_summaries,
-        key=ADMIN_KEY,
+        key="",
     )
 
 
@@ -2285,7 +2416,7 @@ def save_budget_route():
     settings["budget_flag_costs"] = parse_budget_flag_costs_text(request.form.get("budget_flag_costs", "")) or dict(DEFAULT_BUDGET_FLAG_COSTS)
     save_state(state)
     flash("Orçamento do draft salvo. Os próximos sorteios de Pokémon já respeitam o saldo dos jogadores.", "success")
-    return redirect(url_for("budget_page", key=ADMIN_KEY))
+    return redirect(url_for("budget_page"))
 
 
 @app.route("/budget/reprice", methods=["POST"])
@@ -2297,13 +2428,13 @@ def reprice_budget_route():
     confirm = request.form.get("confirm", "").strip()
     if confirm != "RECALCULAR":
         flash('Digite exatamente "RECALCULAR" para recalcular custos já escolhidos.', "error")
-        return redirect(url_for("budget_page", key=ADMIN_KEY))
+        return redirect(url_for("budget_page"))
 
     state = load_state()
     reprice_all_picks(state)
     save_state(state)
     flash("Custos dos Pokémon já escolhidos foram recalculados com as regras atuais.", "success")
-    return redirect(url_for("budget_page", key=ADMIN_KEY))
+    return redirect(url_for("budget_page"))
 
 
 @app.route("/presets", methods=["GET"])
@@ -2329,15 +2460,15 @@ def presets_page() -> str:
         selected=selected,
         pokemon=pokemon,
         unavailable=unavailable,
-        admin_key=ADMIN_KEY,
+        admin_key="",
     )
 
 
 @app.route("/presets/save", methods=["POST"])
 def save_preset_route():
-    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
-        flash("Chave admin inválida para salvar preset.", "error")
-        return redirect(url_for("dex"))
+    locked = require_admin()
+    if locked:
+        return locked
 
     name = request.form.get("preset_name", "").strip()
     description = request.form.get("preset_description", "").strip()
@@ -2345,7 +2476,7 @@ def save_preset_route():
     try:
         preset_id = save_preset(name=name, description=description, filters=filters, db_path=DEX_DB_FILE)
         flash("Preset salvo com sucesso.", "success")
-        return redirect(url_for("presets_page", preset_id=preset_id, key=ADMIN_KEY))
+        return redirect(url_for("presets_page", preset_id=preset_id))
     except (DexUnavailable, ValueError) as exc:
         flash(str(exc), "error")
         return redirect(url_for("dex"))
@@ -2353,21 +2484,21 @@ def save_preset_route():
 
 @app.route("/presets/delete", methods=["POST"])
 def delete_preset_route():
-    if request.form.get("admin_key", "").strip() != ADMIN_KEY:
-        flash("Chave admin inválida para apagar preset.", "error")
-        return redirect(url_for("presets_page"))
+    locked = require_admin()
+    if locked:
+        return locked
 
     preset_id = parse_optional_int(request.form.get("preset_id", ""))
     if preset_id is None:
         flash("Preset inválido.", "error")
-        return redirect(url_for("presets_page", key=ADMIN_KEY))
+        return redirect(url_for("presets_page"))
     try:
         deleted = delete_preset(preset_id, DEX_DB_FILE)
     except DexUnavailable as exc:
         flash(str(exc), "error")
-        return redirect(url_for("presets_page", key=ADMIN_KEY))
+        return redirect(url_for("presets_page"))
     flash("Preset apagado." if deleted else "Preset não encontrado.", "success" if deleted else "error")
-    return redirect(url_for("presets_page", key=ADMIN_KEY))
+    return redirect(url_for("presets_page"))
 
 @app.route("/", methods=["GET"])
 def index():
@@ -2513,7 +2644,7 @@ def master_page():
         state=state,
         players=sorted_players(state),
         pool_summary=pool_summary(state),
-        key=MASTER_KEY,
+        key="",
         auto_refresh=True,
         state_version=state.get("version", 0),
     )
@@ -2530,17 +2661,17 @@ def master_draw_pokemon():
     player = get_player_by_id(state, player_id)
     if not player:
         flash("Jogador não encontrado.", "error")
-        return redirect(url_for("master_page", key=MASTER_KEY))
+        return redirect(url_for("master_page"))
 
     nickname = player["nickname"]
     if player["pending"].get("type") is not None:
         flash(f"{nickname} já tem uma escolha pendente.", "error")
-        return redirect(url_for("master_page", key=MASTER_KEY))
+        return redirect(url_for("master_page"))
 
     max_pokemon = state["settings"].get("max_pokemon", MAX_POKEMON)
     if len(player["pokemon_picks"]) >= max_pokemon:
         flash(f"{nickname} já fechou os {max_pokemon} Pokémon.", "error")
-        return redirect(url_for("master_page", key=MASTER_KEY))
+        return redirect(url_for("master_page"))
 
     flag_config = load_flag_config()
     options, error, draw_meta = draw_pokemon_options_for_player(player, state)
@@ -2556,7 +2687,7 @@ def master_draw_pokemon():
             summary = player_budget_summary(player, state)
             extra_parts.append(f"Orçamento restante de {nickname}: {summary['remaining']}/{summary['total']} pts.")
         flash(error + (" " + " ".join(extra_parts) if extra_parts else ""), "error")
-        return redirect(url_for("master_page", key=MASTER_KEY))
+        return redirect(url_for("master_page"))
 
     choice_id = register_choice_history(player, "pokemon", options)
     if draw_meta:
@@ -2573,7 +2704,7 @@ def master_draw_pokemon():
     save_state(state)
 
     flash(f"{len(options)} Pokémon foram sorteados para {nickname}. Você não viu as opções.", "success")
-    return redirect(url_for("master_page", key=MASTER_KEY))
+    return redirect(url_for("master_page"))
 
 
 @app.route("/master/draw-ability", methods=["POST"])
@@ -2589,26 +2720,26 @@ def master_draw_ability():
     player = get_player_by_id(state, player_id)
     if not player:
         flash("Jogador não encontrado.", "error")
-        return redirect(url_for("master_page", key=MASTER_KEY))
+        return redirect(url_for("master_page"))
 
     nickname = player["nickname"]
     try:
         pokemon_index = int(index_raw)
     except ValueError:
         flash("Índice inválido.", "error")
-        return redirect(url_for("master_page", key=MASTER_KEY))
+        return redirect(url_for("master_page"))
 
     if player["pending"].get("type") is not None:
         flash(f"{nickname} já tem uma escolha pendente.", "error")
-        return redirect(url_for("master_page", key=MASTER_KEY))
+        return redirect(url_for("master_page"))
 
     if pokemon_index < 0 or pokemon_index >= len(player["pokemon_picks"]):
         flash("Pokémon inválido.", "error")
-        return redirect(url_for("master_page", key=MASTER_KEY))
+        return redirect(url_for("master_page"))
 
     if player["pokemon_picks"][pokemon_index].get("ability") is not None:
         flash("Esse Pokémon já tem ability escolhida.", "error")
-        return redirect(url_for("master_page", key=MASTER_KEY))
+        return redirect(url_for("master_page"))
 
     ability_pool = get_current_ability_pool(state)
     excluded_abilities = used_abilities_for_state(state) if state.setdefault("settings", {}).get("lock_abilities_globally", False) else []
@@ -2616,7 +2747,7 @@ def master_draw_ability():
 
     if error:
         flash(error, "error")
-        return redirect(url_for("master_page", key=MASTER_KEY))
+        return redirect(url_for("master_page"))
 
     choice_id = register_choice_history(player, "ability", options, pokemon_index)
     player["pending"] = {
@@ -2629,7 +2760,7 @@ def master_draw_ability():
     save_state(state)
 
     flash(f"{len(options)} abilities foram sorteadas para {slot_label(pokemon_index)} de {nickname}. Você não viu as opções.", "success")
-    return redirect(url_for("master_page", key=MASTER_KEY))
+    return redirect(url_for("master_page"))
 
 
 def groups_to_text(groups: List[List[str]]) -> str:
@@ -2870,7 +3001,7 @@ def admin_page():
         active_ability_preset=active_ability_preset,
         draft_rulesets=draft_rulesets,
         pool_summary=current_summary,
-        key=ADMIN_KEY,
+        key="",
         auto_refresh=False,
         state_version=state.get("version", 0),
     )
@@ -2887,13 +3018,13 @@ def admin_clear_pending():
     player = get_player_by_id(state, player_id)
     if not player:
         flash("Jogador não encontrado.", "error")
-        return redirect(url_for("admin_page", key=ADMIN_KEY))
+        return redirect(url_for("admin_page"))
 
     player["pending"] = empty_pending()
     save_state(state)
 
     flash(f"Pendência de {player['nickname']} limpa.", "success")
-    return redirect(url_for("admin_page", key=ADMIN_KEY))
+    return redirect(url_for("admin_page"))
 
 
 @app.route("/admin/remove-last-pick", methods=["POST"])
@@ -2907,11 +3038,11 @@ def admin_remove_last_pick():
     player = get_player_by_id(state, player_id)
     if not player:
         flash("Jogador não encontrado.", "error")
-        return redirect(url_for("admin_page", key=ADMIN_KEY))
+        return redirect(url_for("admin_page"))
 
     if not player["pokemon_picks"]:
         flash("Esse jogador não tem Pokémon para remover.", "error")
-        return redirect(url_for("admin_page", key=ADMIN_KEY))
+        return redirect(url_for("admin_page"))
 
     removed = player["pokemon_picks"].pop()
     removed_name = removed["name"]
@@ -2919,7 +3050,7 @@ def admin_remove_last_pick():
     save_state(state)
 
     flash(f"Último Pokémon de {player['nickname']} removido: {removed_name}. Bloqueios globais recalculados.", "success")
-    return redirect(url_for("admin_page", key=ADMIN_KEY))
+    return redirect(url_for("admin_page"))
 
 
 @app.route("/admin/save-groups", methods=["POST"])
@@ -2941,7 +3072,7 @@ def admin_save_groups():
     save_state(state)
 
     flash("Grupos de Pokémon salvos e bloqueios globais recalculados.", "success")
-    return redirect(url_for("admin_page", key=ADMIN_KEY))
+    return redirect(url_for("admin_page"))
 
 
 @app.route("/admin/group-editor-state", methods=["GET"])
@@ -3228,7 +3359,7 @@ def admin_save_flags():
     config = normalize_flag_config_from_form(limits_text, raw_pokemon_flags)
     save_flag_config(config)
     flash("Flags e limites salvos. Os próximos sorteios já respeitam esses limites.", "success")
-    return redirect(url_for("admin_page", key=ADMIN_KEY))
+    return redirect(url_for("admin_page"))
 
 
 @app.route("/admin/save-settings", methods=["POST"])
@@ -3252,16 +3383,16 @@ def admin_save_settings():
     settings["ability_options_per_draw"] = form_int("ability_options_per_draw", ABILITY_OPTIONS_PER_DRAW, 1, 20)
     settings["options_per_draw"] = settings["pokemon_options_per_draw"]
 
-    pokemon_pool_source = request.form.get("pokemon_pool_source", POKEMON_POOL_SOURCE_TXT)
-    if pokemon_pool_source not in {POKEMON_POOL_SOURCE_TXT, POKEMON_POOL_SOURCE_DEX_PRESET}:
-        pokemon_pool_source = POKEMON_POOL_SOURCE_TXT
+    # UI profissional: o fluxo principal agora é sempre MegaDex.
+    # Fontes TXT antigas ficam apenas para compatibilidade de estados/routes antigas.
+    pokemon_pool_source = POKEMON_POOL_SOURCE_DEX_PRESET
     settings["pokemon_pool_source"] = pokemon_pool_source
     preset_id = safe_int_value(request.form.get("pokemon_preset_id"))
-    settings["pokemon_preset_id"] = preset_id if pokemon_pool_source == POKEMON_POOL_SOURCE_DEX_PRESET else None
+    settings["pokemon_preset_id"] = preset_id
 
-    ability_pool_source = request.form.get("ability_pool_source", ABILITY_POOL_SOURCE_TXT)
-    if ability_pool_source not in {ABILITY_POOL_SOURCE_TXT, ABILITY_POOL_SOURCE_DEX, ABILITY_POOL_SOURCE_DEX_TAG, ABILITY_POOL_SOURCE_DEX_PRESET}:
-        ability_pool_source = ABILITY_POOL_SOURCE_TXT
+    ability_pool_source = request.form.get("ability_pool_source", ABILITY_POOL_SOURCE_DEX_PRESET)
+    if ability_pool_source not in {ABILITY_POOL_SOURCE_DEX, ABILITY_POOL_SOURCE_DEX_TAG, ABILITY_POOL_SOURCE_DEX_PRESET}:
+        ability_pool_source = ABILITY_POOL_SOURCE_DEX_PRESET
     settings["ability_pool_source"] = ability_pool_source
     settings["ability_tag_filter"] = request.form.get("ability_tag_filter", "").strip() or "Metronome Boa"
     ability_preset_id = safe_int_value(request.form.get("ability_preset_id"))
@@ -3275,7 +3406,7 @@ def admin_save_settings():
     recompute_used_pokemon(state)
     save_state(state)
     flash("Configurações do draft salvas. Os próximos sorteios já usam esses valores.", "success")
-    return redirect(url_for("admin_page", key=ADMIN_KEY))
+    return redirect(url_for("admin_page"))
 
 
 @app.route("/admin/reset", methods=["POST"])
@@ -3287,7 +3418,7 @@ def admin_reset():
     confirm = request.form.get("confirm", "").strip()
     if confirm != "RESETAR":
         flash('Digite exatamente "RESETAR" para resetar o draft.', "error")
-        return redirect(url_for("admin_page", key=ADMIN_KEY))
+        return redirect(url_for("admin_page"))
 
     backup_path = BASE_DIR / f"draft_state_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     if STATE_FILE.exists():
@@ -3295,14 +3426,14 @@ def admin_reset():
 
     save_state(default_state())
     flash("Draft resetado. Um backup do estado anterior foi criado.", "success")
-    return redirect(url_for("admin_page", key=ADMIN_KEY))
+    return redirect(url_for("admin_page"))
 
 
 @app.route("/export-history.json", methods=["GET"])
 def export_history_json():
-    key = request.args.get("key")
-    if key != ADMIN_KEY:
-        return {"error": "Acesso negado"}, 403
+    locked = require_admin()
+    if locked:
+        return locked
     payload = player_history_export_payload(load_state())
     return Response(
         json.dumps(payload, ensure_ascii=False, indent=2),
@@ -3313,9 +3444,9 @@ def export_history_json():
 
 @app.route("/export-history.txt", methods=["GET"])
 def export_history_txt():
-    key = request.args.get("key")
-    if key != ADMIN_KEY:
-        return {"error": "Acesso negado"}, 403
+    locked = require_admin()
+    if locked:
+        return locked
     return Response(
         history_text_export(load_state()),
         mimetype="text/plain; charset=utf-8",
@@ -3325,9 +3456,9 @@ def export_history_txt():
 
 @app.route("/export.json", methods=["GET"])
 def export_json():
-    key = request.args.get("key")
-    if key != ADMIN_KEY:
-        return {"error": "Acesso negado"}, 403
+    locked = require_admin()
+    if locked:
+        return locked
     return load_state()
 
 

@@ -1,18 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Mestre Cego{% endblock %}
 {% block content %}
-<section class="card">
-    <h1>Mestre cego</h1>
-    <p class="muted">Aqui você controla o andamento sem ver as opções sorteadas e sem ver quais Pokémon cada jogador escolheu. Os jogadores recebem as opções nas próprias páginas.</p>
+<section class="hero">
+    <div class="hero-kicker">Controle cego</div>
+    <h1>Mestre do draft</h1>
+    <p>Controle sorteios sem ver nomes de Pokémon, abilities ou opções pendentes. Esta tela mostra apenas progresso, slots e ações disponíveis.</p>
+    <div class="stat-grid">
+        <div class="stat-card"><strong>{{ players|length }}</strong><span>jogadores</span></div>
+        <div class="stat-card"><strong>{{ state.used_pokemon|length }}</strong><span>Pokémon travados</span></div>
+        <div class="stat-card"><strong>{{ pool_summary.pokemon_count }}</strong><span>pool Pokémon</span></div>
+        <div class="stat-card"><strong>{{ pool_summary.ability_count }}</strong><span>pool abilities</span></div>
+    </div>
     <p>
-        <span class="badge">Jogadores: {{ players|length }}</span>
-        <span class="badge">Pokémon usados: {{ state.used_pokemon|length }}</span>
-        <span class="badge">Pool Pokémon: {{ pool_summary.pokemon_source }} ({{ pool_summary.pokemon_count }})</span>
-        <span class="badge">Pool ability: {{ pool_summary.ability_source }} ({{ pool_summary.ability_count }})</span>
+        <span class="badge">{{ pool_summary.pokemon_source }}</span>
+        <span class="badge">{{ pool_summary.ability_source }}</span>
         {% if state.settings.lock_chosen_pokemon_globally %}<span class="badge">Trava: {{ pokemon_lock_scope_label(state) }}</span>{% endif %}
-        <span class="badge">Máximo por jogador: {{ state.settings.max_pokemon }}</span>
-        <span class="badge">Opções Pokémon: {{ get_pokemon_options_per_draw(state) }}</span>
-        <span class="badge">Opções ability: {{ get_ability_options_per_draw(state) }}</span>
+        <span class="badge">Máximo: {{ state.settings.max_pokemon }}</span>
         {% if draft_rounds_enabled(state) %}<span class="badge success">Rodadas ativas</span>{% endif %}
         {% if budget_enabled(state) %}<span class="badge success">Orçamento: {{ budget_total_points(state) }} pts</span>{% endif %}
     </p>
@@ -20,80 +23,65 @@
 
 {% if not players %}
     <section class="card">
-        <h2>Nenhum jogador entrou ainda</h2>
-        <p class="muted">Peça para cada pessoa acessar a página inicial e criar a própria página usando exatamente o nick do Minecraft.</p>
+        <h2>Aguardando jogadores</h2>
+        <p class="muted">Peça para cada pessoa acessar a página inicial e criar a própria página usando o nick exato.</p>
     </section>
-{% endif %}
-
-<section class="grid">
-{% for player_id, player in players.items() %}
-    <div class="card">
-        <h2>{{ player.nickname }}</h2>
-        <p>
-            <span class="badge">{{ player.pokemon_picks|length }}/{{ state.settings.max_pokemon }} Pokémon</span>
-            <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ master_pending_label(player) }}</span>
-            {% if budget_enabled(state) %}
-                {% set budget = player_budget_summary(player, state) %}
-                <span class="badge {% if budget.over_budget %}warning{% else %}success{% endif %}">{{ budget.spent }}/{{ budget.total }} pts</span>
-                <span class="badge">Restante: {{ budget.remaining }} pts</span>
-            {% endif %}
-        </p>
-
-        {% if player.pokemon_picks %}
-            <ol class="small">
-                {% for pick in player.pokemon_picks %}
-                    <li>
-                        <strong>{{ slot_label(loop.index0) }}</strong>
-                        {% if budget_enabled(state) %}
-                            {% set pick_cost = budget_cost_for_pick(pick, state) %}
-                            <span class="badge">{{ pick_cost.cost }} pts</span>
-                        {% endif %}
-                        {% if pick.ability %}
-                            — ability escolhida
-                        {% else %}
-                            — ability pendente
-                        {% endif %}
-                    </li>
-                {% endfor %}
-            </ol>
-        {% else %}
-            <p class="muted small">Nenhum slot escolhido ainda.</p>
-        {% endif %}
-
-        <div class="hr"></div>
-
-        {% set round_info = next_pokemon_round_summary(player, state) %}
-        {% if round_info %}
-            <p class="small muted">
-                Próxima rodada: <strong>{{ round_info.name }}</strong><br>
-                Pool: {{ round_info.source }} · {{ round_info.pokemon_count }} Pokémon · {{ round_info.options_per_draw }} opções
-            </p>
-        {% endif %}
-
-        <div class="actions">
-            <form method="post" action="{{ url_for('master_draw_pokemon') }}">
-                <input type="hidden" name="key" value="{{ key }}">
-                <input type="hidden" name="player_id" value="{{ player_id }}">
-                <button type="submit" {% if not player_can_draw_pokemon(player, state) %}disabled{% endif %}>Sortear {{ next_pokemon_options_per_draw(player, state) }} Pokémon</button>
-            </form>
-        </div>
-
-        {% if player.pokemon_picks|length > 0 %}
-            <div class="hr"></div>
-            <h3>Sortear ability</h3>
-            <p class="muted small">Os nomes dos Pokémon ficam ocultos aqui de propósito. Sorteie pela posição do slot.</p>
-            <div class="actions">
-                {% for pick in player.pokemon_picks %}
-                    <form method="post" action="{{ url_for('master_draw_ability') }}">
-                        <input type="hidden" name="key" value="{{ key }}">
-                        <input type="hidden" name="player_id" value="{{ player_id }}">
-                        <input type="hidden" name="pokemon_index" value="{{ loop.index0 }}">
-                        <button class="secondary" type="submit" {% if player.pending.type or pick.ability %}disabled{% endif %}>Sortear {{ slot_label(loop.index0) }}</button>
-                    </form>
-                {% endfor %}
+{% else %}
+<section class="card">
+    <h2>Jogadores</h2>
+    <div class="player-list">
+    {% for player_id, player in players.items() %}
+        <div class="player-row">
+            <div>
+                <h3>{{ player.nickname }}</h3>
+                <p class="small muted">{{ player.pokemon_picks|length }}/{{ state.settings.max_pokemon }} slots preenchidos</p>
+                <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ master_pending_label(player) }}</span>
+                {% if budget_enabled(state) %}
+                    {% set budget = player_budget_summary(player, state) %}
+                    <span class="badge {% if budget.over_budget %}warning{% else %}success{% endif %}">{{ budget.spent }}/{{ budget.total }} pts</span>
+                    <span class="badge">{{ budget.remaining }} restantes</span>
+                {% endif %}
             </div>
-        {% endif %}
+
+            <div>
+                {% set round_info = next_pokemon_round_summary(player, state) %}
+                {% if round_info %}
+                    <p class="small muted">
+                        Próximo slot: <strong>{{ round_info.name }}</strong><br>
+                        {{ round_info.source }} · {{ round_info.pokemon_count }} Pokémon · {{ round_info.options_per_draw }} opções
+                    </p>
+                {% else %}
+                    <p class="small muted">Todos os slots de Pokémon foram preenchidos ou há uma pendência ativa.</p>
+                {% endif %}
+                {% if player.pokemon_picks %}
+                    <p class="small">
+                        {% for pick in player.pokemon_picks %}
+                            <span class="badge {% if pick.ability %}success{% else %}warning{% endif %}">{{ slot_label(loop.index0) }}{% if pick.ability %}: ability ok{% else %}: ability pendente{% endif %}</span>
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            </div>
+
+            <div class="actions">
+                <form method="post" action="{{ url_for('master_draw_pokemon') }}">
+                    <input type="hidden" name="key" value="{{ key }}">
+                    <input type="hidden" name="player_id" value="{{ player_id }}">
+                    <button type="submit" {% if not player_can_draw_pokemon(player, state) %}disabled{% endif %}>Sortear {{ next_pokemon_options_per_draw(player, state) }} Pokémon</button>
+                </form>
+                {% if player.pokemon_picks|length > 0 %}
+                    {% for pick in player.pokemon_picks %}
+                        <form method="post" action="{{ url_for('master_draw_ability') }}">
+                            <input type="hidden" name="key" value="{{ key }}">
+                            <input type="hidden" name="player_id" value="{{ player_id }}">
+                            <input type="hidden" name="pokemon_index" value="{{ loop.index0 }}">
+                            <button class="secondary" type="submit" {% if player.pending.type or pick.ability %}disabled{% endif %}>Ability {{ loop.index }}</button>
+                        </form>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
     </div>
-{% endfor %}
 </section>
+{% endif %}
 {% endblock %}

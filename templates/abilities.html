@@ -87,7 +87,6 @@
                         </div>
 
                         <form method="post" action="{{ url_for('update_ability_route') }}" class="ability-edit-form">
-                            <input type="hidden" name="admin_key" value="{{ admin_key }}">
                             <input type="hidden" name="ability_id" value="{{ ability.id }}">
                             <input type="hidden" name="return_q" value="{{ filters.q }}">
                             <input type="hidden" name="return_tag" value="{{ filters.tag }}">

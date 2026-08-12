@@ -197,36 +197,36 @@
     }
 </style>
 
-<section class="card">
-    <h1>Admin completo</h1>
-    <p class="muted">Esta página mostra tudo, inclusive opções pendentes. Use só para auditoria, correção ou finalização.</p>
+<section class="hero">
+    <div class="hero-kicker">Painel do organizador</div>
+    <h1>Admin do Mega Draft</h1>
+    <p>Controle rulesets, pools, orçamento e auditoria do campeonato em um fluxo único baseado no MegaDex.</p>
+    <div class="stat-grid">
+        <div class="stat-card"><strong>{{ players|length }}</strong><span>jogadores</span></div>
+        <div class="stat-card"><strong>{{ pokemon_count }}</strong><span>Pokémon na pool</span></div>
+        <div class="stat-card"><strong>{{ ability_count }}</strong><span>abilities na pool</span></div>
+        <div class="stat-card"><strong>{{ state.used_pokemon|length }}</strong><span>travados</span></div>
+    </div>
     <p>
-        <span class="badge">Pokémon na pool: {{ pokemon_count }}</span>
-        <span class="badge">Fonte Pokémon: {{ pool_summary.pokemon_source }}</span>
-        <span class="badge">Abilities na pool: {{ ability_count }}</span>
-        <span class="badge">Fonte ability: {{ pool_summary.ability_source }}</span>
-        <span class="badge">Pokémon travados: {{ state.used_pokemon|length }}</span>
+        <span class="badge">{{ pool_summary.pokemon_source }}</span>
+        <span class="badge">{{ pool_summary.ability_source }}</span>
         {% if state.settings.lock_chosen_pokemon_globally %}<span class="badge">Trava: {{ pokemon_lock_scope_label(state) }}</span>{% endif %}
         {% if draft_rounds_enabled(state) %}<span class="badge success">Rodadas ativas</span>{% endif %}
         {% if budget_enabled(state) %}<span class="badge success">Orçamento: {{ budget_total_points(state) }} pts</span>{% endif %}
     </p>
-    <div class="export-actions">
-        <a class="button" href="{{ url_for('export_json', key=key) }}">Exportar estado completo JSON</a>
-        <a class="button secondary" href="{{ url_for('export_history_json', key=key) }}">Exportar escolhas JSON</a>
-        <a class="button secondary" href="{{ url_for('export_history_txt', key=key) }}">Exportar escolhas TXT</a>
-        <a class="button secondary" href="{{ url_for('budget_page', key=key) }}">Configurar orçamento</a>
+    <div class="actions">
+        <a class="button" href="{{ url_for('master_page') }}">Abrir mestre cego</a>
+        <a class="button secondary" href="{{ url_for('rulesets_page') }}">Rulesets</a>
+        <a class="button secondary" href="{{ url_for('budget_page') }}">Orçamento</a>
+        <a class="button secondary" href="{{ url_for('export_json') }}">Exportar JSON</a>
     </div>
-    <p class="muted small">O export de escolhas registra as 3 opções que cada jogador recebeu e qual opção foi selecionada. Isso é ótimo para analisar o draft depois do campeonato.</p>
-    <p style="display:none">
-    </p>
 </section>
 
 <section class="card">
-    <h2>Rulesets rápidos</h2>
-    <p class="muted">Aplique um pacote completo de regras salvo: pool de Pokémon, pool de abilities, quantidades, travas e karma.</p>
+    <h2>1. Aplicar ruleset</h2>
+    <p class="muted">Comece por aqui: um ruleset salva pool de Pokémon, preset de abilities, travas, orçamento e quantidades. Isso substitui a configuração manual antiga baseada em TXT.</p>
     {% if draft_rulesets %}
         <form method="post" action="{{ url_for('apply_ruleset_route') }}">
-            <input type="hidden" name="admin_key" value="{{ key }}">
             <div class="settings-grid">
                 <div class="setting-field">
                     <label for="admin_ruleset_id">Ruleset</label>
@@ -243,18 +243,18 @@
             </div>
         </form>
     {% else %}
-        <p class="muted">Nenhum ruleset salvo ainda. Crie em <a href="{{ url_for('rulesets_page', key=key) }}">Rulesets</a> ou rode <code>python scripts/seed_draft_rulesets.py</code>.</p>
+        <p class="muted">Nenhum ruleset salvo ainda. Crie em <a href="{{ url_for('rulesets_page') }}">Rulesets</a> ou rode <code>python scripts/seed_draft_rulesets.py</code>.</p>
     {% endif %}
     <p class="small muted">
-        <a href="{{ url_for('rulesets_page', key=key) }}">Abrir gerenciador de rulesets</a>
+        <a href="{{ url_for('rulesets_page') }}">Abrir gerenciador de rulesets</a>
         ·
-        <a href="{{ url_for('rounds_page', key=key) }}">Configurar rodadas por slot</a>
+        <a href="{{ url_for('rounds_page') }}">Configurar rodadas por slot</a>
     </p>
 </section>
 
 <section class="card">
-    <h2>Configurações do draft</h2>
-    <p class="muted">Configure antes de começar o sorteio. As mudanças valem para os próximos sorteios; escolhas já feitas não são alteradas.</p>
+    <h2>2. Ajustes finos do draft</h2>
+    <p class="muted">Use esta área para pequenos ajustes depois de aplicar um ruleset. O fluxo novo usa apenas MegaDex; arquivos TXT antigos não aparecem mais no painel principal.</p>
 
     <form method="post" action="{{ url_for('admin_save_settings') }}">
         <input type="hidden" name="key" value="{{ key }}">
@@ -282,36 +282,28 @@
         <div class="hr"></div>
 
         <h3>Fonte das pools</h3>
-        <p class="muted small">Agora o sorteio pode continuar usando os arquivos TXT antigos ou puxar a pool de Pokémon a partir de um preset salvo no MegaDex.</p>
+        <p class="muted small">O draft agora usa o MegaDex como fonte principal. Para criar novas pools, monte um preset na Dex ou um preset de abilities.</p>
+        <input type="hidden" name="pokemon_pool_source" value="{{ POKEMON_POOL_SOURCE_DEX_PRESET }}">
         <div class="settings-grid">
             <div class="setting-field">
-                <label for="pokemon_pool_source">Pool de Pokémon</label>
-                <select id="pokemon_pool_source" name="pokemon_pool_source">
-                    <option value="{{ POKEMON_POOL_SOURCE_TXT }}" {% if state.settings.pokemon_pool_source != POKEMON_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>TXT legado — data/pokemon.txt</option>
-                    <option value="{{ POKEMON_POOL_SOURCE_DEX_PRESET }}" {% if state.settings.pokemon_pool_source == POKEMON_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>MegaDex — preset salvo</option>
-                </select>
-            </div>
-
-            <div class="setting-field">
-                <label for="pokemon_preset_id">Preset do MegaDex</label>
+                <label for="pokemon_preset_id">Preset de Pokémon</label>
                 <select id="pokemon_preset_id" name="pokemon_preset_id">
                     <option value="">Selecione um preset</option>
                     {% for preset in presets %}
                         <option value="{{ preset.id }}" {% if state.settings.pokemon_preset_id|string == preset.id|string %}selected{% endif %}>{{ preset.name }}</option>
                     {% endfor %}
                 </select>
-                <p class="muted small">Ex.: <strong>Metronome Cup</strong>. Salve novos presets pela tela MegaDex/Presets.</p>
+                <p class="muted small">Ex.: <strong>Metronome Cup</strong>, <strong>Inicial Draft</strong> ou qualquer filtro salvo do MegaDex.</p>
             </div>
 
             <div class="setting-field">
-                <label for="ability_pool_source">Pool de abilities</label>
+                <label for="ability_pool_source">Fonte de abilities</label>
                 <select id="ability_pool_source" name="ability_pool_source">
-                    <option value="{{ ABILITY_POOL_SOURCE_TXT }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_TXT or not state.settings.ability_pool_source %}selected{% endif %}>TXT legado — data/abilities.txt</option>
-                    <option value="{{ ABILITY_POOL_SOURCE_DEX }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX %}selected{% endif %}>MegaDex — todas as abilities importadas</option>
-                    <option value="{{ ABILITY_POOL_SOURCE_DEX_TAG }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_TAG %}selected{% endif %}>MegaDex — abilities por tag</option>
-                    <option value="{{ ABILITY_POOL_SOURCE_DEX_PRESET }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>MegaDex — preset de abilities</option>
+                    <option value="{{ ABILITY_POOL_SOURCE_DEX_PRESET }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_PRESET or not state.settings.ability_pool_source %}selected{% endif %}>Preset de abilities</option>
+                    <option value="{{ ABILITY_POOL_SOURCE_DEX_TAG }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_TAG %}selected{% endif %}>Tag de ability</option>
+                    <option value="{{ ABILITY_POOL_SOURCE_DEX }}" {% if state.settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX %}selected{% endif %}>Todas as abilities do MegaDex</option>
                 </select>
-                <p class="muted small">Use tags ou presets para sortear apenas abilities funcionais, defensivas, baníveis, dependentes de contato etc.</p>
+                <p class="muted small">Recomendado: usar preset para evitar abilities inúteis, dependentes de doubles ou baníveis.</p>
             </div>
 
             <div class="setting-field">
@@ -336,7 +328,7 @@
                         <option value="{{ tag.name }}" {% if state.settings.ability_tag_filter == tag.name %}selected{% endif %}>{{ tag.name }}</option>
                     {% endfor %}
                 </select>
-                <p class="muted small">Ex.: <strong>Metronome Boa</strong>. Edite as tags na tela <a href="{{ url_for('abilities_page') }}">Ability Lab</a>.</p>
+                <p class="muted small">Usado apenas quando a fonte escolhida for “Tag de ability”.</p>
             </div>
         </div>
 
@@ -358,7 +350,7 @@
                 <strong>Linha evolutiva inteira</strong> trava evoluções e formas relacionadas pelo MegaDex.
                 <strong>Formas da mesma espécie</strong> trava só variações como Toxtricity Amped/Low Key.
                 <strong>Somente forma sorteada</strong> permite outras formas/evoluções aparecerem.
-                <strong>Grupos TXT</strong> usa apenas <code>data/pokemon_groups.txt</code>.
+                O modo antigo por TXT foi removido do painel principal; use species ou linha evolutiva pelo MegaDex.
             </p>
         </div>
 
@@ -380,7 +372,7 @@
 </section>
 
 <section class="card">
-    <h2>Times e pendências</h2>
+    <h2>3. Times e pendências</h2>
     {% if not players %}
         <p class="muted">Nenhum jogador cadastrado.</p>
     {% else %}
@@ -446,7 +438,7 @@
     {% endif %}
 </section>
 
-<section class="card">
+<section class="card legacy-admin-tools" aria-hidden="true">
     <h2>Editor visual colaborativo de flags</h2>
     <p class="muted">Marque flags nos Pokémon, como <strong>Lendario</strong>, <strong>Paradox</strong> ou qualquer outra categoria. Você e seu irmão podem editar juntos: cada um escolhe uma flag, seleciona Pokémon, e o outro vê a seleção em andamento.</p>
 
@@ -500,7 +492,7 @@
     </div>
 </section>
 
-<section class="card">
+<section class="card legacy-admin-tools" aria-hidden="true">
     <h2>Editor visual colaborativo de grupos</h2>
     <p class="muted">Monte famílias/evoluções clicando nos Pokémon da lista. As seleções aparecem para todos os Admins em tempo quase real, então você e seu irmão conseguem montar juntos sem se atropelar.</p>
 
@@ -554,7 +546,7 @@
 </section>
 
 <section class="card">
-    <h2>Resetar campeonato</h2>
+    <h2>Zona de perigo</h2>
     <p class="muted">Isso limpa jogadores, escolhas e Pokémon travados. Um backup JSON é criado antes.</p>
     <form method="post" action="{{ url_for('admin_reset') }}">
         <input type="hidden" name="key" value="{{ key }}">
@@ -569,7 +561,7 @@
 <script>
 (() => {
     const adminKey = {{ key|tojson }};
-    const stateUrl = {{ url_for('admin_flag_editor_state', key=key)|tojson }};
+    const stateUrl = {{ url_for('admin_flag_editor_state')|tojson }};
     const updateUrl = {{ url_for('admin_flag_editor_update')|tojson }};
     const initialPayload = {{ flag_editor_payload|tojson }};
 
@@ -960,7 +952,7 @@
 <script>
 (() => {
     const adminKey = {{ key|tojson }};
-    const stateUrl = {{ url_for('admin_group_editor_state', key=key)|tojson }};
+    const stateUrl = {{ url_for('admin_group_editor_state')|tojson }};
     const updateUrl = {{ url_for('admin_group_editor_update')|tojson }};
 
     let pokemonPool = {{ pokemon_pool|tojson }};

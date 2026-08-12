@@ -36,14 +36,12 @@
                             <span class="badge">Orçamento: {{ ruleset.labels.budget }}</span>
                         </p>
                         <div class="actions">
-                            <a class="button secondary" href="{{ url_for('rulesets_page', ruleset_id=ruleset.id, key=admin_key) }}">Ver</a>
+                            <a class="button secondary" href="{{ url_for('rulesets_page', ruleset_id=ruleset.id) }}">Ver</a>
                             <form class="inline" method="post" action="{{ url_for('apply_ruleset_route') }}">
-                                <input type="hidden" name="admin_key" value="{{ admin_key }}">
                                 <input type="hidden" name="ruleset_id" value="{{ ruleset.id }}">
                                 <button type="submit">Aplicar no draft</button>
                             </form>
                             <form class="inline" method="post" action="{{ url_for('delete_ruleset_route') }}" onsubmit="return confirm('Apagar este ruleset?');">
-                                <input type="hidden" name="admin_key" value="{{ admin_key }}">
                                 <input type="hidden" name="ruleset_id" value="{{ ruleset.id }}">
                                 <button class="danger" type="submit">Apagar</button>
                             </form>
@@ -91,7 +89,6 @@
         <h2>Criar ou atualizar ruleset</h2>
         <p class="muted small">Se usar o mesmo nome de um ruleset existente, ele será atualizado.</p>
         <form method="post" action="{{ url_for('save_ruleset_route') }}">
-            <input type="hidden" name="admin_key" value="{{ admin_key }}">
 
             <div class="settings-grid">
                 <div class="setting-field">
@@ -120,13 +117,7 @@
 
             {% set current_settings = selected.settings if selected else state.settings %}
             <div class="settings-grid">
-                <div class="setting-field">
-                    <label for="pokemon_pool_source">Pool de Pokémon</label>
-                    <select id="pokemon_pool_source" name="pokemon_pool_source">
-                        <option value="{{ POKEMON_POOL_SOURCE_TXT }}" {% if current_settings.pokemon_pool_source != POKEMON_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>TXT legado</option>
-                        <option value="{{ POKEMON_POOL_SOURCE_DEX_PRESET }}" {% if current_settings.pokemon_pool_source == POKEMON_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>MegaDex — preset de Pokémon</option>
-                    </select>
-                </div>
+                <input type="hidden" name="pokemon_pool_source" value="{{ POKEMON_POOL_SOURCE_DEX_PRESET }}">
 
                 <div class="setting-field">
                     <label for="pokemon_preset_id">Preset de Pokémon</label>
@@ -139,12 +130,11 @@
                 </div>
 
                 <div class="setting-field">
-                    <label for="ability_pool_source">Pool de abilities</label>
+                    <label for="ability_pool_source">Fonte de abilities</label>
                     <select id="ability_pool_source" name="ability_pool_source">
-                        <option value="{{ ABILITY_POOL_SOURCE_TXT }}" {% if current_settings.ability_pool_source == ABILITY_POOL_SOURCE_TXT or not current_settings.ability_pool_source %}selected{% endif %}>TXT legado</option>
-                        <option value="{{ ABILITY_POOL_SOURCE_DEX }}" {% if current_settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX %}selected{% endif %}>MegaDex — todas</option>
-                        <option value="{{ ABILITY_POOL_SOURCE_DEX_TAG }}" {% if current_settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_TAG %}selected{% endif %}>MegaDex — por tag</option>
-                        <option value="{{ ABILITY_POOL_SOURCE_DEX_PRESET }}" {% if current_settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_PRESET %}selected{% endif %}>MegaDex — preset</option>
+                        <option value="{{ ABILITY_POOL_SOURCE_DEX_PRESET }}" {% if current_settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_PRESET or not current_settings.ability_pool_source %}selected{% endif %}>Preset de abilities</option>
+                        <option value="{{ ABILITY_POOL_SOURCE_DEX_TAG }}" {% if current_settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX_TAG %}selected{% endif %}>Tag de ability</option>
+                        <option value="{{ ABILITY_POOL_SOURCE_DEX }}" {% if current_settings.ability_pool_source == ABILITY_POOL_SOURCE_DEX %}selected{% endif %}>Todas as abilities do MegaDex</option>
                     </select>
                 </div>
 
@@ -212,7 +202,7 @@
                         <option value="{{ option.value }}" {% if (current_settings.pokemon_lock_scope or POKEMON_LOCK_SCOPE_EVOLUTION_LINE) == option.value %}selected{% endif %}>{{ option.label }}</option>
                     {% endfor %}
                 </select>
-                <p class="muted small">Controle se uma escolha bloqueia apenas a forma, formas da mesma species, a linha evolutiva inteira ou os grupos TXT legados.</p>
+                <p class="muted small">Controle se uma escolha bloqueia apenas a forma, formas da mesma species ou a linha evolutiva inteira pelo MegaDex.</p>
             </div>
             <label class="flag-check">
                 <input type="checkbox" name="lock_abilities_globally" {% if current_settings.lock_abilities_globally %}checked{% endif %}>
@@ -227,7 +217,7 @@
 
             <div class="actions">
                 <button type="submit">Salvar ruleset</button>
-                <a class="button secondary" href="{{ url_for('admin_page', key=admin_key) }}">Voltar ao Admin</a>
+                <a class="button secondary" href="{{ url_for('admin_page') }}">Voltar ao Admin</a>
             </div>
         </form>
     </section>

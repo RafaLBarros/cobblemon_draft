@@ -35,7 +35,7 @@
             <div class="setting-field">
                 <label for="budget_unknown_pokemon_cost">Custo de Pokémon sem registro no MegaDex</label>
                 <input id="budget_unknown_pokemon_cost" name="budget_unknown_pokemon_cost" type="number" min="0" max="20000" value="{{ budget_unknown_pokemon_cost(state) }}">
-                <p class="muted small">Usado apenas se o nome vier do TXT legado e não existir no banco.</p>
+                <p class="muted small">Usado apenas se algum Pokémon importado/externo não existir no MegaDex local.</p>
             </div>
             <div class="setting-field">
                 <label for="budget_flag_costs">Bônus por flag</label>
@@ -46,7 +46,7 @@
 
         <div class="actions">
             <button type="submit">Salvar orçamento</button>
-            <a class="button secondary" href="{{ url_for('admin_page', key=key) }}">Voltar ao Admin</a>
+            <a class="button secondary" href="{{ url_for('admin_page') }}">Voltar ao Admin</a>
         </div>
     </form>
 </section>

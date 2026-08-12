@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Jogador - {{ player.nickname }}{% endblock %}
 {% block content %}
-<section class="card">
+<section class="hero">
+    <div class="hero-kicker">Página do jogador</div>
     <h1>{{ player.nickname }}</h1>
+    <p>Acompanhe seu time, escolha opções pendentes e copie os comandos finais quando Pokémon e ability estiverem definidos.</p>
     <p>
-        <span class="badge">Pokémon: {{ player.pokemon_picks|length }}/{{ state.settings.max_pokemon }}</span>
+        <span class="badge">{{ player.pokemon_picks|length }}/{{ state.settings.max_pokemon }} Pokémon</span>
         <span class="badge {% if player.pending.type %}warning{% else %}success{% endif %}">{{ player_pending_label(player) }}</span>
         {% if budget_enabled(state) %}
             {% set budget = player_budget_summary(player, state) %}
@@ -12,17 +14,18 @@
             <span class="badge">Restante: {{ budget.remaining }} pts</span>
         {% endif %}
     </p>
-    <p class="small muted">Seu link privado: <span class="url-box">{{ request.url }}</span></p>
-    <p class="small muted">Este apelido deve ser exatamente o seu nick do Minecraft, pois ele será usado nos comandos gerados.</p>
+    <p class="small muted">Link privado: <span class="url-box">{{ request.url }}</span></p>
 </section>
 
-<section class="grid">
+<section class="grid-2">
     <div class="card">
         <h2>Seu time</h2>
         {% if player.pokemon_picks %}
-            <ol>
-                {% for pick in player.pokemon_picks %}
-                    <li>
+            <div class="step-list">
+            {% for pick in player.pokemon_picks %}
+                <div class="step">
+                    <div class="step-number">{{ loop.index }}</div>
+                    <div>
                         {% set pick_round_label = pokemon_round_label_for_pick(pick, loop.index0) %}
                         {% if pick_round_label %}<span class="badge">{{ pick_round_label }}</span><br>{% endif %}
                         <strong>{{ pick.name }}</strong>
@@ -31,16 +34,15 @@
                             <span class="badge">{{ pick_cost.cost }} pts</span>
                         {% endif %}
                         {% if pick.ability %}
-                            — {{ pick.ability }}
-                            <div class="command-box">
-                                <code>{{ pokegive_command(player.nickname, pick.name, pick.ability) }}</code>
-                            </div>
+                            <span class="badge success">{{ pick.ability }}</span>
+                            <div class="command-box"><code>{{ pokegive_command(player.nickname, pick.name, pick.ability) }}</code></div>
                         {% else %}
-                            <span class="muted">— ability pendente</span>
+                            <span class="badge warning">ability pendente</span>
                         {% endif %}
-                    </li>
-                {% endfor %}
-            </ol>
+                    </div>
+                </div>
+            {% endfor %}
+            </div>
         {% else %}
             <p class="muted">Você ainda não escolheu nenhum Pokémon.</p>
         {% endif %}
@@ -50,16 +52,16 @@
         {% if player.pending.type == "pokemon" %}
             <h2>Escolha 1 Pokémon</h2>
             {% if player.pending.round_name %}<p><span class="badge">{{ player.pending.round_name }}</span></p>{% endif %}
-            <p class="muted">O escolhido entra no seu time e sai da pool global. Os recusados voltam para o sorteio.</p>
+            <p class="muted">O escolhido entra no seu time. As travas do ruleset cuidam de forma, species ou linha evolutiva.</p>
             {% for option in player.pending.pokemon_options %}
                 <form method="post" action="{{ url_for('choose_pokemon') }}">
                     <input type="hidden" name="player_id" value="{{ player.player_id }}">
                     <input type="hidden" name="pokemon" value="{{ option }}">
                     {% set option_cost = budget_cost_payload(option, state) %}
                     <button class="option-button" type="submit">
-                        {{ option }}
+                        <span>{{ option }}</span>
                         {% if budget_enabled(state) %}
-                            <span class="muted">— {{ option_cost.cost }} pts{% if option_cost.bst %} · BST {{ option_cost.bst }}{% endif %}</span>
+                            <span class="muted">{{ option_cost.cost }} pts{% if option_cost.bst %} · BST {{ option_cost.bst }}{% endif %}</span>
                         {% endif %}
                     </button>
                 </form>
@@ -68,17 +70,17 @@
             {% set idx = player.pending.ability_for_index %}
             {% set pokemon_name = player.pokemon_picks[idx].name if idx is number and idx >= 0 and idx < player.pokemon_picks|length else "Pokémon" %}
             <h2>Escolha ability para {{ pokemon_name }}</h2>
-            <p class="muted">Ability caótica: saiu da pool global de abilities.</p>
+            <p class="muted">Escolha uma das opções sorteadas para finalizar este slot.</p>
             {% for option in player.pending.ability_options %}
                 <form method="post" action="{{ url_for('choose_ability') }}">
                     <input type="hidden" name="player_id" value="{{ player.player_id }}">
                     <input type="hidden" name="ability" value="{{ option }}">
-                    <button class="option-button" type="submit">{{ option }}</button>
+                    <button class="option-button" type="submit"><span>{{ option }}</span></button>
                 </form>
             {% endfor %}
         {% else %}
-            <h2>Aguardando o mestre</h2>
-            <p class="muted">Quando o mestre sortear algo para você, as opções aparecem aqui automaticamente.</p>
+            <h2>Aguardando sorteio</h2>
+            <p class="muted">Quando o mestre sortear algo para você, esta página atualiza automaticamente e mostra as opções.</p>
             <button class="secondary" type="button" onclick="window.location.reload()">Atualizar agora</button>
         {% endif %}
     </div>
@@ -87,14 +89,12 @@
 {% if player.pokemon_picks %}
 <section class="card">
     <h2>Comandos prontos</h2>
-    <p class="muted">Quando Pokémon e ability estiverem definidos, o comando aparece aqui para copiar. Confira manualmente nomes com formas especiais, se houver.</p>
+    <p class="muted">Quando Pokémon e ability estiverem definidos, o comando aparece aqui para copiar.</p>
     {% for pick in player.pokemon_picks %}
         {% if pick.ability %}
             <div class="command-row">
-                <div>
-                    <strong>{{ pick.name }}</strong>
-                    <div class="command-box"><code>{{ pokegive_command(player.nickname, pick.name, pick.ability) }}</code></div>
-                </div>
+                <strong>{{ pick.name }}</strong>
+                <div class="command-box"><code>{{ pokegive_command(player.nickname, pick.name, pick.ability) }}</code></div>
             </div>
         {% endif %}
     {% endfor %}

@@ -23,7 +23,6 @@
     <section class="card">
         <h2>Criar ou atualizar preset</h2>
         <form method="post" action="{{ url_for('save_ability_preset_route') }}" class="filter-form">
-            <input type="hidden" name="admin_key" value="{{ admin_key }}">
             <div class="settings-grid">
                 <div class="setting-field">
                     <label for="preset_name">Nome</label>
@@ -99,7 +98,6 @@
                                 <div class="actions">
                                     <a class="button secondary" href="{{ url_for('ability_presets_page', preset_id=preset.id) }}">Preview</a>
                                     <form method="post" action="{{ url_for('delete_ability_preset_route') }}" class="inline">
-                                        <input type="hidden" name="admin_key" value="{{ admin_key }}">
                                         <input type="hidden" name="preset_id" value="{{ preset.id }}">
                                         <button class="danger" type="submit">Apagar</button>
                                     </form>

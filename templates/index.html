@@ -1,21 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Entrar no Draft{% endblock %}
+{% block title %}Entrar no Mega Draft{% endblock %}
 {% block content %}
-<section class="card">
-    <h1>Entrar no draft</h1>
-    <p class="muted">Digite exatamente o seu nick do Minecraft para criar sua página de jogador. Esse nome será usado para gerar os comandos <code>/pokegiveother</code>. Depois disso, salve o link gerado, porque ele usa um número único no endereço.</p>
-
-    <form method="post" action="{{ url_for('join') }}">
-        <label for="nickname">Nick exato do Minecraft</label><br><br>
-        <input id="nickname" name="nickname" type="text" placeholder="Ex: Kl1gh" required autofocus>
-        <br><br>
-        <button type="submit">Criar minha página</button>
-    </form>
+<section class="hero">
+    <div class="hero-kicker">Mega Draft</div>
+    <h1>Entre no draft e acompanhe suas escolhas em tempo real.</h1>
+    <p>O sistema sorteia opções pelo MegaDex, respeita rulesets, orçamento, formas, species e linhas evolutivas. Cada jogador só vê as próprias opções.</p>
+    <div class="actions">
+        <a class="button secondary" href="{{ url_for('master_page') }}">Abrir mestre cego</a>
+        <a class="button secondary" href="{{ url_for('admin_page') }}">Abrir admin</a>
+    </div>
 </section>
 
-<section class="card">
-    <h2>Como funciona</h2>
-    <p>Você só verá suas próprias opções. Quando o organizador sortear algo para você, sua página atualiza sozinha e mostra as 3 opções para escolha.</p>
-    <p class="muted small">Guarde o link gerado depois de entrar, porque ele será sua página durante o draft. Não use apelido diferente do nick do Minecraft.</p>
+<section class="grid-2">
+    <div class="card">
+        <h2>Entrar como jogador</h2>
+        <p class="muted">Digite exatamente seu nick de jogo. Depois disso, salve o link privado gerado para acompanhar o draft.</p>
+        <form method="post" action="{{ url_for('join') }}">
+            <div class="setting-field">
+                <label for="nickname">Nick exato do jogador</label>
+                <input id="nickname" name="nickname" type="text" placeholder="Ex: Kl1gh" required autofocus>
+            </div>
+            <br>
+            <button type="submit">Criar minha página</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Fluxo do campeonato</h2>
+        <div class="step-list">
+            <div class="step"><div class="step-number">1</div><div><strong>Jogador entra</strong><br><span class="muted small">Cada jogador recebe um link privado.</span></div></div>
+            <div class="step"><div class="step-number">2</div><div><strong>Mestre sorteia</strong><br><span class="muted small">O mestre cego vê apenas slots e progresso.</span></div></div>
+            <div class="step"><div class="step-number">3</div><div><strong>Jogador escolhe</strong><br><span class="muted small">A escolha trava conforme species, forma ou linha evolutiva.</span></div></div>
+            <div class="step"><div class="step-number">4</div><div><strong>Admin audita</strong><br><span class="muted small">Rulesets, orçamento, histórico e exports ficam no painel.</span></div></div>
+        </div>
+    </div>
 </section>
 {% endblock %}
