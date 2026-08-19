@@ -446,6 +446,113 @@
         .mini-stat-fill.mid-high { background: linear-gradient(90deg, #22c55e, #84cc16); }
         .mini-stat-fill.very-high { background: linear-gradient(90deg, #38bdf8, #2563eb); }
         .mini-stat-fill.empty { background: rgba(255,255,255,.12); }
+        .ability-target-panel {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 10px 0 16px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: rgba(255,255,255,.035);
+        }
+        .ability-target-panel p { margin: 3px 0 0; }
+        .ability-card-hand {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            gap: clamp(10px, 1.8vw, 18px);
+            flex-wrap: wrap;
+            padding: 20px 6px 8px;
+            perspective: 1200px;
+        }
+        .ability-card-form {
+            margin: 0;
+            width: clamp(210px, 24vw, 280px);
+            min-width: 200px;
+            max-width: 292px;
+            transform: translateY(var(--card-y)) rotate(var(--card-rotation));
+            transform-origin: 50% 110%;
+            transition: transform .22s ease, filter .22s ease;
+            z-index: var(--card-z);
+        }
+        .ability-card-hand:hover .ability-card-form { filter: saturate(.78) brightness(.78); }
+        .ability-card-hand .ability-card-form:hover,
+        .ability-card-hand .ability-card-form:focus-within {
+            transform: translateY(-18px) scale(1.055) rotate(0deg);
+            filter: none;
+            z-index: 50;
+        }
+        .ability-choice-card {
+            width: 100%;
+            min-height: 242px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 16px;
+            border-radius: 22px;
+            border: 1px solid rgba(196, 181, 253, .28);
+            background:
+                radial-gradient(circle at 15% 0%, rgba(139, 92, 246, .32), transparent 42%),
+                radial-gradient(circle at 100% 20%, rgba(56, 189, 248, .18), transparent 34%),
+                linear-gradient(160deg, rgba(31, 37, 56, .98), rgba(12, 14, 26, .98));
+            box-shadow: 0 20px 52px rgba(0,0,0,.34), inset 0 0 0 1px rgba(255,255,255,.045);
+            color: var(--text);
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+        .ability-choice-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,.10), transparent 38%, rgba(0,0,0,.26));
+            pointer-events: none;
+        }
+        .ability-choice-card > * { position: relative; z-index: 1; }
+        .ability-choice-card:hover {
+            border-color: rgba(196, 181, 253, .70);
+            box-shadow: 0 28px 75px rgba(0,0,0,.48), 0 0 0 4px rgba(139, 92, 246, .14);
+        }
+        .ability-card-kicker {
+            align-self: flex-start;
+            padding: 4px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(139, 92, 246, .28);
+            background: rgba(139, 92, 246, .16);
+            color: #ddd6fe;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        .ability-card-name {
+            font-size: 22px;
+            line-height: 1.05;
+            letter-spacing: -.04em;
+            overflow-wrap: anywhere;
+        }
+        .ability-card-description {
+            color: #dbe4ff;
+            font-size: 13px;
+            line-height: 1.35;
+            display: -webkit-box;
+            -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .ability-card-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: auto; }
+        .ability-card-tags span, .ability-card-note {
+            display: inline-flex;
+            padding: 4px 7px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,.12);
+            background: rgba(255,255,255,.07);
+            color: #cbd5e1;
+            font-size: 10px;
+            font-weight: 800;
+        }
+        .ability-card-note { color: #fde68a; border-color: rgba(245, 158, 11, .30); background: rgba(245, 158, 11, .10); }
         .flash {
             padding: 12px 14px;
             border-radius: 14px;
@@ -520,6 +627,10 @@
             .pokemon-card-hand .hand-card-form:hover,
             .pokemon-card-hand .hand-card-form:focus-within { transform: translateY(-6px); }
             .pokemon-hand-card { height: auto; min-height: 0; }
+            .ability-card-hand { align-items: stretch; padding-top: 8px; }
+            .ability-card-form { width: 100%; max-width: none; transform: none; }
+            .ability-card-hand .ability-card-form:hover,
+            .ability-card-hand .ability-card-form:focus-within { transform: translateY(-6px); }
             table, thead, tbody, th, td, tr { display: block; }
             th { display: none; }
             td { border-bottom: 0; padding: 6px 0; }

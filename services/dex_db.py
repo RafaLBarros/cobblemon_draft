@@ -609,6 +609,40 @@ def list_ability_tags(*, db_path: Path | str = DEFAULT_DB_PATH) -> List[Dict[str
     return rows_to_dicts(rows)
 
 
+def get_ability_record_by_name(name: str, db_path: Path | str = DEFAULT_DB_PATH) -> Optional[Dict[str, Any]]:
+    slug = normalize_slug(str(name or ""))
+    if not slug:
+        return None
+
+    query = """
+        SELECT
+            a.id,
+            a.pokeapi_id,
+            a.name,
+            a.slug,
+            a.short_effect,
+            a.effect,
+            a.is_battle_relevant,
+            a.is_banned,
+            a.notes,
+            COALESCE(GROUP_CONCAT(t.name, '||'), '') AS tags_text
+        FROM abilities a
+        LEFT JOIN ability_tags at ON at.ability_id = a.id
+        LEFT JOIN tags t ON t.id = at.tag_id
+        WHERE a.slug = :slug OR LOWER(a.name) = LOWER(:name)
+        GROUP BY a.id
+        LIMIT 1
+    """
+    with connect(db_path) as connection:
+        row = connection.execute(query, {"slug": slug, "name": str(name or "").strip()}).fetchone()
+    if not row:
+        return None
+    record = dict(row)
+    tags_text = str(record.pop("tags_text", "") or "")
+    record["tags"] = [tag_name for tag_name in tags_text.split("||") if tag_name]
+    return record
+
+
 def search_abilities(
     *,
     q: str = "",

@@ -118,18 +118,45 @@
             {% set idx = player.pending.ability_for_index %}
             {% set pokemon_name = player.pokemon_picks[idx].name if idx is number and idx >= 0 and idx < player.pokemon_picks|length else "Pokémon" %}
             <h2>Escolha ability para {{ pokemon_name }}</h2>
-            {% set ability_target_img = pokemon_image_url(pokemon_name) %}
-            {% if ability_target_img %}
-                <p><span class="pokemon-face"><img src="{{ ability_target_img }}" alt="{{ pokemon_name }}" loading="lazy"></span></p>
-            {% endif %}
-            <p class="muted">Escolha uma das opções sorteadas para finalizar este slot.</p>
+            <div class="ability-target-panel">
+                {% set ability_target_img = pokemon_image_url(pokemon_name) %}
+                <span class="pokemon-face {% if not ability_target_img %}placeholder{% endif %}">
+                    {% if ability_target_img %}<img src="{{ ability_target_img }}" alt="{{ pokemon_name }}" loading="lazy">{% else %}{{ pokemon_name[:1] }}{% endif %}
+                </span>
+                <div>
+                    <strong>{{ pokemon_name }}</strong>
+                    <p class="muted small">Escolha uma das cartas de ability para finalizar este slot. As descrições vêm do MegaDex/PokéAPI quando importadas.</p>
+                </div>
+            </div>
+            {% set total_ability_cards = player.pending.ability_options|length %}
+            {% set ability_center = (total_ability_cards - 1) / 2 %}
+            <div class="ability-card-hand" style="--hand-total: {{ total_ability_cards }};">
             {% for option in player.pending.ability_options %}
-                <form method="post" action="{{ url_for('choose_ability') }}">
+                {% set ability_card = ability_card_payload(option) %}
+                {% set offset = loop.index0 - ability_center %}
+                <form class="ability-card-form" method="post" action="{{ url_for('choose_ability') }}" style="--card-rotation: {{ (offset * 4)|round(2) }}deg; --card-y: {{ ((offset * offset) * 3)|round(2) }}px; --card-z: {{ loop.index }};">
                     <input type="hidden" name="player_id" value="{{ player.player_id }}">
                     <input type="hidden" name="ability" value="{{ option }}">
-                    <button class="option-button" type="submit"><span>{{ option }}</span></button>
+                    <button class="ability-choice-card" type="submit" aria-label="Escolher {{ option }}">
+                        <span class="ability-card-kicker">Ability</span>
+                        <strong class="ability-card-name" title="{{ option }}">{{ option }}</strong>
+                        <span class="ability-card-description" title="{{ ability_card.full_effect or ability_card.description }}">
+                            {{ ability_card.description }}
+                        </span>
+                        {% if ability_card.tags %}
+                            <span class="ability-card-tags" aria-label="Tags de {{ option }}">
+                                {% for tag_name in ability_card.tags[:3] %}
+                                    <span>{{ tag_name }}</span>
+                                {% endfor %}
+                            </span>
+                        {% endif %}
+                        {% if not ability_card.has_record %}
+                            <span class="ability-card-note">Sem registro no MegaDex</span>
+                        {% endif %}
+                    </button>
                 </form>
             {% endfor %}
+            </div>
         {% else %}
             <h2>Aguardando sorteio</h2>
             <p class="muted">Quando o mestre sortear algo para você, esta página atualiza automaticamente e mostra as opções.</p>

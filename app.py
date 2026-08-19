@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 from datetime import datetime
 from pathlib import Path
 from functools import lru_cache
@@ -18,6 +19,7 @@ from services.dex_db import (
     dex_summary,
     get_ability_pool_from_preset,
     get_ability_preset,
+    get_ability_record_by_name,
     get_draft_ruleset,
     get_evolution_line_for_pokemon_name,
     get_evolution_lines_by_chain_ids,
@@ -1931,6 +1933,15 @@ def cached_pokemon_record(name: str) -> Dict[str, Any]:
     return dict(record or {})
 
 
+@lru_cache(maxsize=2048)
+def cached_ability_record(name: str) -> Dict[str, Any]:
+    try:
+        record = get_ability_record_by_name(str(name or ""), db_path=DEX_DB_FILE)
+    except Exception:
+        record = None
+    return dict(record or {})
+
+
 def pokemon_image_url(name: str) -> str:
     return cached_pokemon_image_url(str(name or "").strip())
 
@@ -1984,6 +1995,36 @@ def stat_bar_class(value: Any) -> str:
     if number <= 120:
         return "mid-high"
     return "very-high"
+
+
+def clean_ability_text(text: Any) -> str:
+    cleaned = str(text or "").strip()
+    if not cleaned:
+        return ""
+    cleaned = cleaned.replace("\n", " ").replace("\f", " ")
+    # A PokéAPI usa marcações como [flinch]{mechanic:flinch}.
+    # Na carta do jogador, deixamos só o texto legível.
+    cleaned = re.sub(r"\[([^\]]+)\]\{[^}]+\}", r"\1", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+
+def ability_card_payload(name: str) -> Dict[str, Any]:
+    clean_name = str(name or "").strip()
+    record = cached_ability_record(clean_name)
+    short_effect = clean_ability_text(record.get("short_effect"))
+    effect = clean_ability_text(record.get("effect"))
+    description = short_effect or effect or "Descrição ainda não importada. Rode o importador com --ability-details para preencher os efeitos das abilities."
+    tags = [str(tag) for tag in record.get("tags", []) if str(tag).strip()]
+    return {
+        "name": clean_name,
+        "description": description,
+        "full_effect": effect,
+        "short_effect": short_effect,
+        "tags": tags,
+        "has_record": bool(record),
+        "is_banned": bool(record.get("is_banned")) if record else False,
+    }
 
 
 def pokemon_card_payload(name: str, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -2046,6 +2087,7 @@ def inject_helpers():
         "stat_bar_width": stat_bar_width,
         "stat_bar_class": stat_bar_class,
         "pokemon_card_payload": pokemon_card_payload,
+        "ability_card_payload": ability_card_payload,
         "pokemon_pool_source_label": pokemon_pool_source_label,
         "ability_pool_source_label": ability_pool_source_label,
         "auth_role": current_auth_role(),
