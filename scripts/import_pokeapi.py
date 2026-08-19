@@ -264,6 +264,29 @@ def upsert_move(connection: sqlite3.Connection, move_ref: Dict[str, Any], *, fet
     return connection.execute("SELECT id FROM moves WHERE slug = ?", (slug,)).fetchone()[0]
 
 
+def nested_get(payload: Dict[str, Any], *keys: str) -> Any:
+    current: Any = payload
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
+
+
+def extract_sprite_urls(pokemon: Dict[str, Any]) -> Dict[str, Optional[str]]:
+    sprites = pokemon.get("sprites") or {}
+    sprite_url = sprites.get("front_default")
+    artwork_url = nested_get(sprites, "other", "official-artwork", "front_default")
+    home_url = nested_get(sprites, "other", "home", "front_default")
+    dream_world_url = nested_get(sprites, "other", "dream_world", "front_default")
+    image_url = artwork_url or home_url or dream_world_url or sprite_url
+    return {
+        "sprite_url": sprite_url,
+        "artwork_url": artwork_url,
+        "image_url": image_url,
+    }
+
+
 def upsert_pokemon(connection: sqlite3.Connection, pokemon: Dict[str, Any], species: Dict[str, Any]) -> int:
     stats = {value: 0 for value in STAT_MAP.values()}
     for stat_entry in pokemon.get("stats", []):
@@ -287,6 +310,7 @@ def upsert_pokemon(connection: sqlite3.Connection, pokemon: Dict[str, Any], spec
         "height_dm": pokemon.get("height"),
         "weight_hg": pokemon.get("weight"),
         "base_experience": pokemon.get("base_experience"),
+        **extract_sprite_urls(pokemon),
         "is_default": 1 if pokemon.get("is_default") else 0,
         "is_baby": 1 if species.get("is_baby") else 0,
         "is_legendary": 1 if species.get("is_legendary") else 0,
@@ -300,13 +324,13 @@ def upsert_pokemon(connection: sqlite3.Connection, pokemon: Dict[str, Any], spec
         INSERT INTO pokemon (
             pokeapi_id, name, slug, species_slug, form_name, generation, type1, type2,
             hp, attack, defense, sp_attack, sp_defense, speed, bst,
-            height_dm, weight_hg, base_experience,
+            height_dm, weight_hg, base_experience, sprite_url, artwork_url, image_url,
             is_default, is_baby, is_legendary, is_mythical, updated_at
         )
         VALUES (
             :pokeapi_id, :name, :slug, :species_slug, :form_name, :generation, :type1, :type2,
             :hp, :attack, :defense, :sp_attack, :sp_defense, :speed, :bst,
-            :height_dm, :weight_hg, :base_experience,
+            :height_dm, :weight_hg, :base_experience, :sprite_url, :artwork_url, :image_url,
             :is_default, :is_baby, :is_legendary, :is_mythical, CURRENT_TIMESTAMP
         )
         ON CONFLICT(slug) DO UPDATE SET
@@ -327,6 +351,9 @@ def upsert_pokemon(connection: sqlite3.Connection, pokemon: Dict[str, Any], spec
             height_dm = excluded.height_dm,
             weight_hg = excluded.weight_hg,
             base_experience = excluded.base_experience,
+            sprite_url = excluded.sprite_url,
+            artwork_url = excluded.artwork_url,
+            image_url = excluded.image_url,
             is_default = excluded.is_default,
             is_baby = excluded.is_baby,
             is_legendary = excluded.is_legendary,

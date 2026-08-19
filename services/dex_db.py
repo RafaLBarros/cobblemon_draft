@@ -9,6 +9,8 @@ from typing import Any, Dict, Iterable, List, Optional
 BASE_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_DB_PATH = BASE_DIR / "data" / "mega_dex.sqlite3"
 SCHEMA_PATH = BASE_DIR / "database" / "schema.sql"
+OFFICIAL_ARTWORK_BASE_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/{pokeapi_id}.png"
+DEFAULT_SPRITE_BASE_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{pokeapi_id}.png"
 
 
 class DexUnavailable(RuntimeError):
@@ -52,6 +54,9 @@ def ensure_schema_upgrades(connection: sqlite3.Connection) -> None:
     _ensure_column(connection, "pokemon", "evolution_line_slug", "TEXT")
     _ensure_column(connection, "pokemon", "evolution_stage", "INTEGER NOT NULL DEFAULT 0")
     _ensure_column(connection, "pokemon", "is_final_evolution", "INTEGER NOT NULL DEFAULT 0")
+    _ensure_column(connection, "pokemon", "sprite_url", "TEXT")
+    _ensure_column(connection, "pokemon", "artwork_url", "TEXT")
+    _ensure_column(connection, "pokemon", "image_url", "TEXT")
 
     connection.execute("CREATE INDEX IF NOT EXISTS idx_pokemon_species ON pokemon(species_slug)")
     connection.execute("CREATE INDEX IF NOT EXISTS idx_pokemon_evolution_line ON pokemon(evolution_chain_id, evolution_line_slug)")
@@ -297,6 +302,7 @@ def get_pokemon_records_by_names(
                     id, pokeapi_id, name, slug, species_slug, evolution_chain_id, evolution_line_slug,
                     evolution_stage, is_final_evolution, generation, type1, type2,
                     hp, attack, defense, sp_attack, sp_defense, speed, bst,
+                    sprite_url, artwork_url, image_url,
                     is_legendary, is_mythical, is_pseudo, is_ultra_beast, is_paradox, is_starter
                 FROM pokemon
                 WHERE slug IN ({placeholders})
@@ -337,6 +343,7 @@ def get_pokemon_records_by_species_for_pokemon_name(
                 id, pokeapi_id, name, slug, species_slug, evolution_chain_id, evolution_line_slug,
                 evolution_stage, is_final_evolution, generation, type1, type2,
                 hp, attack, defense, sp_attack, sp_defense, speed, bst,
+                sprite_url, artwork_url, image_url,
                 is_legendary, is_mythical, is_pseudo, is_ultra_beast, is_paradox, is_starter
             FROM pokemon
             WHERE species_slug = ?
@@ -492,6 +499,7 @@ def get_pokemon_records_in_evolution_line(
             SELECT id, pokeapi_id, name, slug, species_slug, evolution_chain_id, evolution_line_slug,
                    evolution_stage, is_final_evolution, generation, type1, type2,
                    hp, attack, defense, sp_attack, sp_defense, speed, bst,
+                   sprite_url, artwork_url, image_url,
                    is_legendary, is_mythical, is_pseudo, is_ultra_beast, is_paradox, is_starter
             FROM pokemon
             WHERE evolution_chain_id = ?
@@ -1296,6 +1304,42 @@ def seed_default_presets(db_path: Path | str = DEFAULT_DB_PATH) -> None:
             continue
 
 
+def fallback_sprite_url(pokeapi_id: Any, *, official: bool = True) -> str:
+    try:
+        numeric_id = int(pokeapi_id)
+    except (TypeError, ValueError):
+        return ""
+    if numeric_id <= 0:
+        return ""
+    base = OFFICIAL_ARTWORK_BASE_URL if official else DEFAULT_SPRITE_BASE_URL
+    return base.format(pokeapi_id=numeric_id)
+
+
+def pokemon_image_from_record(record: Optional[Dict[str, Any]], *, prefer_artwork: bool = True) -> str:
+    if not record:
+        return ""
+    candidates = []
+    if prefer_artwork:
+        candidates.extend([record.get("image_url"), record.get("artwork_url"), record.get("sprite_url")])
+    else:
+        candidates.extend([record.get("sprite_url"), record.get("image_url"), record.get("artwork_url")])
+    for value in candidates:
+        text = str(value or "").strip()
+        if text:
+            return text
+    return fallback_sprite_url(record.get("pokeapi_id"), official=prefer_artwork)
+
+
+def get_pokemon_image_url(
+    name: str,
+    *,
+    db_path: Path | str = DEFAULT_DB_PATH,
+    prefer_artwork: bool = True,
+) -> str:
+    record = get_pokemon_record_by_name(name, db_path=db_path)
+    return pokemon_image_from_record(record, prefer_artwork=prefer_artwork)
+
+
 def search_pokemon(
     *,
     q: str = "",
@@ -1395,6 +1439,9 @@ def search_pokemon(
             p.sp_defense,
             p.speed,
             p.bst,
+            p.sprite_url,
+            p.artwork_url,
+            p.image_url,
             p.is_legendary,
             p.is_mythical,
             p.is_pseudo,

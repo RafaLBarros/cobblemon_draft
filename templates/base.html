@@ -149,6 +149,7 @@
             gap: 16px;
             align-items: start;
         }
+        .grid-2 > .choice-card-pokemon { grid-column: 1 / -1; }
         .stat-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -247,7 +248,204 @@
             margin: 8px 0;
             box-shadow: none;
         }
+        .pokemon-face {
+            width: 58px;
+            height: 58px;
+            flex: 0 0 58px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            background:
+                radial-gradient(circle at 50% 38%, rgba(255,255,255,.10), transparent 42%),
+                rgba(255,255,255,.055);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .pokemon-face img { width: 92%; height: 92%; object-fit: contain; image-rendering: auto; }
+        .pokemon-face.small { width: 42px; height: 42px; flex-basis: 42px; border-radius: 12px; }
+        .pokemon-face.tiny { width: 34px; height: 34px; flex-basis: 34px; border-radius: 10px; }
+        .pokemon-face.placeholder { color: #ddd6fe; font-weight: 900; }
+        .pokemon-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .pokemon-row-main { min-width: 0; }
+        .pokemon-row-main strong, .pokemon-row-main span { overflow-wrap: anywhere; }
+        .pokemon-option { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .pokemon-option-text { display: grid; gap: 3px; min-width: 0; }
+        .pokemon-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+        .pokemon-card { padding: 12px; border: 1px solid var(--border); border-radius: 16px; background: rgba(255,255,255,.035); }
         .option-button:hover { background: rgba(139, 92, 246, .16); }
+        .pokemon-card-hand {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: clamp(10px, 1.6vw, 20px);
+            flex-wrap: wrap;
+            padding: 28px 6px 8px;
+            margin-top: 12px;
+            perspective: 1200px;
+        }
+        .hand-card-form {
+            margin: 0;
+            width: clamp(178px, 20vw, 230px);
+            min-width: 164px;
+            max-width: 236px;
+            transform: translateY(var(--card-y)) rotate(var(--card-rotation));
+            transform-origin: 50% 110%;
+            transition: transform .22s ease, filter .22s ease;
+            z-index: var(--card-z);
+        }
+        .pokemon-card-hand:hover .hand-card-form { filter: saturate(.72) brightness(.76); }
+        .pokemon-card-hand .hand-card-form:hover,
+        .pokemon-card-hand .hand-card-form:focus-within {
+            transform: translateY(-26px) scale(1.075) rotate(0deg);
+            filter: none;
+            z-index: 50;
+        }
+        .pokemon-hand-card {
+            width: 100%;
+            height: 464px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 24px;
+            background:
+                radial-gradient(circle at 50% 10%, rgba(255,255,255,.20), transparent 30%),
+                var(--type-card-bg, linear-gradient(180deg, rgba(42, 48, 74, .98), rgba(14, 16, 32, .98))),
+                linear-gradient(180deg, rgba(42, 48, 74, .96), rgba(14, 16, 32, .98));
+            border: 1px solid rgba(196, 181, 253, .26);
+            box-shadow: 0 20px 52px rgba(0,0,0,.36), inset 0 0 0 1px rgba(255,255,255,.045);
+            color: var(--text);
+            text-align: left;
+            overflow: hidden;
+            position: relative;
+        }
+        .pokemon-hand-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,.08), transparent 32%, rgba(0,0,0,.25));
+            pointer-events: none;
+        }
+        .pokemon-hand-card > * { position: relative; z-index: 1; }
+        .pokemon-hand-card:hover {
+            filter: none;
+            border-color: rgba(196, 181, 253, .65);
+            box-shadow: 0 28px 75px rgba(0,0,0,.48), 0 0 0 4px var(--type-card-glow, rgba(139, 92, 246, .14));
+        }
+        .hand-card-art {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            flex: 0 0 auto;
+            display: grid;
+            place-items: center;
+            padding: 3px;
+            box-sizing: border-box;
+            border-radius: 18px;
+            background:
+                radial-gradient(circle at 50% 42%, rgba(139, 92, 246, .22), transparent 34%),
+                radial-gradient(circle at 50% 100%, rgba(56, 189, 248, .12), transparent 42%),
+                rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.08);
+            font-size: 52px;
+            font-weight: 900;
+            color: #ddd6fe;
+            overflow: hidden;
+        }
+        .hand-card-art img {
+            width: 98%;
+            height: 98%;
+            max-width: 98%;
+            max-height: 98%;
+            object-fit: contain;
+            object-position: center;
+            transform: scale(1.04);
+            transform-origin: center;
+            filter: drop-shadow(0 10px 14px rgba(0,0,0,.34));
+        }
+        .hand-card-body { display: grid; gap: 5px; width: 100%; flex: 1 1 auto; min-height: 0; }
+        .hand-card-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-height: 38px;
+        }
+        .hand-card-name {
+            flex: 1 1 auto;
+            min-width: 0;
+            max-height: 38px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            font-size: 18px;
+            letter-spacing: -.02em;
+            overflow-wrap: anywhere;
+            line-height: 1.08;
+        }
+        .hand-card-name.name-long { font-size: 16px; line-height: 1.06; }
+        .hand-card-name.name-very-long { font-size: 14px; line-height: 1.04; letter-spacing: -.04em; }
+        .hand-card-name.name-extra-long { font-size: 12.5px; line-height: 1.02; letter-spacing: -.05em; }
+        .hand-card-meta { color: #cbd5e1; font-size: 11px; font-weight: 760; line-height: 1.1; }
+        .type-row { display: flex; justify-content: flex-end; gap: 5px; flex-wrap: wrap; min-width: 48px; flex: 0 0 auto; }
+        .type-pill {
+            width: 29px;
+            height: 29px;
+            display: inline-grid;
+            place-items: center;
+            padding: 0;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,.24);
+            background: rgba(255,255,255,.12);
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,.26);
+        }
+        .type-pill img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+        }
+        .mini-stat-grid {
+            display: grid;
+            gap: 3px;
+            margin-top: 0;
+        }
+        .mini-stat {
+            display: grid;
+            grid-template-columns: 30px 1fr 28px;
+            align-items: center;
+            gap: 5px;
+            min-height: 18px;
+            padding: 2px 5px;
+            border-radius: 8px;
+            background: rgba(7, 9, 17, .45);
+            border: 1px solid rgba(255,255,255,.07);
+        }
+        .mini-stat-label { color: #c4b5fd; font-size: 10px; font-weight: 900; }
+        .mini-stat strong { color: #f8fafc; font-size: 12px; line-height: 1.1; text-align: right; }
+        .mini-stat-bar {
+            height: 7px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.09);
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.045);
+        }
+        .mini-stat-fill {
+            display: block;
+            height: 100%;
+            width: var(--stat-width, 0%);
+            min-width: 0;
+            border-radius: inherit;
+            background: #facc15;
+            box-shadow: 0 0 12px rgba(255,255,255,.08);
+        }
+        .mini-stat-fill.very-low { background: linear-gradient(90deg, #ef4444, #f97316); }
+        .mini-stat-fill.low-mid { background: linear-gradient(90deg, #f59e0b, #facc15); }
+        .mini-stat-fill.mid-high { background: linear-gradient(90deg, #22c55e, #84cc16); }
+        .mini-stat-fill.very-high { background: linear-gradient(90deg, #38bdf8, #2563eb); }
+        .mini-stat-fill.empty { background: rgba(255,255,255,.12); }
         .flash {
             padding: 12px 14px;
             border-radius: 14px;
@@ -317,6 +515,11 @@
             .actions { flex-direction: column; align-items: stretch; }
             .actions form { width: 100%; }
             .ability-card { grid-template-columns: 1fr; }
+            .pokemon-card-hand { align-items: stretch; padding-top: 8px; }
+            .hand-card-form { width: 100%; max-width: none; transform: none; }
+            .pokemon-card-hand .hand-card-form:hover,
+            .pokemon-card-hand .hand-card-form:focus-within { transform: translateY(-6px); }
+            .pokemon-hand-card { height: auto; min-height: 0; }
             table, thead, tbody, th, td, tr { display: block; }
             th { display: none; }
             td { border-bottom: 0; padding: 6px 0; }

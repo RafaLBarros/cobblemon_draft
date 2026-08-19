@@ -141,8 +141,19 @@
                     {% for mon in pokemon %}
                         <tr>
                             <td>
-                                <strong>{{ mon.name }}</strong><br>
-                                <span class="muted small">{{ mon.slug }}</span>
+                                <div class="pokemon-row">
+                                    <span class="pokemon-face small {% if not mon.image_url %}placeholder{% endif %}">
+                                        {% if mon.image_url %}
+                                            <img src="{{ mon.image_url }}" alt="{{ mon.name }}" loading="lazy">
+                                        {% else %}
+                                            {{ mon.name[:1] }}
+                                        {% endif %}
+                                    </span>
+                                    <span class="pokemon-row-main">
+                                        <strong>{{ mon.name }}</strong><br>
+                                        <span class="muted small">{{ mon.slug }}</span>
+                                    </span>
+                                </div>
                             </td>
                             <td>
                                 <span class="badge">{{ mon.type1 }}</span>

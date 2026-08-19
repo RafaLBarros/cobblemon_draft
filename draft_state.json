@@ -1,18 +1,296 @@
 {
   "created_at": "2026-08-11 22:37:12",
-  "updated_at": "2026-08-12 02:20:43",
-  "version": 5,
-  "used_pokemon": [],
-  "players": {},
+  "updated_at": "2026-08-19 01:40:59",
+  "version": 28,
+  "used_pokemon": [
+    "Palkia",
+    "Palkia Origin",
+    "Iron Jugulis",
+    "Sirfetchd",
+    "Magearna",
+    "Magearna Mega",
+    "Magearna Original",
+    "Magearna Original Mega",
+    "Tatsugiri Curly Mega",
+    "Tatsugiri Droopy Mega",
+    "Tatsugiri Stretchy Mega"
+  ],
+  "players": {
+    "9858403851": {
+      "player_id": "9858403851",
+      "nickname": "Rafael",
+      "created_at": "2026-08-18 23:24:24",
+      "pokemon_picks": [
+        {
+          "name": "Palkia Origin",
+          "image_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10246.png",
+          "ability": null,
+          "round_index": null,
+          "round_name": null,
+          "budget_cost": 980,
+          "budget_base_cost": 680,
+          "budget_bonus_cost": 300,
+          "budget_bst": 680,
+          "budget_flags": [
+            "Lendario"
+          ],
+          "budget_unknown": false,
+          "budget_cost_mode": "pokemon_bst",
+          "budget_line_slug": null,
+          "budget_representative_name": null,
+          "budget_line_member_count": 0,
+          "budget_species_slug": null,
+          "budget_species_representative_name": null,
+          "budget_species_member_count": 0
+        },
+        {
+          "name": "Iron Jugulis",
+          "image_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/993.png",
+          "ability": null,
+          "round_index": null,
+          "round_name": null,
+          "budget_cost": 690,
+          "budget_base_cost": 570,
+          "budget_bonus_cost": 120,
+          "budget_bst": 570,
+          "budget_flags": [
+            "Paradox"
+          ],
+          "budget_unknown": false,
+          "budget_cost_mode": "pokemon_bst",
+          "budget_line_slug": null,
+          "budget_representative_name": null,
+          "budget_line_member_count": 0,
+          "budget_species_slug": null,
+          "budget_species_representative_name": null,
+          "budget_species_member_count": 0
+        },
+        {
+          "name": "Sirfetchd",
+          "image_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/865.png",
+          "ability": null,
+          "round_index": null,
+          "round_name": null,
+          "budget_cost": 507,
+          "budget_base_cost": 507,
+          "budget_bonus_cost": 0,
+          "budget_bst": 507,
+          "budget_flags": [],
+          "budget_unknown": false,
+          "budget_cost_mode": "pokemon_bst",
+          "budget_line_slug": null,
+          "budget_representative_name": null,
+          "budget_line_member_count": 0,
+          "budget_species_slug": null,
+          "budget_species_representative_name": null,
+          "budget_species_member_count": 0
+        },
+        {
+          "name": "Magearna Original Mega",
+          "image_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10318.png",
+          "ability": null,
+          "round_index": null,
+          "round_name": null,
+          "budget_cost": 1000,
+          "budget_base_cost": 700,
+          "budget_bonus_cost": 300,
+          "budget_bst": 700,
+          "budget_flags": [
+            "Mitico"
+          ],
+          "budget_unknown": false,
+          "budget_cost_mode": "pokemon_bst",
+          "budget_line_slug": null,
+          "budget_representative_name": null,
+          "budget_line_member_count": 0,
+          "budget_species_slug": null,
+          "budget_species_representative_name": null,
+          "budget_species_member_count": 0
+        },
+        {
+          "name": "Tatsugiri Curly Mega",
+          "image_url": "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/10322.png",
+          "ability": null,
+          "round_index": null,
+          "round_name": null,
+          "budget_cost": 575,
+          "budget_base_cost": 575,
+          "budget_bonus_cost": 0,
+          "budget_bst": 575,
+          "budget_flags": [],
+          "budget_unknown": false,
+          "budget_cost_mode": "pokemon_bst",
+          "budget_line_slug": null,
+          "budget_representative_name": null,
+          "budget_line_member_count": 0,
+          "budget_species_slug": null,
+          "budget_species_representative_name": null,
+          "budget_species_member_count": 0
+        }
+      ],
+      "pending": {
+        "type": "ability",
+        "pokemon_options": [],
+        "ability_for_index": 0,
+        "ability_options": [
+          "Truant",
+          "Teravolt",
+          "Sand Force"
+        ],
+        "choice_id": "20260819014059547610-1512"
+      },
+      "choice_history": [
+        {
+          "choice_id": "20260818232958375013-0302",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Palkia Origin",
+            "Regidrago",
+            "Copperajah Gmax"
+          ],
+          "chosen": "Palkia Origin",
+          "created_at": "2026-08-18 23:29:58",
+          "chosen_at": "2026-08-19 00:20:09",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false,
+            "round_index": null,
+            "round_name": null,
+            "round_source": null,
+            "budget_enabled": false,
+            "budget_remaining": 3000,
+            "budget_blocked_count": 0,
+            "option_costs": {}
+          }
+        },
+        {
+          "choice_id": "20260819002015619577-4672",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Ogerpon Wellspring Mask",
+            "Iron Jugulis",
+            "Azelf"
+          ],
+          "chosen": "Iron Jugulis",
+          "created_at": "2026-08-19 00:20:15",
+          "chosen_at": "2026-08-19 00:50:38",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false,
+            "round_index": null,
+            "round_name": null,
+            "round_source": null,
+            "budget_enabled": false,
+            "budget_remaining": 2020,
+            "budget_blocked_count": 0,
+            "option_costs": {}
+          }
+        },
+        {
+          "choice_id": "20260819005050049378-8742",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Dracovish",
+            "Sirfetchd",
+            "Cinderace"
+          ],
+          "chosen": "Sirfetchd",
+          "created_at": "2026-08-19 00:50:50",
+          "chosen_at": "2026-08-19 01:21:10",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false,
+            "round_index": null,
+            "round_name": null,
+            "round_source": null,
+            "budget_enabled": false,
+            "budget_remaining": 1330,
+            "budget_blocked_count": 0,
+            "option_costs": {}
+          }
+        },
+        {
+          "choice_id": "20260819012241009886-8711",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Latias",
+            "Hatterene",
+            "Magearna Original Mega"
+          ],
+          "chosen": "Magearna Original Mega",
+          "created_at": "2026-08-19 01:22:41",
+          "chosen_at": "2026-08-19 01:22:56",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false,
+            "round_index": null,
+            "round_name": null,
+            "round_source": null,
+            "budget_enabled": false,
+            "budget_remaining": 823,
+            "budget_blocked_count": 0,
+            "option_costs": {}
+          }
+        },
+        {
+          "choice_id": "20260819012302211158-7756",
+          "type": "pokemon",
+          "slot_index": null,
+          "slot_label": null,
+          "options": [
+            "Great Tusk",
+            "Tatsugiri Curly Mega",
+            "Porygon Z"
+          ],
+          "chosen": "Tatsugiri Curly Mega",
+          "created_at": "2026-08-19 01:23:02",
+          "chosen_at": "2026-08-19 01:23:11",
+          "metadata": {
+            "forced_flag": null,
+            "karma_applied": false,
+            "round_index": null,
+            "round_name": null,
+            "round_source": null,
+            "budget_enabled": false,
+            "budget_remaining": -177,
+            "budget_blocked_count": 0,
+            "option_costs": {}
+          }
+        },
+        {
+          "choice_id": "20260819014059547610-1512",
+          "type": "ability",
+          "slot_index": 0,
+          "slot_label": "Slot 1",
+          "options": [
+            "Truant",
+            "Teravolt",
+            "Sand Force"
+          ],
+          "chosen": null,
+          "created_at": "2026-08-19 01:40:59",
+          "chosen_at": null
+        }
+      ]
+    }
+  },
   "settings": {
     "max_pokemon": 6,
     "pokemon_options_per_draw": 3,
     "ability_options_per_draw": 3,
     "options_per_draw": 3,
     "pokemon_pool_source": "dex_preset",
-    "pokemon_preset_id": null,
-    "ability_pool_source": "dex_preset",
-    "ability_tag_filter": "Metronome Boa",
+    "pokemon_preset_id": 22,
+    "ability_pool_source": "dex_all",
+    "ability_tag_filter": "",
     "ability_preset_id": null,
     "rounds_enabled": false,
     "draft_rounds": [
@@ -70,23 +348,17 @@
     "budget_points_per_player": 3000,
     "budget_unknown_pokemon_cost": 450,
     "budget_flag_costs": {
+      "Inicial": 50,
       "Lendario": 300,
       "Mitico": 300,
-      "Ultra Beast": 150,
       "Paradox": 120,
       "Pseudo": 100,
-      "Inicial": 50
+      "Ultra Beast": 150
     },
     "lock_chosen_pokemon_globally": true,
     "pokemon_lock_scope": "evolution_line",
     "lock_abilities_globally": false,
-    "flag_karma": {
-      "Lendario": {
-        "enabled": true,
-        "guarantee_draw": 6,
-        "mode": "linear"
-      }
-    }
+    "flag_karma": {}
   },
   "flag_editor": {
     "flag_limits": {
@@ -385,10 +657,1512 @@
         "name": "Editor",
         "active_flag": "Lendario",
         "selected": [],
-        "updated_at": "2026-08-12 02:20:43"
+        "updated_at": "2026-08-19 00:52:52"
       }
     },
-    "version": 4,
-    "updated_at": "2026-08-12 02:20:43"
+    "version": 8,
+    "updated_at": "2026-08-19 00:52:52"
+  },
+  "group_editor": {
+    "groups": [
+      [
+        "Bulbasaur",
+        "Ivysaur",
+        "Venusaur"
+      ],
+      [
+        "Charmander",
+        "Charmeleon",
+        "Charizard"
+      ],
+      [
+        "Squirtle",
+        "Wartortle",
+        "Blastoise"
+      ],
+      [
+        "Caterpie",
+        "Metapod",
+        "Butterfree"
+      ],
+      [
+        "Weedle",
+        "Kakuna",
+        "Beedrill"
+      ],
+      [
+        "Pidgey",
+        "Pidgeotto",
+        "Pidgeot"
+      ],
+      [
+        "Rattata",
+        "Raticate"
+      ],
+      [
+        "Spearow",
+        "Fearow"
+      ],
+      [
+        "Ekans",
+        "Arbok"
+      ],
+      [
+        "Sandshrew",
+        "Sandslash"
+      ],
+      [
+        "Hydrapple",
+        "Applin",
+        "Flapple",
+        "Appletun",
+        "Dipplin"
+      ],
+      [
+        "Nidoran♀",
+        "Nidorina",
+        "Nidoqueen"
+      ],
+      [
+        "Nidoran♂",
+        "Nidorino",
+        "Nidoking"
+      ],
+      [
+        "Vulpix",
+        "Ninetales"
+      ],
+      [
+        "Archaludon",
+        "Duraludon"
+      ],
+      [
+        "Paras",
+        "Parasect"
+      ],
+      [
+        "Venonat",
+        "Venomoth"
+      ],
+      [
+        "Diglett",
+        "Dugtrio"
+      ],
+      [
+        "Psyduck",
+        "Golduck"
+      ],
+      [
+        "Poltchageist",
+        "Sinistcha"
+      ],
+      [
+        "Mankey",
+        "Primeape",
+        "Annihilape"
+      ],
+      [
+        "Growlithe",
+        "Arcanine"
+      ],
+      [
+        "Gholdengo",
+        "Gimmighoul"
+      ],
+      [
+        "Poliwag",
+        "Poliwhirl",
+        "Poliwrath",
+        "Politoed"
+      ],
+      [
+        "Frigibax",
+        "Arctibax",
+        "Baxcalibur"
+      ],
+      [
+        "Pawniard",
+        "Bisharp",
+        "Kingambit"
+      ],
+      [
+        "Dunsparce",
+        "Dudunsparce"
+      ],
+      [
+        "Cleffa",
+        "Clefairy",
+        "Clefable"
+      ],
+      [
+        "Girafarig",
+        "Farigiraf"
+      ],
+      [
+        "Igglybuff",
+        "Jigglypuff",
+        "Wigglytuff"
+      ],
+      [
+        "Wooper",
+        "Clodsire",
+        "Quagsire"
+      ],
+      [
+        "Zubat",
+        "Golbat",
+        "Crobat"
+      ],
+      [
+        "Oddish",
+        "Gloom",
+        "Vileplume",
+        "Bellossom"
+      ],
+      [
+        "Cetitan",
+        "Cetoddle"
+      ],
+      [
+        "Meowth",
+        "Persian",
+        "Perrserker"
+      ],
+      [
+        "Houndstone",
+        "Greavard"
+      ],
+      [
+        "Glimmora",
+        "Glimmet"
+      ],
+      [
+        "Abra",
+        "Kadabra",
+        "Alakazam"
+      ],
+      [
+        "Machop",
+        "Machoke",
+        "Machamp"
+      ],
+      [
+        "Bellsprout",
+        "Weepinbell",
+        "Victreebel"
+      ],
+      [
+        "Revavroom",
+        "Varoom"
+      ],
+      [
+        "Tentacool",
+        "Tentacruel"
+      ],
+      [
+        "Geodude",
+        "Graveler",
+        "Golem"
+      ],
+      [
+        "Palafin",
+        "Finizen"
+      ],
+      [
+        "Ponyta",
+        "Rapidash"
+      ],
+      [
+        "Wugtrio",
+        "Wiglett"
+      ],
+      [
+        "Tinkaton",
+        "Tinkatuff",
+        "Tinkatink"
+      ],
+      [
+        "Espathra",
+        "Flittle"
+      ],
+      [
+        "Slowpoke",
+        "Slowbro",
+        "Slowking"
+      ],
+      [
+        "Rabsca",
+        "Rellor"
+      ],
+      [
+        "Magnemite",
+        "Magneton",
+        "Magnezone"
+      ],
+      [
+        "Scovillain",
+        "Capsakid"
+      ],
+      [
+        "Farfetch'd",
+        "Sirfetch'd"
+      ],
+      [
+        "Toedscruel",
+        "Toedscool"
+      ],
+      [
+        "Doduo",
+        "Dodrio"
+      ],
+      [
+        "Brambleghast",
+        "Bramblin"
+      ],
+      [
+        "Seel",
+        "Dewgong"
+      ],
+      [
+        "Grafaiai",
+        "Shroodle"
+      ],
+      [
+        "Grimer",
+        "Muk"
+      ],
+      [
+        "Mabosstiff",
+        "Maschiff"
+      ],
+      [
+        "Shellder",
+        "Cloyster"
+      ],
+      [
+        "Kilowattrel",
+        "Wattrel"
+      ],
+      [
+        "Gastly",
+        "Haunter",
+        "Gengar"
+      ],
+      [
+        "Bellibolt",
+        "Tadbulb"
+      ],
+      [
+        "Ceruledge",
+        "Armarouge",
+        "Charcadet"
+      ],
+      [
+        "Onix",
+        "Steelix"
+      ],
+      [
+        "Garganacl",
+        "Naclstack",
+        "Nacli"
+      ],
+      [
+        "Drowzee",
+        "Hypno"
+      ],
+      [
+        "Krabby",
+        "Kingler"
+      ],
+      [
+        "Voltorb",
+        "Electrode"
+      ],
+      [
+        "Arboliva",
+        "Dolliv",
+        "Smoliv"
+      ],
+      [
+        "Dachsbun",
+        "Fidough"
+      ],
+      [
+        "Exeggcute",
+        "Exeggutor"
+      ],
+      [
+        "Cubone",
+        "Marowak"
+      ],
+      [
+        "Maushold",
+        "Tandemaus"
+      ],
+      [
+        "Pawmot",
+        "Pawmo",
+        "Pawmi"
+      ],
+      [
+        "Lokix",
+        "Nymble"
+      ],
+      [
+        "Lickitung",
+        "Lickilicky"
+      ],
+      [
+        "Spidops",
+        "Tarountula"
+      ],
+      [
+        "Koffing",
+        "Weezing"
+      ],
+      [
+        "Oinkologne",
+        "Lechonk"
+      ],
+      [
+        "Rhyhorn",
+        "Rhydon",
+        "Rhyperior"
+      ],
+      [
+        "Quaquaval",
+        "Quaxwell",
+        "Quaxly"
+      ],
+      [
+        "Skeledirge",
+        "Crocalor",
+        "Fuecoco"
+      ],
+      [
+        "Meowscarada",
+        "Floragato",
+        "Sprigatito"
+      ],
+      [
+        "Happiny",
+        "Chansey",
+        "Blissey"
+      ],
+      [
+        "Tangela",
+        "Tangrowth"
+      ],
+      [
+        "Overqwil",
+        "Qwilfish"
+      ],
+      [
+        "Horsea",
+        "Seadra",
+        "Kingdra"
+      ],
+      [
+        "Goldeen",
+        "Seaking"
+      ],
+      [
+        "Sneasler",
+        "Sneasel",
+        "Weavile"
+      ],
+      [
+        "Staryu",
+        "Starmie"
+      ],
+      [
+        "Mime Jr.",
+        "Mr. Mime",
+        "Mr. Rime"
+      ],
+      [
+        "Basculegion",
+        "Basculin"
+      ],
+      [
+        "Scyther",
+        "Scizor",
+        "Kleavor"
+      ],
+      [
+        "Smoochum",
+        "Jynx"
+      ],
+      [
+        "Elekid",
+        "Electabuzz",
+        "Electivire"
+      ],
+      [
+        "Ursaluna",
+        "Ursaring",
+        "Teddiursa"
+      ],
+      [
+        "Magby",
+        "Magmar",
+        "Magmortar"
+      ],
+      [
+        "Wyrdeer",
+        "Stantler"
+      ],
+      [
+        "Magikarp",
+        "Gyarados"
+      ],
+      [
+        "Urshifu",
+        "Kubfu"
+      ],
+      [
+        "Porygon",
+        "Porygon2",
+        "Porygon-Z"
+      ],
+      [
+        "Dragapult",
+        "Drakloak",
+        "Dreepy"
+      ],
+      [
+        "Omanyte",
+        "Omastar"
+      ],
+      [
+        "Kabuto",
+        "Kabutops"
+      ],
+      [
+        "Munchlax",
+        "Snorlax"
+      ],
+      [
+        "Copperajah",
+        "Cufant"
+      ],
+      [
+        "Dratini",
+        "Dragonair",
+        "Dragonite"
+      ],
+      [
+        "Chikorita",
+        "Bayleef",
+        "Meganium"
+      ],
+      [
+        "Frosmoth",
+        "Snom"
+      ],
+      [
+        "Cyndaquil",
+        "Quilava",
+        "Typhlosion"
+      ],
+      [
+        "Alcremie",
+        "Milcery"
+      ],
+      [
+        "Totodile",
+        "Croconaw",
+        "Feraligatr"
+      ],
+      [
+        "Sentret",
+        "Furret"
+      ],
+      [
+        "Runerigus",
+        "Yamask",
+        "Cofagrigus"
+      ],
+      [
+        "Hoothoot",
+        "Noctowl"
+      ],
+      [
+        "Ledyba",
+        "Ledian"
+      ],
+      [
+        "Spinarak",
+        "Ariados"
+      ],
+      [
+        "Cursola",
+        "Corsola"
+      ],
+      [
+        "Chinchou",
+        "Lanturn"
+      ],
+      [
+        "Pichu",
+        "Pikachu",
+        "Raichu"
+      ],
+      [
+        "Zigzagoon",
+        "Linoone",
+        "Obstagoon"
+      ],
+      [
+        "Grimmsnarl",
+        "Morgrem",
+        "Impidimp"
+      ],
+      [
+        "Hatterene",
+        "Hattrem",
+        "Hatenna"
+      ],
+      [
+        "Polteageist",
+        "Sinistea"
+      ],
+      [
+        "Togepi",
+        "Togetic",
+        "Togekiss"
+      ],
+      [
+        "Natu",
+        "Xatu"
+      ],
+      [
+        "Grapploct",
+        "Clobbopus"
+      ],
+      [
+        "Centiskorch",
+        "Sizzlipede"
+      ],
+      [
+        "Toxtricity",
+        "Toxel"
+      ],
+      [
+        "Mareep",
+        "Flaaffy",
+        "Ampharos"
+      ],
+      [
+        "Barraskewda",
+        "Arrokuda"
+      ],
+      [
+        "Azurill",
+        "Marill",
+        "Azumarill"
+      ],
+      [
+        "Sandaconda",
+        "Silicobra"
+      ],
+      [
+        "Bonsly",
+        "Sudowoodo"
+      ],
+      [
+        "Hoppip",
+        "Skiploom",
+        "Jumpluff"
+      ],
+      [
+        "Coalossal",
+        "Carkol",
+        "Rolycoly"
+      ],
+      [
+        "Boltund",
+        "Yamper"
+      ],
+      [
+        "Aipom",
+        "Ambipom"
+      ],
+      [
+        "Drednaw",
+        "Chewtle"
+      ],
+      [
+        "Sunkern",
+        "Sunflora"
+      ],
+      [
+        "Dubwool",
+        "Wooloo"
+      ],
+      [
+        "Yanma",
+        "Yanmega"
+      ],
+      [
+        "Eldegoss",
+        "Gossifleur"
+      ],
+      [
+        "Thievul",
+        "Nickit"
+      ],
+      [
+        "Orbeetle",
+        "Dottler",
+        "Blipbug"
+      ],
+      [
+        "Corviknight",
+        "Corvisquire",
+        "Rookidee"
+      ],
+      [
+        "Murkrow",
+        "Honchkrow"
+      ],
+      [
+        "Greedent",
+        "Skwovet"
+      ],
+      [
+        "Inteleon",
+        "Drizzile",
+        "Sobble"
+      ],
+      [
+        "Cinderace",
+        "Raboot",
+        "Scorbunny"
+      ],
+      [
+        "Misdreavus",
+        "Mismagius"
+      ],
+      [
+        "Rillaboom",
+        "Thwackey",
+        "Grookey"
+      ],
+      [
+        "Melmetal",
+        "Meltan"
+      ],
+      [
+        "Wynaut",
+        "Wobbuffet"
+      ],
+      [
+        "Pineco",
+        "Forretress"
+      ],
+      [
+        "Poipole",
+        "Naganadel"
+      ],
+      [
+        "Gligar",
+        "Gliscor"
+      ],
+      [
+        "Lunala",
+        "Solgaleo",
+        "Cosmoem",
+        "Cosmog"
+      ],
+      [
+        "Snubbull",
+        "Granbull"
+      ],
+      [
+        "Kommo-o",
+        "Hakamo-o",
+        "Jangmo-o"
+      ],
+      [
+        "Slugma",
+        "Magcargo"
+      ],
+      [
+        "Swinub",
+        "Piloswine",
+        "Mamoswine"
+      ],
+      [
+        "Silvally",
+        "Type: Null"
+      ],
+      [
+        "Palossand",
+        "Sandygast"
+      ],
+      [
+        "Remoraid",
+        "Octillery"
+      ],
+      [
+        "Golisopod",
+        "Wimpod"
+      ],
+      [
+        "Mantyke",
+        "Mantine"
+      ],
+      [
+        "Houndour",
+        "Houndoom"
+      ],
+      [
+        "Tsareena",
+        "Steenee",
+        "Bounsweet"
+      ],
+      [
+        "Phanpy",
+        "Donphan"
+      ],
+      [
+        "Bewear",
+        "Stufful"
+      ],
+      [
+        "Salazzle",
+        "Salandit"
+      ],
+      [
+        "Shiinotic",
+        "Morelull"
+      ],
+      [
+        "Lurantis",
+        "Fomantis"
+      ],
+      [
+        "Araquanid",
+        "Dewpider"
+      ],
+      [
+        "Mudsdale",
+        "Mudbray"
+      ],
+      [
+        "Toxapex",
+        "Mareanie"
+      ],
+      [
+        "Larvitar",
+        "Pupitar",
+        "Tyranitar"
+      ],
+      [
+        "Lycanroc",
+        "Rockruff"
+      ],
+      [
+        "Treecko",
+        "Grovyle",
+        "Sceptile"
+      ],
+      [
+        "Ribombee",
+        "Cutiefly"
+      ],
+      [
+        "Crabominable",
+        "Crabrawler"
+      ],
+      [
+        "Torchic",
+        "Combusken",
+        "Blaziken"
+      ],
+      [
+        "Vikavolt",
+        "Charjabug",
+        "Grubbin"
+      ],
+      [
+        "Mudkip",
+        "Marshtomp",
+        "Swampert"
+      ],
+      [
+        "Gumshoos",
+        "Yungoos"
+      ],
+      [
+        "Toucannon",
+        "Trumbeak",
+        "Pikipek"
+      ],
+      [
+        "Poochyena",
+        "Mightyena"
+      ],
+      [
+        "Primarina",
+        "Popplio",
+        "Brionne"
+      ],
+      [
+        "Incineroar",
+        "Torracat",
+        "Litten"
+      ],
+      [
+        "Decidueye",
+        "Dartrix",
+        "Rowlet"
+      ],
+      [
+        "Wurmple",
+        "Silcoon",
+        "Cascoon",
+        "Beautifly",
+        "Dustox"
+      ],
+      [
+        "Noivern",
+        "Noibat"
+      ],
+      [
+        "Avalugg",
+        "Bergmite"
+      ],
+      [
+        "Lotad",
+        "Lombre",
+        "Ludicolo"
+      ],
+      [
+        "Gourgeist",
+        "Pumpkaboo"
+      ],
+      [
+        "Trevenant",
+        "Phantump"
+      ],
+      [
+        "Seedot",
+        "Nuzleaf",
+        "Shiftry"
+      ],
+      [
+        "Taillow",
+        "Swellow"
+      ],
+      [
+        "Goodra",
+        "Sliggoo",
+        "Goomy"
+      ],
+      [
+        "Wingull",
+        "Pelipper"
+      ],
+      [
+        "Ralts",
+        "Kirlia",
+        "Gardevoir",
+        "Gallade"
+      ],
+      [
+        "Surskit",
+        "Masquerain"
+      ],
+      [
+        "Aurorus",
+        "Amaura"
+      ],
+      [
+        "Tyrantrum",
+        "Tyrunt"
+      ],
+      [
+        "Shroomish",
+        "Breloom"
+      ],
+      [
+        "Heliolisk",
+        "Helioptile"
+      ],
+      [
+        "Clawitzer",
+        "Clauncher"
+      ],
+      [
+        "Dragalge",
+        "Skrelp"
+      ],
+      [
+        "Barbaracle",
+        "Binacle"
+      ],
+      [
+        "Slakoth",
+        "Vigoroth",
+        "Slaking"
+      ],
+      [
+        "Malamar",
+        "Inkay"
+      ],
+      [
+        "Slurpuff",
+        "Swirlix"
+      ],
+      [
+        "Nincada",
+        "Ninjask",
+        "Shedinja"
+      ],
+      [
+        "Aromatisse",
+        "Spritzee"
+      ],
+      [
+        "Whismur",
+        "Loudred",
+        "Exploud"
+      ],
+      [
+        "Aegislash",
+        "Doublade",
+        "Honedge"
+      ],
+      [
+        "Meowstic",
+        "Espurr"
+      ],
+      [
+        "Makuhita",
+        "Hariyama"
+      ],
+      [
+        "Nosepass",
+        "Probopass"
+      ],
+      [
+        "Pangoro",
+        "Pancham"
+      ],
+      [
+        "Gogoat",
+        "Skiddo"
+      ],
+      [
+        "Skitty",
+        "Delcatty"
+      ],
+      [
+        "Florges",
+        "Floette",
+        "Flabébé"
+      ],
+      [
+        "Pyroar",
+        "Litleo"
+      ],
+      [
+        "Aron",
+        "Lairon",
+        "Aggron"
+      ],
+      [
+        "Vivillon",
+        "Spewpa",
+        "Scatterbug"
+      ],
+      [
+        "Meditite",
+        "Medicham"
+      ],
+      [
+        "Talonflame",
+        "Fletchinder",
+        "Fletchling"
+      ],
+      [
+        "Diggersby",
+        "Bunnelby"
+      ],
+      [
+        "Greninja",
+        "Frogadier",
+        "Froakie"
+      ],
+      [
+        "Delphox",
+        "Braixen",
+        "Fennekin"
+      ],
+      [
+        "Chesnaught",
+        "Quilladin",
+        "Chespin"
+      ],
+      [
+        "Electrike",
+        "Manectric",
+        "Plusle",
+        "Minun"
+      ],
+      [
+        "Budew",
+        "Roselia",
+        "Roserade"
+      ],
+      [
+        "Gulpin",
+        "Swalot"
+      ],
+      [
+        "Volcarona",
+        "Larvesta"
+      ],
+      [
+        "Carvanha",
+        "Sharpedo"
+      ],
+      [
+        "Hydreigon",
+        "Zweilous",
+        "Deino"
+      ],
+      [
+        "Wailmer",
+        "Wailord"
+      ],
+      [
+        "Numel",
+        "Camerupt"
+      ],
+      [
+        "Mandibuzz",
+        "Vullaby"
+      ],
+      [
+        "Spoink",
+        "Grumpig"
+      ],
+      [
+        "Braviary",
+        "Rufflet"
+      ],
+      [
+        "Trapinch",
+        "Vibrava",
+        "Flygon"
+      ],
+      [
+        "Golurk",
+        "Golett"
+      ],
+      [
+        "Cacnea",
+        "Cacturne"
+      ],
+      [
+        "Mienshao",
+        "Mienfoo"
+      ],
+      [
+        "Swablu",
+        "Altaria"
+      ],
+      [
+        "Accelgor",
+        "Shelmet"
+      ],
+      [
+        "Beartic",
+        "Cubchoo"
+      ],
+      [
+        "Haxorus",
+        "Fraxure",
+        "Axew"
+      ],
+      [
+        "Barboach",
+        "Whiscash"
+      ],
+      [
+        "Corphish",
+        "Crawdaunt"
+      ],
+      [
+        "Chandelure",
+        "Lampent",
+        "Litwick"
+      ],
+      [
+        "Beheeyem",
+        "Elgyem"
+      ],
+      [
+        "Baltoy",
+        "Claydol"
+      ],
+      [
+        "Eelektross",
+        "Eelektrik",
+        "Tynamo"
+      ],
+      [
+        "Lileep",
+        "Cradily"
+      ],
+      [
+        "Klinklang",
+        "Klang",
+        "Klink"
+      ],
+      [
+        "Anorith",
+        "Armaldo"
+      ],
+      [
+        "Ferrothorn",
+        "Ferroseed"
+      ],
+      [
+        "Galvantula",
+        "Joltik"
+      ],
+      [
+        "Feebas",
+        "Milotic"
+      ],
+      [
+        "Jellicent",
+        "Frillish"
+      ],
+      [
+        "Amoonguss",
+        "Foongus"
+      ],
+      [
+        "Shuppet",
+        "Banette"
+      ],
+      [
+        "Escavalier",
+        "Karrablast"
+      ],
+      [
+        "Sawsbuck",
+        "Deerling"
+      ],
+      [
+        "Duskull",
+        "Dusclops",
+        "Dusknoir"
+      ],
+      [
+        "Vanilluxe",
+        "Vanillish",
+        "Vanillite"
+      ],
+      [
+        "Swanna",
+        "Ducklett"
+      ],
+      [
+        "Chingling",
+        "Chimecho"
+      ],
+      [
+        "Reuniclus",
+        "Duosion",
+        "Solosis"
+      ],
+      [
+        "Gothitelle",
+        "Gothorita",
+        "Gothita"
+      ],
+      [
+        "Cinccino",
+        "Minccino"
+      ],
+      [
+        "Zoroark",
+        "Zorua"
+      ],
+      [
+        "Snorunt",
+        "Glalie",
+        "Froslass"
+      ],
+      [
+        "Garbodor",
+        "Trubbish"
+      ],
+      [
+        "Archeops",
+        "Archen"
+      ],
+      [
+        "Carracosta",
+        "Tirtouga"
+      ],
+      [
+        "Spheal",
+        "Sealeo",
+        "Walrein"
+      ],
+      [
+        "Scrafty",
+        "Scraggy"
+      ],
+      [
+        "Clamperl",
+        "Huntail",
+        "Gorebyss"
+      ],
+      [
+        "Crustle",
+        "Dwebble"
+      ],
+      [
+        "Bagon",
+        "Shelgon",
+        "Salamence"
+      ],
+      [
+        "Darmanitan",
+        "Darumaka"
+      ],
+      [
+        "Krookodile",
+        "Krokorok",
+        "Sandile"
+      ],
+      [
+        "Beldum",
+        "Metang",
+        "Metagross"
+      ],
+      [
+        "Lilligant",
+        "Petilil"
+      ],
+      [
+        "Turtwig",
+        "Grotle",
+        "Torterra"
+      ],
+      [
+        "Whimsicott",
+        "Cottonee"
+      ],
+      [
+        "Scolipede",
+        "Whirlipede",
+        "Venipede"
+      ],
+      [
+        "Leavanny",
+        "Swadloon",
+        "Sewaddle"
+      ],
+      [
+        "Chimchar",
+        "Monferno",
+        "Infernape"
+      ],
+      [
+        "Piplup",
+        "Prinplup",
+        "Empoleon"
+      ],
+      [
+        "Seismitoad",
+        "Palpitoad",
+        "Tympole"
+      ],
+      [
+        "Starly",
+        "Staravia",
+        "Staraptor"
+      ],
+      [
+        "Conkeldurr",
+        "Gurdurr",
+        "Timburr"
+      ],
+      [
+        "Bidoof",
+        "Bibarel"
+      ],
+      [
+        "Excadrill",
+        "Drilbur"
+      ],
+      [
+        "Kricketot",
+        "Kricketune"
+      ],
+      [
+        "Swoobat",
+        "Woobat"
+      ],
+      [
+        "Shinx",
+        "Luxio",
+        "Luxray"
+      ],
+      [
+        "Zebstrika",
+        "Blitzle"
+      ],
+      [
+        "Cranidos",
+        "Rampardos"
+      ],
+      [
+        "Gigalith",
+        "Boldore",
+        "Roggenrola"
+      ],
+      [
+        "Shieldon",
+        "Bastiodon"
+      ],
+      [
+        "Unfezant",
+        "Tranquill",
+        "Pidove"
+      ],
+      [
+        "Musharna",
+        "Munna"
+      ],
+      [
+        "Simipour",
+        "Panpour"
+      ],
+      [
+        "Simisear",
+        "Pansear"
+      ],
+      [
+        "Simisage",
+        "Pansage"
+      ],
+      [
+        "Burmy",
+        "Mothim",
+        "Wormadam"
+      ],
+      [
+        "Liepard",
+        "Purrloin"
+      ],
+      [
+        "Combee",
+        "Vespiquen"
+      ],
+      [
+        "Stoutland",
+        "Herdier",
+        "Lillipup"
+      ],
+      [
+        "Watchog",
+        "Patrat"
+      ],
+      [
+        "Samurott",
+        "Dewott",
+        "Oshawott"
+      ],
+      [
+        "Emboar",
+        "Pignite",
+        "Tepig"
+      ],
+      [
+        "Buizel",
+        "Floatzel"
+      ],
+      [
+        "Serperior",
+        "Servine",
+        "Snivy"
+      ],
+      [
+        "Cherubi",
+        "Cherrim"
+      ],
+      [
+        "Shellos",
+        "Gastrodon"
+      ],
+      [
+        "Drifloon",
+        "Drifblim"
+      ],
+      [
+        "Buneary",
+        "Lopunny"
+      ],
+      [
+        "Glameow",
+        "Purugly"
+      ],
+      [
+        "Stunky",
+        "Skuntank"
+      ],
+      [
+        "Abomasnow",
+        "Snover"
+      ],
+      [
+        "Bronzor",
+        "Bronzong"
+      ],
+      [
+        "Lumineon",
+        "Finneon"
+      ],
+      [
+        "Gible",
+        "Gabite",
+        "Garchomp"
+      ],
+      [
+        "Riolu",
+        "Lucario"
+      ],
+      [
+        "Toxicroak",
+        "Croagunk"
+      ],
+      [
+        "Drapion",
+        "Skorupi"
+      ],
+      [
+        "Hippopotas",
+        "Hippowdon"
+      ]
+    ],
+    "collaborators": {
+      "17864877985441522": {
+        "name": "Editor",
+        "selected": [],
+        "updated_at": "2026-08-19 00:52:46"
+      }
+    },
+    "version": 5,
+    "updated_at": "2026-08-19 00:52:46"
   }
 }

@@ -394,18 +394,37 @@
                 <ol>
                     {% for pick in player.pokemon_picks %}
                         <li>
-                            <strong>{{ pick.name }}</strong>
-                            {% if budget_enabled(state) %}
-                                {% set pick_cost = budget_cost_for_pick(pick, state) %}
-                                <span class="badge">{{ pick_cost.cost }} pts</span>
-                            {% endif %}
-                            — {{ pick.ability if pick.ability else "ability pendente" }}
+                            <div class="pokemon-row">
+                                {% set pick_img = pick.image_url or pokemon_image_url(pick.name) %}
+                                <span class="pokemon-face tiny {% if not pick_img %}placeholder{% endif %}">
+                                    {% if pick_img %}<img src="{{ pick_img }}" alt="{{ pick.name }}" loading="lazy">{% else %}{{ pick.name[:1] }}{% endif %}
+                                </span>
+                                <span class="pokemon-row-main">
+                                    <strong>{{ pick.name }}</strong>
+                                    {% if budget_enabled(state) %}
+                                        {% set pick_cost = budget_cost_for_pick(pick, state) %}
+                                        <span class="badge">{{ pick_cost.cost }} pts</span>
+                                    {% endif %}
+                                    — {{ pick.ability if pick.ability else "ability pendente" }}
+                                </span>
+                            </div>
                         </li>
                     {% endfor %}
                 </ol>
 
                 {% if player.pending.type == "pokemon" %}
-                    <p><strong>Opções pendentes de Pokémon:</strong> {{ player.pending.pokemon_options|join(', ') }}</p>
+                    <p><strong>Opções pendentes de Pokémon:</strong></p>
+                    <div class="pokemon-grid">
+                        {% for option in player.pending.pokemon_options %}
+                            {% set option_img = pokemon_image_url(option) %}
+                            <div class="pokemon-card pokemon-row">
+                                <span class="pokemon-face tiny {% if not option_img %}placeholder{% endif %}">
+                                    {% if option_img %}<img src="{{ option_img }}" alt="{{ option }}" loading="lazy">{% else %}{{ option[:1] }}{% endif %}
+                                </span>
+                                <strong>{{ option }}</strong>
+                            </div>
+                        {% endfor %}
+                    </div>
                 {% elif player.pending.type == "ability" %}
                     {% set idx = player.pending.ability_for_index %}
                     {% set pokemon_name = player.pokemon_picks[idx].name if idx is number and idx >= 0 and idx < player.pokemon_picks|length else "Pokémon" %}

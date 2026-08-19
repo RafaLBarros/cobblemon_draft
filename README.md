@@ -43,7 +43,7 @@ As páginas de jogador são públicas. Todas as páginas de controle, configura�
 
 ## MegaDex
 
-O MegaDex é a base local do projeto. Ele guarda Pokémon, stats, tipos, abilities, moves, tags, presets, linhas evolutivas e relações úteis para o draft.
+O MegaDex é a base local do projeto. Ele guarda Pokémon, stats, tipos, abilities, moves, tags, imagens/sprites, presets, linhas evolutivas e relações úteis para o draft.
 
 Criar/atualizar o banco:
 
@@ -57,11 +57,14 @@ Importar tudo da PokéAPI:
 python scripts/rebuild_dex_full.py --move-details
 ```
 
-Depois de importar, montar linhas evolutivas:
+Depois de importar, preencher imagens/sprites e montar linhas evolutivas:
 
 ```bash
+python scripts/backfill_pokemon_images.py --continue-on-error
 python scripts/build_evolution_lines.py
 ```
+
+As imagens vêm dos campos `sprites` da PokéAPI. O projeto salva uma imagem principal, a official artwork quando disponível, e um sprite clássico como fallback.
 
 Criar/atualizar seeds úteis:
 

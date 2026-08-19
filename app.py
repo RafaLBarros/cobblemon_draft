@@ -5,6 +5,7 @@ import os
 import random
 from datetime import datetime
 from pathlib import Path
+from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple
 
 from flask import Flask, Response, flash, redirect, render_template, request, session, url_for
@@ -23,6 +24,7 @@ from services.dex_db import (
     get_pokemon_records_in_evolution_line,
     get_preset,
     get_pokemon_pool_from_preset,
+    get_pokemon_image_url,
     get_pokemon_record_by_name,
     get_pokemon_records_by_names,
     get_pokemon_records_by_species_for_pokemon_name,
@@ -76,6 +78,28 @@ POKEMON_LOCK_SCOPE_LABELS = {
     POKEMON_LOCK_SCOPE_EVOLUTION_LINE: "Linha evolutiva inteira",
     POKEMON_LOCK_SCOPE_LEGACY_GROUP: "Grupos TXT legados",
 }
+
+TYPE_CARD_COLORS: Dict[str, str] = {
+    "normal": "rgba(144, 153, 161, .32)",
+    "fire": "rgba(255, 156, 84, .34)",
+    "water": "rgba(77, 144, 213, .34)",
+    "electric": "rgba(243, 210, 59, .34)",
+    "grass": "rgba(99, 187, 91, .34)",
+    "ice": "rgba(116, 206, 192, .34)",
+    "fighting": "rgba(206, 64, 105, .34)",
+    "poison": "rgba(171, 106, 200, .34)",
+    "ground": "rgba(217, 119, 70, .34)",
+    "flying": "rgba(146, 170, 222, .34)",
+    "psychic": "rgba(249, 113, 118, .34)",
+    "bug": "rgba(144, 193, 44, .34)",
+    "rock": "rgba(199, 183, 139, .34)",
+    "ghost": "rgba(82, 105, 172, .34)",
+    "dragon": "rgba(9, 109, 196, .34)",
+    "dark": "rgba(90, 83, 102, .38)",
+    "steel": "rgba(90, 142, 161, .34)",
+    "fairy": "rgba(236, 143, 230, .34)",
+}
+
 BUDGET_COST_MODE_POKEMON_BST = "pokemon_bst"
 BUDGET_COST_MODE_SPECIES_MAX_BST = "species_max_bst"
 BUDGET_COST_MODE_LINE_MAX_BST = "line_max_bst"
@@ -1890,6 +1914,103 @@ def sorted_players(state: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     )
 
 
+@lru_cache(maxsize=4096)
+def cached_pokemon_image_url(name: str) -> str:
+    try:
+        return get_pokemon_image_url(str(name or ""), db_path=DEX_DB_FILE)
+    except Exception:
+        return ""
+
+
+@lru_cache(maxsize=4096)
+def cached_pokemon_record(name: str) -> Dict[str, Any]:
+    try:
+        record = get_pokemon_record_by_name(str(name or ""), db_path=DEX_DB_FILE)
+    except Exception:
+        record = None
+    return dict(record or {})
+
+
+def pokemon_image_url(name: str) -> str:
+    return cached_pokemon_image_url(str(name or "").strip())
+
+
+def format_pokemon_type(value: Any) -> str:
+    text = str(value or "").strip().replace("-", " ")
+    return text.title() if text else ""
+
+
+def type_icon_slug(value: Any) -> str:
+    return str(value or "").strip().lower().replace(" ", "-")
+
+
+def type_icon_url(value: Any) -> str:
+    slug = type_icon_slug(value)
+    if not slug:
+        return ""
+    return url_for("static", filename=f"type-icons/{slug}.svg")
+
+
+def type_card_style(types: List[str]) -> str:
+    slugs = [type_icon_slug(type_name) for type_name in types if type_icon_slug(type_name)]
+    first = TYPE_CARD_COLORS.get(slugs[0], "rgba(139, 92, 246, .28)") if slugs else "rgba(139, 92, 246, .22)"
+    second = TYPE_CARD_COLORS.get(slugs[1], first) if len(slugs) > 1 else first
+    if len(slugs) > 1:
+        card_bg = f"linear-gradient(115deg, {first} 0%, {first} 49%, {second} 51%, {second} 100%)"
+    else:
+        card_bg = f"linear-gradient(160deg, {first} 0%, rgba(42, 48, 74, .26) 58%, rgba(14, 16, 32, .18) 100%)"
+    return f"--type-card-bg: {card_bg}; --type-card-glow: {first};"
+
+
+def stat_bar_width(value: Any) -> int:
+    try:
+        number = int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+    if number <= 0:
+        return 0
+    return max(7, min(100, round((number / 180) * 100)))
+
+
+def stat_bar_class(value: Any) -> str:
+    try:
+        number = int(value or 0)
+    except (TypeError, ValueError):
+        return "empty"
+    if number <= 60:
+        return "very-low"
+    if number <= 90:
+        return "low-mid"
+    if number <= 120:
+        return "mid-high"
+    return "very-high"
+
+
+def pokemon_card_payload(name: str, state: Dict[str, Any]) -> Dict[str, Any]:
+    clean_name = str(name or "").strip()
+    record = cached_pokemon_record(clean_name)
+    cost_payload = budget_cost_payload(clean_name, state, record or None)
+    image_url = str(record.get("image_url") or record.get("artwork_url") or record.get("sprite_url") or pokemon_image_url(clean_name) or "")
+    stats = {
+        "HP": record.get("hp"),
+        "Atk": record.get("attack"),
+        "Def": record.get("defense"),
+        "SpA": record.get("sp_attack"),
+        "SpD": record.get("sp_defense"),
+        "Spe": record.get("speed"),
+    }
+    return {
+        "name": clean_name,
+        "image_url": image_url,
+        "types": [format_pokemon_type(record.get("type1")), format_pokemon_type(record.get("type2"))],
+        "stats": stats,
+        "bst": record.get("bst"),
+        "cost": cost_payload,
+        "has_record": bool(record),
+    }
+
+
+
 @app.context_processor
 def inject_helpers():
     return {
@@ -1919,6 +2040,12 @@ def inject_helpers():
         "pokemon_lock_scope": pokemon_lock_scope,
         "pokemon_lock_scope_label": pokemon_lock_scope_label,
         "pokemon_lock_scope_options": pokemon_lock_scope_options,
+        "pokemon_image_url": pokemon_image_url,
+        "type_icon_url": type_icon_url,
+        "type_card_style": type_card_style,
+        "stat_bar_width": stat_bar_width,
+        "stat_bar_class": stat_bar_class,
+        "pokemon_card_payload": pokemon_card_payload,
         "pokemon_pool_source_label": pokemon_pool_source_label,
         "ability_pool_source_label": ability_pool_source_label,
         "auth_role": current_auth_role(),
@@ -2569,6 +2696,7 @@ def choose_pokemon():
     mark_choice_history(player, pending.get("choice_id"), chosen)
     pick = {
         "name": chosen,
+        "image_url": pokemon_image_url(chosen),
         "ability": None,
         "round_index": pending.get("round_index"),
         "round_name": pending.get("round_name"),

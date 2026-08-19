@@ -25,6 +25,14 @@
             {% for pick in player.pokemon_picks %}
                 <div class="step">
                     <div class="step-number">{{ loop.index }}</div>
+                    <span class="pokemon-face small {% if not (pick.image_url or pokemon_image_url(pick.name)) %}placeholder{% endif %}">
+                        {% set pick_img = pick.image_url or pokemon_image_url(pick.name) %}
+                        {% if pick_img %}
+                            <img src="{{ pick_img }}" alt="{{ pick.name }}" loading="lazy">
+                        {% else %}
+                            {{ pick.name[:1] }}
+                        {% endif %}
+                    </span>
                     <div>
                         {% set pick_round_label = pokemon_round_label_for_pick(pick, loop.index0) %}
                         {% if pick_round_label %}<span class="badge">{{ pick_round_label }}</span><br>{% endif %}
@@ -48,28 +56,72 @@
         {% endif %}
     </div>
 
-    <div class="card">
+    <div class="card {% if player.pending.type == "pokemon" %}choice-card-pokemon{% endif %}">
         {% if player.pending.type == "pokemon" %}
             <h2>Escolha 1 Pokémon</h2>
             {% if player.pending.round_name %}<p><span class="badge">{{ player.pending.round_name }}</span></p>{% endif %}
             <p class="muted">O escolhido entra no seu time. As travas do ruleset cuidam de forma, species ou linha evolutiva.</p>
+            {% set total_cards = player.pending.pokemon_options|length %}
+            {% set center = (total_cards - 1) / 2 %}
+            <div class="pokemon-card-hand" style="--hand-total: {{ total_cards }};">
             {% for option in player.pending.pokemon_options %}
-                <form method="post" action="{{ url_for('choose_pokemon') }}">
+                {% set card = pokemon_card_payload(option, state) %}
+                {% set offset = loop.index0 - center %}
+                <form class="hand-card-form" method="post" action="{{ url_for('choose_pokemon') }}" style="--card-rotation: {{ (offset * 6)|round(2) }}deg; --card-y: {{ ((offset * offset) * 4)|round(2) }}px; --card-z: {{ loop.index }};">
                     <input type="hidden" name="player_id" value="{{ player.player_id }}">
                     <input type="hidden" name="pokemon" value="{{ option }}">
-                    {% set option_cost = budget_cost_payload(option, state) %}
-                    <button class="option-button" type="submit">
-                        <span>{{ option }}</span>
-                        {% if budget_enabled(state) %}
-                            <span class="muted">{{ option_cost.cost }} pts{% if option_cost.bst %} · BST {{ option_cost.bst }}{% endif %}</span>
-                        {% endif %}
+                    <button class="pokemon-hand-card" type="submit" aria-label="Escolher {{ option }}" style="{{ type_card_style(card.types) }}">
+                        <span class="hand-card-art {% if not card.image_url %}placeholder{% endif %}">
+                            {% if card.image_url %}
+                                <img src="{{ card.image_url }}" alt="{{ option }}" loading="lazy">
+                            {% else %}
+                                {{ option[:1] }}
+                            {% endif %}
+                        </span>
+                        <span class="hand-card-body">
+                            <span class="hand-card-title-row">
+                                {% set option_name_len = option|length %}
+                                <strong class="hand-card-name {% if option_name_len > 28 %}name-extra-long{% elif option_name_len > 20 %}name-very-long{% elif option_name_len > 14 %}name-long{% endif %}" title="{{ option }}">{{ option }}</strong>
+                                <span class="type-row" aria-label="Tipagem de {{ option }}">
+                                    {% for type_name in card.types %}
+                                        {% if type_name %}
+                                            <span class="type-pill type-{{ type_name|lower|replace(' ', '-') }}" title="{{ type_name }}">
+                                                <img src="{{ type_icon_url(type_name) }}" alt="{{ type_name }}" loading="lazy">
+                                            </span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
+                            </span>
+                            <span class="hand-card-meta">
+                                {% if budget_enabled(state) %}
+                                    {{ card.cost.cost }} pts ·
+                                {% endif %}
+                                {% if card.bst %}BST {{ card.bst }}{% else %}Dados pendentes{% endif %}
+                            </span>
+                            <span class="mini-stat-grid" aria-label="Base stats de {{ option }}">
+                                {% for stat_label, stat_value in card.stats.items() %}
+                                    <span class="mini-stat">
+                                        <span class="mini-stat-label">{{ stat_label }}</span>
+                                        <span class="mini-stat-bar" aria-hidden="true">
+                                            <span class="mini-stat-fill {{ stat_bar_class(stat_value) }}" style="--stat-width: {{ stat_bar_width(stat_value) }}%;"></span>
+                                        </span>
+                                        <strong>{{ stat_value or '—' }}</strong>
+                                    </span>
+                                {% endfor %}
+                            </span>
+                        </span>
                     </button>
                 </form>
             {% endfor %}
+            </div>
         {% elif player.pending.type == "ability" %}
             {% set idx = player.pending.ability_for_index %}
             {% set pokemon_name = player.pokemon_picks[idx].name if idx is number and idx >= 0 and idx < player.pokemon_picks|length else "Pokémon" %}
             <h2>Escolha ability para {{ pokemon_name }}</h2>
+            {% set ability_target_img = pokemon_image_url(pokemon_name) %}
+            {% if ability_target_img %}
+                <p><span class="pokemon-face"><img src="{{ ability_target_img }}" alt="{{ pokemon_name }}" loading="lazy"></span></p>
+            {% endif %}
             <p class="muted">Escolha uma das opções sorteadas para finalizar este slot.</p>
             {% for option in player.pending.ability_options %}
                 <form method="post" action="{{ url_for('choose_ability') }}">
@@ -93,7 +145,13 @@
     {% for pick in player.pokemon_picks %}
         {% if pick.ability %}
             <div class="command-row">
-                <strong>{{ pick.name }}</strong>
+                <div class="pokemon-row">
+                    {% set command_img = pick.image_url or pokemon_image_url(pick.name) %}
+                    <span class="pokemon-face tiny {% if not command_img %}placeholder{% endif %}">
+                        {% if command_img %}<img src="{{ command_img }}" alt="{{ pick.name }}" loading="lazy">{% else %}{{ pick.name[:1] }}{% endif %}
+                    </span>
+                    <strong>{{ pick.name }}</strong>
+                </div>
                 <div class="command-box"><code>{{ pokegive_command(player.nickname, pick.name, pick.ability) }}</code></div>
             </div>
         {% endif %}
